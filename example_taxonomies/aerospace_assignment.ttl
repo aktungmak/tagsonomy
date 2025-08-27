@@ -1,0 +1,31 @@
+@prefix : <http://example.com/aerospace/>.
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>.
+@prefix uc: <http://databricks.com/ontology/uc/>.
+
+:bearings_table a uc:table;
+    uc:name "aerospace_demo.telemetry.bearings";
+    uc:semanticAssignment :Bearings.
+
+:high_pressure_compressor a uc:table;
+    uc:name "aerospace_demo.telemetry.compressorhighpressure";
+    uc:semanticAssignment :CompressionHighPressure.
+
+:sensor_table a uc:table;
+    uc:name "aerospace_demo.telemetry.sensor";
+    uc:semanticAssignment :Sensing.
+
+:sensor_test_results a uc:table;
+    uc:name "aerospace_demo.test_facility.sensing_results";
+    uc:semanticAssignment :Sensing.
+
+:high_pressure_turbine a uc:table;
+    uc:name "aerospace_demo.test_facility.turbinehighpressure";
+    uc:semanticAssignment :TurbineHighPressure.
+
+:compressor_summary a uc:table;
+    uc:name "aerospace_demo.test_facility.comp_performance_summary";
+    uc:semanticAssignment :TurbineHighPressure.
+
+:bearing_counts a uc:table;
+    uc:name "aerospace_demo.test_facility.bearing_counts";
+    uc:semanticAssignment :Bearings.

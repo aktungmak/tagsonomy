@@ -1,0 +1,237 @@
+@prefix : <http://example.com/aerospace/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix xml: <http://www.w3.org/XML/1998/namespace> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@base <http://example.com/aerospace/> .
+
+[ rdf:type owl:Ontology
+ ] .
+
+#################################################################
+#    Classes
+#################################################################
+
+###  http://example.com/aerospace/Actuation
+:Actuation rdf:type owl:Class ;
+           rdfs:subClassOf :ControlSystem ;
+           rdfs:label "Actuation" .
+
+
+###  http://example.com/aerospace/AirSystem
+:AirSystem rdf:type owl:Class ;
+           rdfs:subClassOf :Engine ;
+           rdfs:label "AirSystem" .
+
+
+###  http://example.com/aerospace/Bearings
+:Bearings rdf:type owl:Class ;
+          rdfs:subClassOf :Engine ;
+          rdfs:label "Bearings" .
+
+
+###  http://example.com/aerospace/Combustion
+:Combustion rdf:type owl:Class ;
+            rdfs:subClassOf :Engine ;
+            rdfs:label "Combustion" .
+
+
+###  http://example.com/aerospace/Compression
+:Compression rdf:type owl:Class ;
+             rdfs:subClassOf :Engine ;
+             rdfs:label "Compression" .
+
+
+###  http://example.com/aerospace/CompressionHighPressure
+:CompressionHighPressure rdf:type owl:Class ;
+                         rdfs:subClassOf :Compression ,
+                                         :HighPressure ;
+                         rdfs:label "CompressionHighPressure" .
+
+
+###  http://example.com/aerospace/CompressionIntermediatePressure
+:CompressionIntermediatePressure rdf:type owl:Class ;
+                                 rdfs:subClassOf :Compression ,
+                                                 :IntermediatePressure ;
+                                 rdfs:label "CompressionIntermediatePressure" .
+
+
+###  http://example.com/aerospace/CompressionLowPressure
+:CompressionLowPressure rdf:type owl:Class ;
+                        rdfs:subClassOf :Compression ,
+                                        :LowPressure ;
+                        rdfs:label "CompressionLowPressure" .
+
+
+###  http://example.com/aerospace/Compute
+:Compute rdf:type owl:Class ;
+         rdfs:subClassOf :ControlSystem ;
+         rdfs:label "Compute" .
+
+
+###  http://example.com/aerospace/ControlSystem
+:ControlSystem rdf:type owl:Class ;
+               rdfs:subClassOf :Engine ;
+               rdfs:label "ControlSystem" .
+
+
+###  http://example.com/aerospace/Display
+:Display rdf:type owl:Class ;
+         rdfs:subClassOf :ControlSystem ;
+         rdfs:label "Display" .
+
+
+###  http://example.com/aerospace/Engine
+:Engine rdf:type owl:Class ;
+        rdfs:label "Engine" .
+
+
+###  http://example.com/aerospace/Externals
+:Externals rdf:type owl:Class ;
+           rdfs:subClassOf :Engine ;
+           rdfs:label "Externals" .
+
+
+###  http://example.com/aerospace/Fittings
+:Fittings rdf:type owl:Class ;
+          rdfs:subClassOf :Externals ;
+          rdfs:label "Fittings" .
+
+
+###  http://example.com/aerospace/FuelSystem
+:FuelSystem rdf:type owl:Class ;
+            rdfs:subClassOf :Engine ;
+            rdfs:label "FuelSystem" .
+
+
+###  http://example.com/aerospace/Gearbox
+:Gearbox rdf:type owl:Class ;
+         rdfs:subClassOf :Engine ;
+         rdfs:label "Gearbox" .
+
+
+###  http://example.com/aerospace/Generator
+:Generator rdf:type owl:Class ;
+           rdfs:subClassOf :Engine ;
+           rdfs:label "Generator" .
+
+
+###  http://example.com/aerospace/HighPressure
+:HighPressure rdf:type owl:Class ;
+              rdfs:label "HighPressure" .
+
+
+###  http://example.com/aerospace/Intake
+:Intake rdf:type owl:Class ;
+        rdfs:subClassOf :Engine ;
+        rdfs:label "Intake" .
+
+
+###  http://example.com/aerospace/IntermediatePressure
+:IntermediatePressure rdf:type owl:Class ;
+                      rdfs:label "IntermediatePressure" .
+
+
+###  http://example.com/aerospace/JetPipe
+:JetPipe rdf:type owl:Class ;
+         rdfs:subClassOf :Engine ;
+         rdfs:label "JetPipe" .
+
+
+###  http://example.com/aerospace/LowPressure
+:LowPressure rdf:type owl:Class ;
+             rdfs:label "LowPressure" .
+
+
+###  http://example.com/aerospace/Nacelle
+:Nacelle rdf:type owl:Class ;
+         rdfs:subClassOf :Engine ;
+         rdfs:label "Nacelle" .
+
+
+###  http://example.com/aerospace/OilSystem
+:OilSystem rdf:type owl:Class ;
+           rdfs:subClassOf :Engine ;
+           rdfs:label "OilSystem" .
+
+
+###  http://example.com/aerospace/Pipes
+:Pipes rdf:type owl:Class ;
+       rdfs:subClassOf :Externals ;
+       rdfs:label "Pipes" .
+
+
+###  http://example.com/aerospace/Sensing
+:Sensing rdf:type owl:Class ;
+         rdfs:subClassOf :ControlSystem ;
+         rdfs:label "Sensing" .
+
+
+###  http://example.com/aerospace/Shafts
+:Shafts rdf:type owl:Class ;
+        rdfs:subClassOf :Engine ;
+        rdfs:label "Shafts" .
+
+
+###  http://example.com/aerospace/ShaftsHighPressure
+:ShaftsHighPressure rdf:type owl:Class ;
+                    rdfs:subClassOf :HighPressure ,
+                                    :Shafts ;
+                    rdfs:label "ShaftsHighPressure" .
+
+
+###  http://example.com/aerospace/ShaftsIntermediatePressure
+:ShaftsIntermediatePressure rdf:type owl:Class ;
+                            rdfs:subClassOf :IntermediatePressure ,
+                                            :Shafts ;
+                            rdfs:label "ShaftsIntermediatePressure" .
+
+
+###  http://example.com/aerospace/ShaftsLowPressure
+:ShaftsLowPressure rdf:type owl:Class ;
+                   rdfs:subClassOf :LowPressure ,
+                                   :Shafts ;
+                   rdfs:label "ShaftsLowPressure" .
+
+
+###  http://example.com/aerospace/Structure
+:Structure rdf:type owl:Class ;
+           rdfs:subClassOf :Engine ;
+           rdfs:label "Structure" .
+
+
+###  http://example.com/aerospace/Turbine
+:Turbine rdf:type owl:Class ;
+         rdfs:subClassOf :Engine ;
+         rdfs:label "Turbine" .
+
+
+###  http://example.com/aerospace/TurbineHighPressure
+:TurbineHighPressure rdf:type owl:Class ;
+                     rdfs:subClassOf :HighPressure ,
+                                     :Turbine ;
+                     rdfs:label "TurbineHighPressure" .
+
+
+###  http://example.com/aerospace/TurbineIntermediatePressure
+:TurbineIntermediatePressure rdf:type owl:Class ;
+                             rdfs:subClassOf :IntermediatePressure ,
+                                             :Turbine ;
+                             rdfs:label "TurbineIntermediatePressure" .
+
+
+###  http://example.com/aerospace/TurbineLowPressure
+:TurbineLowPressure rdf:type owl:Class ;
+                    rdfs:subClassOf :LowPressure ,
+                                    :Turbine ;
+                    rdfs:label "TurbineLowPressure" .
+
+
+###  http://example.com/aerospace/Wiring
+:Wiring rdf:type owl:Class ;
+        rdfs:subClassOf :Externals ;
+        rdfs:label "Wiring" .
+
+
+###  Generated by the OWL API (version 4.5.29.2024-05-13T12:11:03Z) https://github.com/owlcs/owlapi

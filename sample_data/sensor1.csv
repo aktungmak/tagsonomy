@@ -1,0 +1,6 @@
+"SensorID","SensorType","Parameter","Location","Status","Manufacturer","InstallDate","CalibrationInterval (months)","OutputType","SerialNumber"
+"101","Thermocouple","T5 Temp","Turbine Exit","Active","Honeywell","2024-08-15","12","Analog","T5-2024-001"
+"102","Pressure","P2 Pressure","Compressor Inlet","Active","GE Sensors","2023-11-02","18","Digital","P2-2023-045"
+"103","Accelerometer","Vibration","Bearing No. 3","Faulty","SKF","2022-05-10","24","Digital","VIB-2022-018"
+"104","Proximity","Shaft Displ.","HP Shaft","Active","Siemens","2025-01-21","12","Analog","PROX-2025-007"
+"105","RTD","Oil Temp","Oil System Outlet","Active","Omega","2023-07-30","12","Analog","OIL-2023-033"

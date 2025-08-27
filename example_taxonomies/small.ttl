@@ -1,0 +1,64 @@
+@prefix : <http://example.com/ontology/>.
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>.
+@prefix uc: <http://databricks.com/ontology/uc/>.
+
+### Taxonomy definition ################################
+
+:dog rdfs:subClassOf :mammal; rdfs:label "Dog".
+:cat rdfs:subClassOf :mammal; rdfs:label "Cat".
+:mammal rdfs:subClassOf :animal; rdfs:label "Mammal".
+
+:salmon rdfs:subClassOf :fish; rdfs:label "Salmon".
+:shark rdfs:subClassOf :fish; rdfs:label "Shark".
+:fish rdfs:subClassOf :animal; rdfs:label "Fish".
+
+:animal rdfs:subClassOf :organism; rdfs:label "Animal".
+
+:tree rdfs:subClassOf :plant; rdfs:label "Tree".
+:flower rdfs:subClassOf :plant; rdfs:label "Flower".
+
+:plant rdfs:subClassOf :organism; rdfs:label "Plant".
+
+:organism a rdfs:Class.
+:organism rdfs:label "Organism".
+
+:dog_name rdfs:subClassOf :name; rdfs:label "DogName".
+:cat_name rdfs:subClassOf :name; rdfs:label "CatName".
+
+:name a rdfs:Class.
+:name rdfs:label "Name".
+
+### Securable class definitions ########################
+
+:my_dog_table a uc:table, :dog;
+    uc:name "users.joshua_green.users".
+
+:my_dog_name_column a uc:column, :dog_name;
+    uc:name "users.joshua_green.users.active".
+
+:my_cat_name_column a uc:column, :cat_name, :dog_name;
+    uc:name "users.joshua_green.users.display_name".
+
+:cat_table a uc:table;
+    uc:name "cat2.sch2.tab2".
+
+### using semanticAssignment predicate ################
+
+:my_dog_table a uc:table;
+    uc:name "users.joshua_green.users";
+    uc:semanticAssignment :dog.
+
+:my_dog_name_column a uc:column;
+    uc:name "users.joshua_green.users.active";
+    uc:semanticAssignment :dog_name.
+
+### using a hierarchy of names to reduce repetition ###
+
+:col a uc:column;
+    uc:in_table :tab;
+    rdfs:label "col".
+:tab uc:in_schema :sch;
+    rdfs:label "tab".
+:sch uc:in_catalog :cat;
+    rdfs:label "sch".
+:cat rdfs:label "cat".
