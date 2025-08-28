@@ -466,7 +466,7 @@ def properties_tab(graph: Graph):
     property_options = []
     property_mapping = {}
 
-    for prop_uri, label, domain, range_uri in all_properties:
+    for prop_uri, label, domain_uri, range_uri in all_properties:
         display_name = str(label) if label else format_uri_display(prop_uri)
         full_display = f"{display_name} ({format_uri_display(prop_uri)})"
         property_options.append(full_display)
@@ -540,14 +540,13 @@ def properties_tab(graph: Graph):
         st.subheader("Domain & Range Details")
 
         # Get domain and range information from the original property data
-        for prop_uri, label, domain, range_uri in all_properties:
+        for prop_uri, label, domain_uri, range_uri in all_properties:
             if prop_uri == selected_property:
-                if domain:
-                    st.write(f"**Domain:** {domain}")
+                if domain_uri:
+                    st.write(f"**Domain:** {domain_uri}")
                 if range_uri:
-                    range_name = format_uri_display(range_uri)
-                    st.write(f"**Range:** {range_name}")
-                if not domain and not range_uri:
+                    st.write(f"**Range:** {range_uri}")
+                if not domain_uri and not range_uri:
                     st.info("No domain or range specified.")
                 break
 
