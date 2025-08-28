@@ -43,7 +43,7 @@ def save_graph_to_file(graph: Graph, file_path: str):
     graph.serialize(destination=file_path, format='turtle')
 
 
-def get_rdfs_classes(graph: Graph):
+def rdfs_classes(graph: Graph):
     """Get all RDFS classes from the graph."""
     query = """
     SELECT DISTINCT ?class ?label
@@ -61,7 +61,7 @@ def get_rdfs_classes(graph: Graph):
     return list(graph.query(query))
 
 
-def get_subclasses(graph: Graph, class_uri: URIRef):
+def subclasses(graph: Graph, class_uri: URIRef):
     """Get direct subclasses of a given class."""
     query = """
     SELECT DISTINCT ?subclass ?label
@@ -73,7 +73,7 @@ def get_subclasses(graph: Graph, class_uri: URIRef):
     return list(graph.query(query, initBindings={'class': class_uri}))
 
 
-def get_superclasses(graph: Graph, class_uri: URIRef):
+def superclasses(graph: Graph, class_uri: URIRef):
     """Get direct superclasses of a given class."""
     query = """
     SELECT DISTINCT ?superclass ?label
@@ -86,7 +86,7 @@ def get_superclasses(graph: Graph, class_uri: URIRef):
     return list(graph.query(query, initBindings={'class': class_uri}))
 
 
-def get_rdfs_properties(graph: Graph):
+def rdfs_properties(graph: Graph):
     """Get all RDFS properties from the graph."""
     query = """
     SELECT DISTINCT ?property ?label ?domain ?range
@@ -106,7 +106,7 @@ def get_rdfs_properties(graph: Graph):
     return list(graph.query(query))
 
 
-def get_class_attributes(graph: Graph, class_uri: URIRef):
+def class_attributes(graph: Graph, class_uri: URIRef):
     """Get all attributes where this class is the subject."""
     query = """
     SELECT DISTINCT ?predicate ?object
@@ -119,7 +119,7 @@ def get_class_attributes(graph: Graph, class_uri: URIRef):
     return list(graph.query(query, initBindings={'class': class_uri}))
 
 
-def get_semantic_assignments(graph: Graph, class_uri: URIRef):
+def semantic_assignments(graph: Graph, class_uri: URIRef):
     """Get catalog objects that have semantic assignments to this class."""
     query = """
     SELECT DISTINCT ?object ?name
@@ -132,7 +132,7 @@ def get_semantic_assignments(graph: Graph, class_uri: URIRef):
     return list(graph.query(query, initBindings={'class': class_uri}))
 
 
-def get_related_properties(graph: Graph, class_uri: URIRef):
+def related_properties(graph: Graph, class_uri: URIRef):
     """Get properties that have this class as domain or range."""
     query = """
     SELECT DISTINCT ?property ?predicate ?predicate_label
@@ -153,7 +153,7 @@ def get_related_properties(graph: Graph, class_uri: URIRef):
     return list(graph.query(query, initBindings={'class': class_uri}))
 
 
-def get_subproperties(graph: Graph, property_uri: URIRef):
+def subproperties(graph: Graph, property_uri: URIRef):
     """Get direct subproperties of a given property."""
     query = """
     SELECT DISTINCT ?subproperty ?label
@@ -166,7 +166,7 @@ def get_subproperties(graph: Graph, property_uri: URIRef):
     return list(graph.query(query, initBindings={'property': property_uri}))
 
 
-def get_superproperties(graph: Graph, property_uri: URIRef):
+def superproperties(graph: Graph, property_uri: URIRef):
     """Get direct superproperties of a given property."""
     query = """
     SELECT DISTINCT ?superproperty ?label
@@ -179,7 +179,7 @@ def get_superproperties(graph: Graph, property_uri: URIRef):
     return list(graph.query(query, initBindings={'property': property_uri}))
 
 
-def get_property_attributes(graph: Graph, property_uri: URIRef):
+def property_attributes(graph: Graph, property_uri: URIRef):
     """Get all attributes where this property is the subject."""
     query = """
     SELECT DISTINCT ?predicate ?object
@@ -193,7 +193,7 @@ def get_property_attributes(graph: Graph, property_uri: URIRef):
     return list(graph.query(query, initBindings={'property': property_uri}))
 
 
-def get_related_concepts(graph: Graph, property_uri: URIRef):
+def related_concepts(graph: Graph, property_uri: URIRef):
     """Get concepts that are related to this property via domain and range."""
     query = """
     SELECT DISTINCT ?concept ?predicate ?label
@@ -217,10 +217,10 @@ def get_related_concepts(graph: Graph, property_uri: URIRef):
 def search_properties_by_name(graph: Graph, search_term: str):
     """Search for properties by name/label."""
     if not search_term:
-        return get_rdfs_properties(graph)
+        return rdfs_properties(graph)
 
     search_term = search_term.lower()
-    properties = get_rdfs_properties(graph)
+    properties = rdfs_properties(graph)
 
     # Filter properties that match the search term
     filtered = []
@@ -237,10 +237,10 @@ def search_properties_by_name(graph: Graph, search_term: str):
 def search_classes_by_name(graph: Graph, search_term: str):
     """Search for classes by name/label."""
     if not search_term:
-        return get_rdfs_classes(graph)
+        return rdfs_classes(graph)
 
     search_term = search_term.lower()
-    classes = get_rdfs_classes(graph)
+    classes = rdfs_classes(graph)
 
     # Filter classes that match the search term
     filtered = []
@@ -254,7 +254,7 @@ def search_classes_by_name(graph: Graph, search_term: str):
     return filtered
 
 
-def get_catalog_objects(graph: Graph):
+def catalog_objects(graph: Graph):
     """Get all catalog objects (uc:table and uc:column)."""
     query = """
     SELECT DISTINCT ?object ?type ?name
@@ -267,7 +267,7 @@ def get_catalog_objects(graph: Graph):
     return list(graph.query(query))
 
 
-def get_catalog_object_attributes(graph: Graph, object_uri: URIRef):
+def catalog_object_attributes(graph: Graph, object_uri: URIRef):
     """Get all attributes where this catalog object is the subject."""
     query = """
     SELECT DISTINCT ?predicate ?object
@@ -279,7 +279,7 @@ def get_catalog_object_attributes(graph: Graph, object_uri: URIRef):
     return list(graph.query(query, initBindings={'catalog_object': object_uri}))
 
 
-def get_catalog_object_semantic_assignments(graph: Graph, object_uri: URIRef):
+def catalog_object_semantic_assignments(graph: Graph, object_uri: URIRef):
     """Get classes that this catalog object is semantically assigned to."""
     query = """
     SELECT DISTINCT ?class ?label
@@ -295,10 +295,10 @@ def get_catalog_object_semantic_assignments(graph: Graph, object_uri: URIRef):
 def search_catalog_objects_by_name(graph: Graph, search_term: str):
     """Search for catalog objects by name."""
     if not search_term:
-        return get_catalog_objects(graph)
+        return catalog_objects(graph)
 
     search_term = search_term.lower()
-    catalog_objects = get_catalog_objects(graph)
+    catalog_objects = catalog_objects(graph)
 
     # Filter catalog objects that match the search term
     filtered = []
@@ -359,7 +359,7 @@ def concepts_tab(graph: Graph):
         st.info("New concept creation will be implemented later.")
 
     # Get all classes for the searchable dropdown
-    all_classes = get_rdfs_classes(graph)
+    all_classes = rdfs_classes(graph)
 
     # Create class options and mapping
     class_options = []
@@ -387,7 +387,7 @@ def concepts_tab(graph: Graph):
     st.markdown(f"**IRI:** `{selected_class}`")
 
     # Show general class attributes
-    attributes = get_class_attributes(graph, selected_class)
+    attributes = class_attributes(graph, selected_class)
     if attributes:
         for predicate, obj in attributes:
             pred_name = format_uri_display(predicate)
@@ -403,29 +403,29 @@ def concepts_tab(graph: Graph):
         st.subheader("Concept Hierarchy")
 
         # Show subclasses and superclasses
-        subclasses = get_subclasses(graph, selected_class)
-        superclasses = get_superclasses(graph, selected_class)
+        subs = subclasses(graph, selected_class)
+        supers = superclasses(graph, selected_class)
 
-        if superclasses:
+        if supers:
             st.write("**Parent Classes:**")
-            for super_uri, super_label in superclasses:
+            for super_uri, super_label in supers:
                 display_name = str(super_label) if super_label else format_uri_display(super_uri)
                 st.write(f"- {display_name}")
 
-        if subclasses:
+        if subs:
             st.write("**Subclasses:**")
-            for sub_uri, sub_label in subclasses:
+            for sub_uri, sub_label in subs:
                 display_name = str(sub_label) if sub_label else format_uri_display(sub_uri)
                 st.write(f"- {display_name}")
 
-        if not subclasses and not superclasses:
+        if not subs and not supers:
             st.info("No related classes found.")
 
     with col2:
         st.subheader("Related Properties")
 
         # Show related properties
-        related_props = get_related_properties(graph, selected_class)
+        related_props = related_properties(graph, selected_class)
         if related_props:
             for prop_uri, predicate, predicate_label in related_props:
                 prop_name = format_uri_display(prop_uri)
@@ -438,7 +438,7 @@ def concepts_tab(graph: Graph):
         st.subheader("Linked Catalog Objects")
 
         # Show linked catalog objects
-        assignments = get_semantic_assignments(graph, selected_class)
+        assignments = semantic_assignments(graph, selected_class)
         if assignments:
             for obj_uri, name in assignments:
                 obj_name = str(name) if name else format_uri_display(obj_uri)
@@ -460,7 +460,7 @@ def properties_tab(graph: Graph):
         st.info("New property creation will be implemented later.")
 
     # Get all properties for the searchable dropdown
-    all_properties = get_rdfs_properties(graph)
+    all_properties = rdfs_properties(graph)
 
     # Create property options and mapping
     property_options = []
@@ -488,7 +488,7 @@ def properties_tab(graph: Graph):
     st.markdown(f"**IRI:** `{selected_property}`")
 
     # Show general property attributes
-    attributes = get_property_attributes(graph, selected_property)
+    attributes = property_attributes(graph, selected_property)
     if attributes:
         for predicate, obj in attributes:
             # TODO show the full IRI in brackets after the name
@@ -505,31 +505,31 @@ def properties_tab(graph: Graph):
         st.subheader("Property Hierarchy")
 
         # Show subproperties and superproperties
-        subproperties = get_subproperties(graph, selected_property)
-        superproperties = get_superproperties(graph, selected_property)
+        subs = subproperties(graph, selected_property)
+        supers = superproperties(graph, selected_property)
 
-        if superproperties:
+        if supers:
             st.write("**Parent Properties:**")
-            for super_uri, super_label in superproperties:
+            for super_uri, super_label in supers:
                 display_name = str(super_label) if super_label else format_uri_display(super_uri)
                 st.write(f"- {display_name}")
 
-        if subproperties:
+        if subs:
             st.write("**Subproperties:**")
-            for sub_uri, sub_label in subproperties:
+            for sub_uri, sub_label in subs:
                 display_name = str(sub_label) if sub_label else format_uri_display(sub_uri)
                 st.write(f"- {display_name}")
 
-        if not subproperties and not superproperties:
+        if not subs and not supers:
             st.info("No related properties found.")
 
     with col2:
         st.subheader("Related Concepts")
 
         # Show related concepts via domain and range
-        related_concepts = get_related_concepts(graph, selected_property)
-        if related_concepts:
-            for concept_uri, predicate, label in related_concepts:
+        rel_concepts = related_concepts(graph, selected_property)
+        if rel_concepts:
+            for concept_uri, predicate, label in rel_concepts:
                 concept_name = str(label) if label else format_uri_display(concept_uri)
                 relation_type = "Domain" if "domain" in str(predicate) else "Range"
                 st.write(f"**{relation_type}:** {concept_name}")
@@ -543,8 +543,7 @@ def properties_tab(graph: Graph):
         for prop_uri, label, domain, range_uri in all_properties:
             if prop_uri == selected_property:
                 if domain:
-                    domain_name = format_uri_display(domain)
-                    st.write(f"**Domain:** {domain_name}")
+                    st.write(f"**Domain:** {domain}")
                 if range_uri:
                     range_name = format_uri_display(range_uri)
                     st.write(f"**Range:** {range_name}")
@@ -566,7 +565,7 @@ def catalog_objects_tab(graph: Graph):
         st.info("New catalog object creation will be implemented later.")
 
     # Get all catalog objects for the searchable dropdown
-    all_catalog_objects = get_catalog_objects(graph)
+    all_catalog_objects = catalog_objects(graph)
 
     # Create catalog object options and mapping
     catalog_options = []
@@ -594,27 +593,24 @@ def catalog_objects_tab(graph: Graph):
     selected_object, selected_type, selected_name = catalog_mapping[selected_display]
     st.markdown(f"**IRI:** `{selected_object}`")
 
+
     # Show general catalog object attributes
-    attributes = get_catalog_object_attributes(graph, selected_object)
-    print(attributes)
+    attributes = catalog_object_attributes(graph, selected_object)
     if attributes:
         for predicate, obj in attributes:
             pred_name = format_uri_display(predicate)
             obj_name = format_uri_display(obj) if not isinstance(obj, Literal) else str(obj)
+            print(pred_name, obj_name)
             st.write(f"**{pred_name}:** {obj_name}")
     else:
         st.info("No additional attributes found.")
 
-    # Show uc:name specifically
-    if selected_name:
-        st.write(f"**Name:** {selected_name}")
 
     st.subheader("Semantic Assignments")
 
     # Show semantic assignments
-    assignments = get_catalog_object_semantic_assignments(graph, selected_object)
+    assignments = catalog_object_semantic_assignments(graph, selected_object)
     if assignments:
-        st.write("**Mapped to Classes:**")
         for class_uri, label in assignments:
             class_name = str(label) if label else format_uri_display(class_uri)
             st.write(f"- {class_name}")
@@ -623,17 +619,9 @@ def catalog_objects_tab(graph: Graph):
 
     st.divider()
     
-    # Determine button text based on object type
-    type_name = format_uri_display(selected_type)
-    if type_name.lower() == "table":
-        button_text = "Assign Concept"
-    elif type_name.lower() == "column":
-        button_text = "Assign Property"
-    else:
-        button_text = "Assign Concept/Property"
 
     # Assignment button
-    if st.button(button_text, type="secondary"):
+    if st.button("Assign...", type="secondary"):
         st.info("Assignment functionality will be implemented later.")
 
 

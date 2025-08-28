@@ -58,14 +58,3 @@
 :my_dog_name_column a uc:column;
     uc:name "users.joshua_green.users.active";
     uc:semanticAssignment :dog_name.
-
-### using a hierarchy of names to reduce repetition ###
-
-:col a uc:column;
-    uc:in_table :tab;
-    rdfs:label "col".
-:tab uc:in_schema :sch;
-    rdfs:label "tab".
-:sch uc:in_catalog :cat;
-    rdfs:label "sch".
-:cat rdfs:label "cat".
