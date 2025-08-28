@@ -1,4 +1,4 @@
-@prefix : <http://example.com/ontology/>.
+@prefix : <http://example.com/animals/>.
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>.
 @prefix uc: <http://databricks.com/ontology/uc/>.
 
@@ -8,7 +8,7 @@
 :cat rdfs:subClassOf :mammal; rdfs:label "Cat".
 :mammal rdfs:subClassOf :animal; rdfs:label "Mammal".
 
-:salmon rdfs:subClassOf :fish; rdfs:label "Salmon".
+:salmon rdfs:subClassOf :fish; rdfs:label "Salmon"; :closestStarSign "Pisces".
 :shark rdfs:subClassOf :fish; rdfs:label "Shark".
 :fish rdfs:subClassOf :animal; rdfs:label "Fish".
 
@@ -22,16 +22,23 @@
 :organism a rdfs:Class.
 :organism rdfs:label "Organism".
 
-:dog_name rdfs:subClassOf :name; rdfs:label "DogName".
-:cat_name rdfs:subClassOf :name; rdfs:label "CatName".
+:dog_name rdfs:subPropertyOf :name;
+    rdfs:label "DogName";
+    rdfs:domain :dog;
+    rdfs:comment "what dogs are called".
+:cat_name rdfs:subPropertyOf :name;
+    rdfs:label "CatName";
+    rdfs:domain :cat.
 
-:name a rdfs:Class.
-:name rdfs:label "Name".
+:name a rdfs:Property;
+    rdfs:label "Name";
+    rdfs:domain :organism.
 
 ### Securable class definitions ########################
 
 :my_dog_table a uc:table, :dog;
-    uc:name "users.joshua_green.users".
+    uc:name "users.joshua_green.users";
+    :somethingElse "something else".
 
 :my_dog_name_column a uc:column, :dog_name;
     uc:name "users.joshua_green.users.active".
