@@ -4,38 +4,97 @@ from rdflib import Graph, Namespace, URIRef, Literal
 from rdflib.namespace import RDF, RDFS
 import os
 from pathlib import Path
+import re
 
 # Define namespaces
 UC = Namespace("http://databricks.com/ontology/uc/")
+EXAMPLE = Namespace("http://example.com/animals/")
+
+
+class GraphManager:
+    """
+    Manages the RDF graph with persistence capabilities.
+    Handles both reading and writing operations, automatically saving changes to file.
+    """
+    
+    def __init__(self, file_path: str = None):
+        self.graph = Graph()
+        self.current_files = []
+        
+        if file_path is None:
+            # Load default taxonomies
+            parent_dir = Path(__file__).parent.parent
+            example_files = [
+                parent_dir / "example_taxonomies" / "small.ttl",
+                parent_dir / "example_taxonomies" / "aerospace.ttl",
+            ]
+            
+            for file in example_files:
+                if file.exists():
+                    self.graph.parse(str(file))
+                    self.current_files.append(str(file))
+        else:
+            if os.path.exists(file_path):
+                self.graph.parse(file_path)
+                self.current_files.append(file_path)
+    
+    def add_catalog_object(self, name: str, object_type: str, iri: str = None):
+        """
+        Add a new catalog object to the graph.
+        
+        Args:
+            name: The name of the catalog object
+            object_type: Either 'table' or 'column'  
+            iri: Optional IRI, if not provided will be auto-generated
+        """
+        if iri is None:
+            # Auto-generate IRI from name
+            iri = self._generate_iri_from_name(name)
+        
+        # Convert to URIRef
+        obj_uri = URIRef(iri)
+        
+        # Add type triple
+        if object_type == 'table':
+            self.graph.add((obj_uri, RDF.type, UC.table))
+        elif object_type == 'column':
+            self.graph.add((obj_uri, RDF.type, UC.column))
+        else:
+            raise ValueError(f"Invalid object type: {object_type}. Must be 'table' or 'column'")
+        
+        # Add name triple
+        self.graph.add((obj_uri, UC.name, Literal(name)))
+        
+        # Save changes to file
+        self._save_changes()
+        
+        return obj_uri
+    
+    def _generate_iri_from_name(self, name: str) -> str:
+        """Generate an IRI from a catalog object name."""
+        # Clean the name to make it IRI-safe
+        clean_name = re.sub(r'[^\w\-_.]', '_', name.lower())
+        clean_name = re.sub(r'_+', '_', clean_name).strip('_')
+        
+        # Use the EXAMPLE namespace for new objects
+        return str(EXAMPLE[clean_name])
+    
+    def _save_changes(self):
+        """Save the current graph state to the primary file."""
+        if self.current_files:
+            # Save to the first (primary) file
+            primary_file = self.current_files[0]
+            self.graph.serialize(destination=primary_file, format='turtle')
+    
+    def get_graph(self) -> Graph:
+        """Get the underlying RDF graph."""
+        return self.graph
 
 
 @st.cache_resource
-def load_rdf_graph(file_path: str = None):
-    """
-    Load and cache the RDF graph. This ensures the graph state is maintained
-    across user sessions and edits.
-    """
-    g = Graph()
-
-    # Load default taxonomies if no specific file provided
-    if file_path is None:
-        # Get the parent directory (tagsonomy root)
-        parent_dir = Path(__file__).parent.parent
-
-        # Load example taxonomies
-        example_files = [
-            parent_dir / "example_taxonomies" / "small.ttl",
-            parent_dir / "example_taxonomies" / "aerospace.ttl",
-        ]
-
-        for file in example_files:
-            if file.exists():
-                g.parse(str(file))
-    else:
-        if os.path.exists(file_path):
-            g.parse(file_path)
-
-    return g
+def get_graph_manager():
+    """Get the cached GraphManager instance."""
+    return GraphManager()
 
 
 def save_graph_to_file(graph: Graph, file_path: str):
@@ -319,6 +378,97 @@ def format_uri_display(uri):
     return str(uri)
 
 
+@st.dialog("Create New Catalog Object")
+def create_new_catalog_object_dialog(graph_manager):
+    """Display a dialog for creating a new catalog object."""
+    
+    # Form for creating new catalog object
+    with st.form("new_catalog_object_form"):
+        st.write("Enter details for the new catalog object:")
+        
+        # Object name input
+        object_name = st.text_input(
+            "Object Name *",
+            placeholder="e.g., users.my_schema.my_table",
+            help="The name of the catalog object (required)"
+        )
+        
+        # Object type selection
+        object_type = st.selectbox(
+            "Object Type *",
+            options=["table", "column"],
+            help="Select whether this is a table or column"
+        )
+        
+        # IRI input with auto-generation
+        auto_generate_iri = st.checkbox(
+            "Auto-generate IRI",
+            value=True,
+            help="Automatically generate an IRI based on the object name"
+        )
+        
+        if auto_generate_iri:
+            if object_name:
+                # Preview the auto-generated IRI
+                preview_iri = graph_manager._generate_iri_from_name(object_name)
+                st.text_input(
+                    "Generated IRI (preview)",
+                    value=preview_iri,
+                    disabled=True,
+                    help="This IRI will be auto-generated from the object name"
+                )
+                custom_iri = None
+            else:
+                st.info("Enter an object name to see the auto-generated IRI preview")
+                custom_iri = None
+        else:
+            custom_iri = st.text_input(
+                "Custom IRI *",
+                placeholder="e.g., http://example.com/animals/my_custom_object",
+                help="Enter a custom IRI for this object"
+            )
+        
+        # Form submission
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            submitted = st.form_submit_button("Create Object", type="primary")
+        
+        with col2:
+            if st.form_submit_button("Cancel", type="secondary"):
+                st.rerun()
+        
+        # Handle form submission
+        if submitted:
+            # Validation
+            if not object_name:
+                st.error("Object name is required")
+                return
+            
+            if not auto_generate_iri and not custom_iri:
+                st.error("Custom IRI is required when auto-generation is disabled")
+                return
+            
+            try:
+                # Create the catalog object
+                iri_to_use = custom_iri if not auto_generate_iri else None
+                new_object_uri = graph_manager.add_catalog_object(
+                    name=object_name,
+                    object_type=object_type,
+                    iri=iri_to_use
+                )
+                
+                st.success(f"Successfully created {object_type}: {object_name}")
+                st.success(f"IRI: {new_object_uri}")
+                
+                # Wait a moment then refresh the page to show the new object
+                st.balloons()
+                st.rerun()
+                
+            except Exception as e:
+                st.error(f"Error creating catalog object: {str(e)}")
+
+
 def main():
     st.set_page_config(
         page_title="RDFS Ontology Browser",
@@ -328,8 +478,10 @@ def main():
 
     st.title("🔍 RDFS Ontology Browser")
 
-    # Load the RDF graph
-    graph = load_rdf_graph()
+    # Get the graph manager
+    graph_manager = get_graph_manager()
+    # TODO should use graph_manager.get_graph() instead of graph
+    graph = graph_manager.get_graph()
 
     # Create tabs
     tab1, tab2, tab3, tab4 = st.tabs(["Concepts", "Properties", "Catalog Objects", "Apply"])
@@ -344,7 +496,7 @@ def main():
 
     with tab3:
         st.header("Catalog Objects")
-        catalog_objects_tab(graph)
+        catalog_objects_tab(graph, graph_manager)
 
     with tab4:
         st.header("Apply")
@@ -556,12 +708,11 @@ def properties_tab(graph: Graph):
         st.info("Assign to Catalog Object functionality will be implemented later.")
 
 
-def catalog_objects_tab(graph: Graph):
+def catalog_objects_tab(graph: Graph, graph_manager):
     """Render the Catalog Objects tab."""
 
     if st.button("New Catalog Object", type="primary"):
-        # TODO show a popup that lets the user create a new catalog object and write it to the graph
-        st.info("New catalog object creation will be implemented later.")
+        create_new_catalog_object_dialog(graph_manager)
 
     # Get all catalog objects for the searchable dropdown
     all_catalog_objects = catalog_objects(graph)

@@ -33,7 +33,6 @@ uc:name a rdfs:Property.
 """
 
 
-# read rdf files containing definitions
 def main(command: str, workspace_url: str, pat: str, *rdf_files: str):
     ct = tag_api.ClassTagger(workspace_url, pat)
     g = rdflib.Graph()
