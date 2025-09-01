@@ -12,7 +12,7 @@ from queries import (
     property_attributes,
     subproperties,
     superproperties,
-    related_concepts,
+    related_concepts, semantic_assignments,
 )
 from graph_manager import format_uri_display
 
@@ -102,18 +102,16 @@ def properties_tab(graph: Graph):
             st.info("No related concepts found.")
 
     with col3:
-        st.subheader("Domain & Range Details")
+        st.subheader("Linked Catalog Objects")
 
-        # Get domain and range information from the original property data
-        for prop_uri, label, domain_uri, range_uri in all_properties:
-            if prop_uri == selected_property:
-                if domain_uri:
-                    st.write(f"**Domain:** {domain_uri}")
-                if range_uri:
-                    st.write(f"**Range:** {range_uri}")
-                if not domain_uri and not range_uri:
-                    st.info("No domain or range specified.")
-                break
+        # Show linked catalog objects
+        assignments = semantic_assignments(graph, selected_property)
+        if assignments:
+            for obj_uri, name in assignments:
+                obj_name = str(name) if name else format_uri_display(obj_uri)
+                st.write(f"- {obj_name}")
+        else:
+            st.info("No catalog objects assigned.")
 
     st.divider()
     # Assign to Catalog Object button
