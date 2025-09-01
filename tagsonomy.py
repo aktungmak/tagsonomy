@@ -9,27 +9,27 @@ UC_CLASSES = """
 @prefix uc: <http://databricks.com/ontology/uc/>.
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>.
 
-uc:securable a rdfs:Class.
-uc:catalog rdfs:subClassOf uc:securable;
+uc:Securable a rdfs:Class.
+uc:Catalog rdfs:subClassOf uc:Securable;
     rdfs:label "CATALOG".
-uc:schema rdfs:subClassOf uc:securable;
+uc:Schema rdfs:subClassOf uc:Securable;
     rdfs:label "SCHEMA".
-uc:table rdfs:subClassOf uc:securable;
+uc:Table rdfs:subClassOf uc:Securable;
     rdfs:label "TABLE".
-uc:volume rdfs:subClassOf uc:securable;
+uc:Volume rdfs:subClassOf uc:Securable;
     rdfs:label "VOLUME".
-uc:column rdfs:subClassOf uc:securable;
+uc:Column rdfs:subClassOf uc:Securable;
     rdfs:label "COLUMN".
 
 uc:name a rdfs:Property.
 
-# uc:in_table rdfs:domain uc:column;
-#     rdfs:range uc:table.
-# uc:in_schema rdfs:domain uc:table;
-#     rdfs:domain uc:volume;
-#     rdfs:range uc:schema.
-# uc:in_catalog rdfs:domain uc:schema;
-#     rdfs:range uc:catalog.
+# uc:in_table rdfs:domain uc:Column;
+#     rdfs:range uc:Table.
+# uc:in_schema rdfs:domain uc:Table;
+#     rdfs:domain uc:Volume;
+#     rdfs:range uc:Schema.
+# uc:in_catalog rdfs:domain uc:Schema;
+#     rdfs:range uc:Catalog.
 """
 
 

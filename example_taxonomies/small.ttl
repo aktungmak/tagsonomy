@@ -4,57 +4,57 @@
 
 ### Taxonomy definition ################################
 
-:dog rdfs:subClassOf :mammal; rdfs:label "Dog".
-:cat rdfs:subClassOf :mammal; rdfs:label "Cat".
-:mammal rdfs:subClassOf :animal; rdfs:label "Mammal".
+:Dog rdfs:subClassOf :Mammal; rdfs:label "Dog".
+:Cat rdfs:subClassOf :Mammal; rdfs:label "Cat".
+:Mammal rdfs:subClassOf :Animal; rdfs:label "Mammal".
 
-:salmon rdfs:subClassOf :fish; rdfs:label "Salmon"; :closestStarSign "Pisces".
-:shark rdfs:subClassOf :fish; rdfs:label "Shark".
-:fish rdfs:subClassOf :animal; rdfs:label "Fish".
+:Salmon rdfs:subClassOf :Fish; rdfs:label "Salmon"; :closestStarSign "Pisces".
+:Shark rdfs:subClassOf :Fish; rdfs:label "Shark".
+:Fish rdfs:subClassOf :Animal; rdfs:label "Fish".
 
-:animal rdfs:subClassOf :organism; rdfs:label "Animal".
+:Animal rdfs:subClassOf :Organism; rdfs:label "Animal".
 
-:tree rdfs:subClassOf :plant; rdfs:label "Tree".
-:flower rdfs:subClassOf :plant; rdfs:label "Flower".
+:Tree rdfs:subClassOf :Plant; rdfs:label "Tree".
+:Flower rdfs:subClassOf :Plant; rdfs:label "Flower".
 
-:plant rdfs:subClassOf :organism; rdfs:label "Plant".
+:Plant rdfs:subClassOf :Organism; rdfs:label "Plant".
 
-:organism a rdfs:Class.
-:organism rdfs:label "Organism".
+:Organism a rdfs:Class.
+:Organism rdfs:label "Organism".
 
 :dog_name rdfs:subPropertyOf :name;
     rdfs:label "DogName";
-    rdfs:domain :dog;
+    rdfs:domain :Dog;
     rdfs:comment "what dogs are called".
 :cat_name rdfs:subPropertyOf :name;
     rdfs:label "CatName";
-    rdfs:domain :cat.
+    rdfs:domain :Cat.
 
 :name a rdfs:Property;
     rdfs:label "Name";
-    rdfs:domain :organism.
+    rdfs:domain :Organism.
 
 ### Securable class definitions ########################
 
-:my_dog_table a uc:table, :dog;
+:my_dog_table a uc:Table, :Dog;
     uc:name "users.joshua_green.users";
     :somethingElse "something else".
 
-:my_dog_name_column a uc:column, :dog_name;
+:my_dog_name_column a uc:Column, :dog_name;
     uc:name "users.joshua_green.users.active".
 
-:my_cat_name_column a uc:column, :cat_name, :dog_name;
+:my_cat_name_column a uc:Column, :cat_name;
     uc:name "users.joshua_green.users.display_name".
 
-:cat_table a uc:table;
+:cat_table a uc:Table;
     uc:name "cat2.sch2.tab2".
 
 ### using semanticAssignment predicate ################
 
-:my_dog_table a uc:table;
+:my_dog_table a uc:Table;
     uc:name "users.joshua_green.users";
-    uc:semanticAssignment :dog.
+    uc:semanticAssignment :Dog.
 
-:my_dog_name_column a uc:column;
+:my_dog_name_column a uc:Column;
     uc:name "users.joshua_green.users.active";
     uc:semanticAssignment :dog_name.
