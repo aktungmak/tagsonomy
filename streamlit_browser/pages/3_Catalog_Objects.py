@@ -1,25 +1,44 @@
 """
-Catalog Objects tab functionality for the RDFS Ontology Browser.
+Catalog Objects page for the RDFS Ontology Browser multipage app.
 
-This module contains the implementation of the Catalog Objects tab which allows
+This module contains the implementation of the Catalog Objects page which allows
 users to browse catalog objects and add new ones from Databricks Unity Catalog.
 """
 
 import streamlit as st
 from rdflib import Graph, Literal
 from databricks.sdk import WorkspaceClient
+import sys
+import os
+
+# Add parent directory to path to import modules
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from graph_manager import get_graph_manager, format_uri_display
 from queries import (
     catalog_objects,
     catalog_object_attributes,
     catalog_object_semantic_assignments,
 )
-from graph_manager import format_uri_display
+
+# Set page config
+st.set_page_config(
+    page_title="Catalog Objects - RDFS Ontology Browser",
+    page_icon="📊",
+    layout="wide"
+)
+
+st.title("📊 Catalog Objects")
 
 w = WorkspaceClient()
 
+# Get the graph manager
+graph_manager = get_graph_manager()
+graph = graph_manager.get_graph()
+
 
 @st.dialog("Add Catalog Object", on_dismiss="rerun")
-def add_catalog_object_dialog(graph_manager):
+def add_catalog_object_dialog():
     """Display a dialog for creating a new catalog object using Databricks Unity Catalog."""
 
     st.write("Add a catalog object from Unity Catalog:")
@@ -172,65 +191,62 @@ def add_catalog_object_dialog(graph_manager):
             st.error(f"Error adding catalog object: {str(e)}")
 
 
-def catalog_objects_tab(graph: Graph, graph_manager):
-    """Render the Catalog Objects tab."""
+if st.button("Add Catalog Object", type="primary"):
+    add_catalog_object_dialog()
 
-    if st.button("Add Catalog Object", type="primary"):
-        add_catalog_object_dialog(graph_manager)
+# Get all catalog objects for the searchable dropdown
+all_catalog_objects = catalog_objects(graph)
 
-    # Get all catalog objects for the searchable dropdown
-    all_catalog_objects = catalog_objects(graph)
+# Create catalog object options and mapping
+catalog_options = []
+catalog_mapping = {}
 
-    # Create catalog object options and mapping
-    catalog_options = []
-    catalog_mapping = {}
+for obj_uri, obj_type, name in all_catalog_objects:
+    display_name = str(name) if name else format_uri_display(obj_uri)
+    type_name = format_uri_display(obj_type)
+    full_display = f"{display_name} ({type_name})"
+    catalog_options.append(full_display)
+    catalog_mapping[full_display] = (obj_uri, obj_type, name)
 
-    for obj_uri, obj_type, name in all_catalog_objects:
-        display_name = str(name) if name else format_uri_display(obj_uri)
-        type_name = format_uri_display(obj_type)
-        full_display = f"{display_name} ({type_name})"
-        catalog_options.append(full_display)
-        catalog_mapping[full_display] = (obj_uri, obj_type, name)
+# Searchable catalog object selection
+selected_display = st.selectbox(
+    "Search and select a catalog object:",
+    options=catalog_options,
+    index=None,
+    placeholder="Type to search by name or type (table/column)...",
+)
 
-    # Searchable catalog object selection
-    selected_display = st.selectbox(
-        "Search and select a catalog object:",
-        options=catalog_options,
-        index=None,
-        placeholder="Type to search by name or type (table/column)...",
-    )
+# Only show details if a catalog object is actually selected
+if selected_display is None:
+    st.stop()
 
-    # Only show details if a catalog object is actually selected
-    if selected_display is None:
-        return
+selected_object, selected_type, selected_name = catalog_mapping[selected_display]
+st.markdown(f"**IRI:** `{selected_object}`")
 
-    selected_object, selected_type, selected_name = catalog_mapping[selected_display]
-    st.markdown(f"**IRI:** `{selected_object}`")
+# Show general catalog object attributes
+attributes = catalog_object_attributes(graph, selected_object)
+if attributes:
+    for predicate, obj in attributes:
+        pred_name = format_uri_display(predicate)
+        obj_name = format_uri_display(obj) if not isinstance(obj, Literal) else str(obj)
+        print(pred_name, obj_name)
+        st.write(f"**{pred_name}:** {obj_name}")
+else:
+    st.info("No additional attributes found.")
 
-    # Show general catalog object attributes
-    attributes = catalog_object_attributes(graph, selected_object)
-    if attributes:
-        for predicate, obj in attributes:
-            pred_name = format_uri_display(predicate)
-            obj_name = format_uri_display(obj) if not isinstance(obj, Literal) else str(obj)
-            print(pred_name, obj_name)
-            st.write(f"**{pred_name}:** {obj_name}")
-    else:
-        st.info("No additional attributes found.")
+st.subheader("Semantic Assignments")
 
-    st.subheader("Semantic Assignments")
+# Show semantic assignments
+assignments = catalog_object_semantic_assignments(graph, selected_object)
+if assignments:
+    for class_uri, label in assignments:
+        class_name = str(label) if label else format_uri_display(class_uri)
+        st.write(f"- {class_name}")
+else:
+    st.info("No semantic assignments found.")
 
-    # Show semantic assignments
-    assignments = catalog_object_semantic_assignments(graph, selected_object)
-    if assignments:
-        for class_uri, label in assignments:
-            class_name = str(label) if label else format_uri_display(class_uri)
-            st.write(f"- {class_name}")
-    else:
-        st.info("No semantic assignments found.")
+st.divider()
 
-    st.divider()
-
-    # Assignment button
-    if st.button("Assign...", type="secondary"):
-        st.info("Assignment functionality will be implemented later.")
+# Assignment button
+if st.button("Assign...", type="secondary"):
+    st.info("Assignment functionality will be implemented later.")
