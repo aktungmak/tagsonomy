@@ -24,36 +24,25 @@ def properties_tab(graph: Graph):
         # TODO show a popup that lets the user create the new property and write it to the graph
         st.info("New property creation will be implemented later.")
 
-    # Get all properties for the searchable dropdown
-    all_properties = rdfs_properties(graph)
-
-    # Create property options and mapping
-    property_options = []
-    property_mapping = {}
-
-    for prop_uri, label, domain_uri, range_uri in all_properties:
-        display_name = str(label) if label else format_uri_display(prop_uri)
-        full_display = f"{display_name} ({format_uri_display(prop_uri)})"
-        property_options.append(full_display)
-        property_mapping[full_display] = prop_uri
-
     # Searchable property selection
-    selected_display = st.selectbox(
+    st.selectbox(
         "Search and select a property:",
-        options=property_options,
+        options=rdfs_properties(graph),
+        format_func=lambda c: f"{c['label']} - {c['property_iri']}",
         index=None,
+        key="selected_property",
         placeholder="Type to search by name, label, or IRI...",
     )
 
     # Only show details if a property is actually selected
-    if selected_display is None:
+    if st.session_state.selected_property is None:
         return
 
-    selected_property = property_mapping[selected_display]
-    st.markdown(f"**IRI:** `{selected_property}`")
+    selected_property = st.session_state.selected_property
+    st.markdown(f"**IRI:** `{selected_property['property_iri']}`")
 
     # Show general property attributes
-    attributes = property_attributes(graph, selected_property)
+    attributes = property_attributes(graph, selected_property['property_iri'])
     if attributes:
         for predicate, obj in attributes:
             # TODO show the full IRI in brackets after the name
@@ -70,20 +59,20 @@ def properties_tab(graph: Graph):
         st.subheader("Property Hierarchy")
 
         # Show subproperties and superproperties
-        subs = subproperties(graph, selected_property)
-        supers = superproperties(graph, selected_property)
+        subs = subproperties(graph, selected_property['property_iri'])
+        supers = superproperties(graph, selected_property['property_iri'])
 
         if supers:
             st.write("**Parent Properties:**")
-            for super_uri, super_label in supers:
-                display_name = str(super_label) if super_label else format_uri_display(super_uri)
-                st.write(f"- {display_name}")
+            for super_prop in supers:
+                st.button(str(super_prop["label"] or super_prop["property"]),
+                          on_click=lambda prop=super_prop: setattr(st.session_state, 'selected_property', prop))
 
         if subs:
             st.write("**Subproperties:**")
-            for sub_uri, sub_label in subs:
-                display_name = str(sub_label) if sub_label else format_uri_display(sub_uri)
-                st.write(f"- {display_name}")
+            for sub_prop in subs:
+                st.button(str(sub_prop["label"] or sub_prop["property"]),
+                          on_click=lambda prop=sub_prop: setattr(st.session_state, 'selected_property', prop))
 
         if not subs and not supers:
             st.info("No related properties found.")
@@ -92,7 +81,7 @@ def properties_tab(graph: Graph):
         st.subheader("Related Concepts")
 
         # Show related concepts via domain and range
-        rel_concepts = related_concepts(graph, selected_property)
+        rel_concepts = related_concepts(graph, selected_property['property_iri'])
         if rel_concepts:
             for concept_uri, predicate, label in rel_concepts:
                 concept_name = str(label) if label else format_uri_display(concept_uri)
@@ -105,7 +94,7 @@ def properties_tab(graph: Graph):
         st.subheader("Linked Catalog Objects")
 
         # Show linked catalog objects
-        assignments = semantic_assignments(graph, selected_property)
+        assignments = semantic_assignments(graph, selected_property['property_iri'])
         if assignments:
             for obj_uri, name in assignments:
                 obj_name = str(name) if name else format_uri_display(obj_uri)

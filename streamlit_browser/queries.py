@@ -54,21 +54,19 @@ def superclasses(graph: Graph, class_uri: URIRef):
 def rdfs_properties(graph: Graph):
     """Get all RDFS properties from the graph."""
     query = """
-    SELECT DISTINCT ?property ?label ?domain ?range
+    SELECT DISTINCT ?property_iri ?label
     WHERE {
         {
-            ?property a rdfs:Property .
+            ?property_iri a rdfs:Property .
         }
         UNION
         {
-            ?property rdfs:subPropertyOf ?other .
+            ?property_iri rdfs:subPropertyOf ?other .
         }
-        OPTIONAL { ?property rdfs:label ?label }
-        OPTIONAL { ?property rdfs:domain ?domain }
-        OPTIONAL { ?property rdfs:range ?range }
+        OPTIONAL { ?property_iri rdfs:label ?label }
     }
     """
-    return list(graph.query(query))
+    return [r.asdict() for r in graph.query(query)]
 
 
 def class_attributes(graph: Graph, class_uri: URIRef):
@@ -121,27 +119,27 @@ def related_properties(graph: Graph, class_uri: URIRef):
 def subproperties(graph: Graph, property_uri: URIRef):
     """Get direct subproperties of a given property."""
     query = """
-    SELECT DISTINCT ?subproperty ?label
+    SELECT DISTINCT ?property_iri ?label
     WHERE {
-        ?subproperty rdfs:subPropertyOf ?property .
-        OPTIONAL { ?subproperty rdfs:label ?label }
+        ?property_iri rdfs:subPropertyOf ?parent_property .
+        OPTIONAL { ?property_iri rdfs:label ?label }
     }
-    ORDER BY ?label ?subproperty
+    ORDER BY ?label ?property_iri
     """
-    return list(graph.query(query, initBindings={'property': property_uri}))
+    return [r.asdict() for r in graph.query(query, initBindings={'parent_property': property_uri})]
 
 
 def superproperties(graph: Graph, property_uri: URIRef):
     """Get direct superproperties of a given property."""
     query = """
-    SELECT DISTINCT ?superproperty ?label
+    SELECT DISTINCT ?property_iri ?label
     WHERE {
-        ?property rdfs:subPropertyOf ?superproperty .
-        OPTIONAL { ?superproperty rdfs:label ?label }
+        ?child_property rdfs:subPropertyOf ?property_iri .
+        OPTIONAL { ?property_iri rdfs:label ?label }
     }
-    ORDER BY ?label ?superproperty
+    ORDER BY ?label ?property_iri
     """
-    return list(graph.query(query, initBindings={'property': property_uri}))
+    return [r.asdict() for r in graph.query(query, initBindings={'child_property': property_uri})]
 
 
 def property_attributes(graph: Graph, property_uri: URIRef):
