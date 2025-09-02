@@ -25,36 +25,25 @@ def concepts_tab(graph: Graph):
         # TODO show a popup that lets the user create the new concept and write it to the graph
         st.info("New concept creation will be implemented later.")
 
-    # Get all classes for the searchable dropdown
-    all_classes = rdfs_classes(graph)
-
-    # Create class options and mapping
-    class_options = []
-    class_mapping = {}
-
-    for class_uri, label in all_classes:
-        display_name = str(label) if label else format_uri_display(class_uri)
-        full_display = f"{display_name} ({format_uri_display(class_uri)})"
-        class_options.append(full_display)
-        class_mapping[full_display] = class_uri
-
     # Searchable class selection
-    selected_display = st.selectbox(
+    st.selectbox(
         "Search and select a concept:",
-        options=class_options,
+        options=rdfs_classes(graph),
+        format_func=lambda c: f"{c['label']} - {c['class_iri']}",
         index=None,
+        key="selected_concept",
         placeholder="Type to search by name, label, or IRI...",
     )
 
     # Only show details if a class is actually selected
-    if selected_display is None:
+    if st.session_state.selected_concept is None:
         return
 
-    selected_class = class_mapping[selected_display]
-    st.markdown(f"**IRI:** `{selected_class}`")
+    selected_concept = st.session_state.selected_concept
+    st.markdown(f"**IRI:** `{selected_concept['class_iri']}`")
 
     # Show general class attributes
-    attributes = class_attributes(graph, selected_class)
+    attributes = class_attributes(graph, selected_concept["class_iri"])
     if attributes:
         for predicate, obj in attributes:
             pred_name = format_uri_display(predicate)
@@ -69,21 +58,21 @@ def concepts_tab(graph: Graph):
     with col1:
         st.subheader("Concept Hierarchy")
 
-        # Show subclasses and superclasses
-        subs = subclasses(graph, selected_class)
-        supers = superclasses(graph, selected_class)
+        # Retrieve subclasses and superclasses
+        subs = subclasses(graph, selected_concept["class_iri"])
+        supers = superclasses(graph, selected_concept["class_iri"])
 
         if supers:
             st.write("**Parent Classes:**")
-            for super_uri, super_label in supers:
-                display_name = str(super_label) if super_label else format_uri_display(super_uri)
-                st.write(f"- {display_name}")
+            for superclass in supers:
+                st.button(str(superclass["label"] or superclass["class_iri"]),
+                          on_click=lambda concept=superclass: setattr(st.session_state, 'selected_concept', concept))
 
         if subs:
             st.write("**Subclasses:**")
-            for sub_uri, sub_label in subs:
-                display_name = str(sub_label) if sub_label else format_uri_display(sub_uri)
-                st.write(f"- {display_name}")
+            for subclass in subs:
+                st.button(str(subclass["label"] or subclass["class_iri"]),
+                          on_click=lambda concept=subclass: setattr(st.session_state, 'selected_concept', concept))
 
         if not subs and not supers:
             st.info("No related classes found.")
@@ -92,7 +81,7 @@ def concepts_tab(graph: Graph):
         st.subheader("Related Properties")
 
         # Show related properties
-        related_props = related_properties(graph, selected_class)
+        related_props = related_properties(graph, selected_concept["class_iri"])
         if related_props:
             for prop_uri, predicate, predicate_label in related_props:
                 prop_name = format_uri_display(prop_uri)
@@ -105,7 +94,7 @@ def concepts_tab(graph: Graph):
         st.subheader("Linked Catalog Objects")
 
         # Show linked catalog objects
-        assignments = semantic_assignments(graph, selected_class)
+        assignments = semantic_assignments(graph, selected_concept["class_iri"])
         if assignments:
             for obj_uri, name in assignments:
                 obj_name = str(name) if name else format_uri_display(obj_uri)

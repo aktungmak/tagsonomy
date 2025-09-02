@@ -12,44 +12,43 @@ from rdflib import Graph, URIRef, Literal
 def rdfs_classes(graph: Graph):
     """Get all RDFS classes from the graph."""
     query = """
-    SELECT DISTINCT ?class ?label
+    SELECT DISTINCT ?class_iri ?label
     WHERE {
         {
-            ?class a rdfs:Class .
+            ?class_iri a rdfs:Class .
         }
         UNION
         {
-            ?class rdfs:subClassOf ?other .
+            ?class_iri rdfs:subClassOf ?other .
         }
-        OPTIONAL { ?class rdfs:label ?label }
+        OPTIONAL { ?class_iri rdfs:label ?label }
     }
     """
-    return list(graph.query(query))
+    return [r.asdict() for r in graph.query(query)]
 
 
 def subclasses(graph: Graph, class_uri: URIRef):
     """Get direct subclasses of a given class."""
     query = """
-    SELECT DISTINCT ?subclass ?label
+    SELECT DISTINCT ?class_iri ?label
     WHERE {
-        ?subclass rdfs:subClassOf ?class .
-        OPTIONAL { ?subclass rdfs:label ?label }
+        ?class_iri rdfs:subClassOf ?class .
+        OPTIONAL { ?class_iri rdfs:label ?label }
     }
     """
-    return list(graph.query(query, initBindings={'class': class_uri}))
+    return [r.asdict() for r in graph.query(query, initBindings={'class': class_uri})]
 
 
 def superclasses(graph: Graph, class_uri: URIRef):
     """Get direct superclasses of a given class."""
     query = """
-    SELECT DISTINCT ?superclass ?label
+    SELECT DISTINCT ?class_iri ?label
     WHERE {
-        ?class rdfs:subClassOf ?superclass .
-        OPTIONAL { ?superclass rdfs:label ?label }
+        ?class rdfs:subClassOf ?class_iri .
+        OPTIONAL { ?class_iri rdfs:label ?label }
     }
-    ORDER BY ?label ?superclass
     """
-    return list(graph.query(query, initBindings={'class': class_uri}))
+    return [r.asdict() for r in graph.query(query, initBindings={'class': class_uri})]
 
 
 def rdfs_properties(graph: Graph):
