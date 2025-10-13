@@ -39,7 +39,7 @@ def concepts_page():
     st.selectbox(
         "Search and select a concept:",
         options=rdfs_classes(graph),
-        format_func=lambda c: f"{c['label']} - {c['class_iri']}",
+        format_func=lambda c: f"{c.get('label') or format_uri_display(c['class_iri'])} - {c['class_iri']}",
         index=None,
         key="selected_concept",
         placeholder="Type to search by name, label, or IRI...",
@@ -75,13 +75,13 @@ def concepts_page():
         if supers:
             st.write("**Parent Classes:**")
             for superclass in supers:
-                st.button(str(superclass["label"] or superclass["class_iri"]),
+                st.button(str(superclass.get("label") or format_uri_display(superclass["class_iri"])),
                           on_click=lambda concept=superclass: setattr(st.session_state, 'selected_concept', concept))
 
         if subs:
             st.write("**Subclasses:**")
             for subclass in subs:
-                st.button(str(subclass["label"] or subclass["class_iri"]),
+                st.button(str(subclass.get("label") or format_uri_display(subclass["class_iri"])),
                           on_click=lambda concept=subclass: setattr(st.session_state, 'selected_concept', concept))
 
         if not subs and not supers:

@@ -39,7 +39,7 @@ def properties_page():
     st.selectbox(
         "Search and select a property:",
         options=rdfs_properties(graph),
-        format_func=lambda c: f"{c['label']} - {c['property_iri']}",
+        format_func=lambda c: f"{c.get('label') or format_uri_display(c['property_iri'])} - {c['property_iri']}",
         index=None,
         key="selected_property",
         placeholder="Type to search by name, label, or IRI...",
@@ -76,13 +76,13 @@ def properties_page():
         if supers:
             st.write("**Parent Properties:**")
             for super_prop in supers:
-                st.button(str(super_prop["label"] or super_prop["property"]),
+                st.button(str(super_prop.get("label") or format_uri_display(super_prop["property_iri"])),
                           on_click=lambda prop=super_prop: setattr(st.session_state, 'selected_property', prop))
 
         if subs:
             st.write("**Subproperties:**")
             for sub_prop in subs:
-                st.button(str(sub_prop["label"] or sub_prop["property"]),
+                st.button(str(sub_prop.get("label") or format_uri_display(sub_prop["property_iri"])),
                           on_click=lambda prop=sub_prop: setattr(st.session_state, 'selected_property', prop))
 
         if not subs and not supers:
