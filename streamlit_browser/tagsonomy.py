@@ -10,15 +10,15 @@ UC_CLASSES = """
 
 uc:Securable a rdfs:Class.
 uc:Catalog rdfs:subClassOf uc:Securable;
-    rdfs:label "CATALOG".
+    rdfs:label "CATALOGS".
 uc:Schema rdfs:subClassOf uc:Securable;
-    rdfs:label "SCHEMA".
+    rdfs:label "SCHEMAS".
 uc:Table rdfs:subClassOf uc:Securable;
-    rdfs:label "TABLE".
+    rdfs:label "TABLES".
 uc:Volume rdfs:subClassOf uc:Securable;
-    rdfs:label "VOLUME".
+    rdfs:label "VOLUMES".
 uc:Column rdfs:subClassOf uc:Securable;
-    rdfs:label "COLUMN".
+    rdfs:label "COLUMNS".
 
 uc:name a rdfs:Property.
 
@@ -31,7 +31,8 @@ uc:name a rdfs:Property.
 #     rdfs:range uc:Catalog.
 """
 
-DEFAULT_PREFIX = "tgsn"
+DEFAULT_PREFIX = "tgsn_"
+MAX_TAGS = 50
 
 def apply_tags(wc: WorkspaceClient, prefix: str, securable_type: str, securable_name: str, *tags: str):
     # TODO check the tag string is not too long
