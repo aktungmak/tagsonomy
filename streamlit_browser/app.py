@@ -39,9 +39,8 @@ def start_page():
     st.subheader("📈 Ontology Statistics")
 
     try:
-        # Get the graph manager
-        graph_manager = get_graph_manager()
-        graph = graph_manager.get_graph()
+        # Get the graph
+        graph = get_graph_manager().get_graph()
         
         # Get basic statistics
         total_triples = len(graph)

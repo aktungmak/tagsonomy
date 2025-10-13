@@ -28,9 +28,8 @@ def properties_page():
     """Main properties page content."""
     st.title("🔗 Properties")
 
-    # Get the graph manager
-    graph_manager = get_graph_manager()
-    graph = graph_manager.get_graph()
+    # Get the graph
+    graph = get_graph_manager().get_graph()
 
     if st.button("New Property", type="primary"):
         # TODO show a popup that lets the user create the new property and write it to the graph
