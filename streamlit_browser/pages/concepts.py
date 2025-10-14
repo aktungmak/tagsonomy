@@ -1,12 +1,19 @@
 """
-Concepts tab functionality for the RDFS Ontology Browser.
+Concepts page for the RDFS Ontology Browser multipage app.
 
-This module contains the implementation of the Concepts tab which allows
+This module contains the implementation of the Concepts page which allows
 users to browse and explore concepts (RDFS classes) in the ontology.
 """
 
 import streamlit as st
 from rdflib import Graph, Literal
+import sys
+import os
+
+# Add parent directory to path to import modules
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from graph_manager import get_graph_manager, format_uri_display
 from queries import (
     rdfs_classes,
     class_attributes,
@@ -15,11 +22,14 @@ from queries import (
     related_properties,
     semantic_assignments,
 )
-from graph_manager import format_uri_display
 
 
-def concepts_tab(graph: Graph):
-    """Render the Concepts tab."""
+def concepts_page():
+    """Main concepts page content."""
+    st.title("🏷️ Concepts")
+
+    # Get the graph
+    graph = get_graph_manager().get_graph()
 
     if st.button("New Concept", type="primary"):
         # TODO show a popup that lets the user create the new concept and write it to the graph
@@ -29,7 +39,7 @@ def concepts_tab(graph: Graph):
     st.selectbox(
         "Search and select a concept:",
         options=rdfs_classes(graph),
-        format_func=lambda c: f"{c['label']} - {c['class_iri']}",
+        format_func=lambda c: f"{c.get('label') or format_uri_display(c['class_iri'])} - {c['class_iri']}",
         index=None,
         key="selected_concept",
         placeholder="Type to search by name, label, or IRI...",
@@ -37,7 +47,7 @@ def concepts_tab(graph: Graph):
 
     # Only show details if a class is actually selected
     if st.session_state.selected_concept is None:
-        return
+        st.stop()
 
     selected_concept = st.session_state.selected_concept
     st.markdown(f"**IRI:** `{selected_concept['class_iri']}`")
@@ -65,13 +75,13 @@ def concepts_tab(graph: Graph):
         if supers:
             st.write("**Parent Classes:**")
             for superclass in supers:
-                st.button(str(superclass["label"] or superclass["class_iri"]),
+                st.button(str(superclass.get("label") or format_uri_display(superclass["class_iri"])),
                           on_click=lambda concept=superclass: setattr(st.session_state, 'selected_concept', concept))
 
         if subs:
             st.write("**Subclasses:**")
             for subclass in subs:
-                st.button(str(subclass["label"] or subclass["class_iri"]),
+                st.button(str(subclass.get("label") or format_uri_display(subclass["class_iri"])),
                           on_click=lambda concept=subclass: setattr(st.session_state, 'selected_concept', concept))
 
         if not subs and not supers:
@@ -106,3 +116,7 @@ def concepts_tab(graph: Graph):
     # Assign to Object button
     if st.button("Assign to Object", type="secondary"):
         st.info("Assign to Object functionality will be implemented later.")
+
+
+# Define the page
+page = st.Page(concepts_page, title="Concepts", icon="🏷️")

@@ -34,27 +34,17 @@
     rdfs:label "Name";
     rdfs:domain :Organism.
 
-### Securable class definitions ########################
-
-:my_dog_table a uc:Table, :Dog;
-    uc:name "users.joshua_green.users";
-    :somethingElse "something else".
-
-:my_dog_name_column a uc:Column, :dog_name;
-    uc:name "users.joshua_green.users.active".
-
-:my_cat_name_column a uc:Column, :cat_name;
-    uc:name "users.joshua_green.users.display_name".
-
-:cat_table a uc:Table;
-    uc:name "cat2.sch2.tab2".
-
 ### using semanticAssignment predicate ################
 
 :my_dog_table a uc:Table;
-    uc:name "users.joshua_green.users";
-    uc:semanticAssignment :Dog.
+    uc:name "users.joshua_green.jewelery" ;
+    :somethingElse "something else" ;
+    uc:semanticAssignment :Dog .
 
 :my_dog_name_column a uc:Column;
-    uc:name "users.joshua_green.users.active";
+    uc:name "users.joshua_green.jewelery.Vendor";
     uc:semanticAssignment :dog_name.
+
+:my_cat_name_column a uc:Column ;
+    uc:name "users.joshua_green.jewelery.Published" ;
+    uc:semanticAssignment :cat_name .

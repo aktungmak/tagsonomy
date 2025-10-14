@@ -1,24 +1,35 @@
 """
-Properties tab functionality for the RDFS Ontology Browser.
+Properties page for the RDFS Ontology Browser multipage app.
 
-This module contains the implementation of the Properties tab which allows
+This module contains the implementation of the Properties page which allows
 users to browse and explore properties in the ontology.
 """
 
 import streamlit as st
 from rdflib import Graph, Literal
+import sys
+import os
+
+# Add parent directory to path to import modules
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from graph_manager import get_graph_manager, format_uri_display
 from queries import (
     rdfs_properties,
     property_attributes,
     subproperties,
     superproperties,
-    related_concepts, semantic_assignments,
+    related_concepts, 
+    semantic_assignments,
 )
-from graph_manager import format_uri_display
 
 
-def properties_tab(graph: Graph):
-    """Render the Properties tab."""
+def properties_page():
+    """Main properties page content."""
+    st.title("🔗 Properties")
+
+    # Get the graph
+    graph = get_graph_manager().get_graph()
 
     if st.button("New Property", type="primary"):
         # TODO show a popup that lets the user create the new property and write it to the graph
@@ -28,7 +39,7 @@ def properties_tab(graph: Graph):
     st.selectbox(
         "Search and select a property:",
         options=rdfs_properties(graph),
-        format_func=lambda c: f"{c['label']} - {c['property_iri']}",
+        format_func=lambda c: f"{c.get('label') or format_uri_display(c['property_iri'])} - {c['property_iri']}",
         index=None,
         key="selected_property",
         placeholder="Type to search by name, label, or IRI...",
@@ -36,7 +47,7 @@ def properties_tab(graph: Graph):
 
     # Only show details if a property is actually selected
     if st.session_state.selected_property is None:
-        return
+        st.stop()
 
     selected_property = st.session_state.selected_property
     st.markdown(f"**IRI:** `{selected_property['property_iri']}`")
@@ -65,13 +76,13 @@ def properties_tab(graph: Graph):
         if supers:
             st.write("**Parent Properties:**")
             for super_prop in supers:
-                st.button(str(super_prop["label"] or super_prop["property"]),
+                st.button(str(super_prop.get("label") or format_uri_display(super_prop["property_iri"])),
                           on_click=lambda prop=super_prop: setattr(st.session_state, 'selected_property', prop))
 
         if subs:
             st.write("**Subproperties:**")
             for sub_prop in subs:
-                st.button(str(sub_prop["label"] or sub_prop["property"]),
+                st.button(str(sub_prop.get("label") or format_uri_display(sub_prop["property_iri"])),
                           on_click=lambda prop=sub_prop: setattr(st.session_state, 'selected_property', prop))
 
         if not subs and not supers:
@@ -106,3 +117,7 @@ def properties_tab(graph: Graph):
     # Assign to Catalog Object button
     if st.button("Assign to Catalog Object", type="secondary"):
         st.info("Assign to Catalog Object functionality will be implemented later.")
+
+
+# Define the page
+page = st.Page(properties_page, title="Properties", icon="🔗")
