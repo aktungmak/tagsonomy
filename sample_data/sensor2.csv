@@ -1,5 +1,0 @@
-"SensorID","ControlSystemID","Type","ParameterMeasured","Location","Unit","SamplingRate (Hz)","DataFormat","LastCalibration","Notes"
-"1","1","Temperature","T5 (Turbine Exit)","Turbine Exit","°C","10","float","2025-01-10","https://www.controleng.com/sensors-101-control-system-inputs/"
-"2","1","Pressure","P3 (Compressor)","HP Compressor Exit","kPa","5","float","2025-02-12","https://www.controleng.com/sensors-101-control-system-inputs/"
-"3","1","Vibration","Shaft Vibration","Main Bearings","mm/s","20","float","2025-03-20","https://www.controleng.com/sensors-101-control-system-inputs/"
-"4","1","Speed","N2 RPM","HP Shaft","rpm","1","int","2025-01-05","https://www.controleng.com/sensors-101-control-system-inputs/"

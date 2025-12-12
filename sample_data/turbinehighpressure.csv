@@ -1,4 +1,0 @@
-"HPT_ID","EngineID","StageCount","InletTemp (°C)","Material","CoolingType","BladeCount","MaxRPM","LifeLimit (cycles)","Notes"
-"1","1","2","1550","Single Crystal Ni","Air Film Cooling","76","12,000","10,000","Advanced cooling, high efficiency"
-"2","2","1","1500","DS Ni Alloy","Internal Cooling","68","11,500","8,000","Single-stage, older design"
-"3","1","2","1570","Single Crystal Ni","Air Film Cooling","80","12,200","12,000","Next-gen, improved cooling"

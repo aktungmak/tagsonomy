@@ -1,3 +1,0 @@
-"StageID","EngineID","Name","NumberOfStages","MaxPressureRatio","MaxTemperature (°C)","RotorMaterial","StatorMaterial","Notes"
-"1","1","High Pressure (HP)","9","20:1","1200","Titanium","Nickel Alloy","Typical for modern engines"
-"2","2","HP (Trent 1000)","6","18:1","1150","Titanium","Nickel Alloy","Example from Trent 1000"
