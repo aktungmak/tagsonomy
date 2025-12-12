@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block title %}Tagsonomy | Classes{% endblock %}
+
+{% block extra_head %}
+<script>
+    function filter_classes() {
+      var input, filter, ul, li, i, spans, uri, name, txtValue;
+      input = document.getElementById('class_search');
+      filter = input.value.toUpperCase();
+      ul = document.getElementById("class_list");
+      li = ul.getElementsByTagName('li');
+
+      for (i = 0; i < li.length; i++) {
+        spans = li[i].getElementsByTagName('span');
+        uri = spans[0] ? (spans[0].textContent || spans[0].innerText) : '';
+        name = spans[1] ? (spans[1].textContent || spans[1].innerText) : '';
+        txtValue = uri + ' ' + name;
+        if (txtValue.toUpperCase().indexOf(filter) > -1) {
+          li[i].style.display = "";
+        } else {
+          li[i].style.display = "none";
+        }
+      }
+    }
+
+    function delete_class(class_uri) {
+      if (confirm('Are you sure you want to delete this class?')) {
+        fetch('{{ url_for("class_delete") }}', {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ uri: class_uri })
+        })
+        .then(response => {
+          if (response.ok) {
+            window.location.reload();
+          } else {
+            alert('Error deleting class');
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          alert('Error deleting class');
+        });
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', function() { 
+      filter_classes(); 
+    });
+</script>
+{% endblock %}
+
+{% block content %}
+<input type="text" 
+       id="class_search" 
+       value="{{ class_uri }}" 
+       onkeyup="filter_classes()" 
+       placeholder="Search for classes...">
+
+<ul id="class_list">
+    {% for class in classes %}
+    <li>
+        <div>
+            <b>URI:</b> <span>{{ class.uri | safe }}</span>
+        </div>
+        <div>
+            <b>Name:</b> <span>{{ class.name | safe }}</span>
+        </div>
+        <div>
+            <b>Related Tables:</b> <span>TODO</span>
+        </div>
+        <div>
+            <b>Related Properties:</b> <span>TODO</span>
+        </div>
+        <button onclick="delete_class('{{ class.uri }}')">Delete</button>
+        <button onclick="assign('{{ class.uri }}')">Assign</button>
+    </li>
+    {% endfor %}
+</ul>
+
+<hr/>
+
+<h2>New Class</h2>
+<form action="{{ url_for('classes_post') }}" method='post'>
+    <label for="name">Class name:</label>
+    <input type="text" name="name" id="name" required/>
+    
+    <label for="uri">Class IRI (optional):</label>
+    <input type="text" name="uri" id="uri"/>
+    
+    <input type="submit" value="Create"/>
+</form>
+{% endblock %}

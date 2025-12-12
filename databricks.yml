@@ -1,0 +1,47 @@
+bundle:
+  name: tagsonomy
+
+variables:
+  database_instance_name: 
+    default: tagsonomy-db
+  catalog:
+    default: main
+  schema:
+    default: default
+
+targets:
+  dev:
+    mode: development
+    default: true
+    
+  prod:
+    mode: production
+    workspace:
+      root_path: /Workspace/.bundles/prod/${bundle.name}
+    run_as:
+      # Uncomment and set if using service principal for production
+      # service_principal_name: ${DATABRICKS_SERVICE_PRINCIPAL}
+
+resources:
+  apps:
+    tagsonomy-app:
+      name: tagsonomy-app
+      source_code_path: tagso
+      resources:
+        - name: lakebase
+          database:
+            instance_name: ${resources.database_instances.tagsonomy-instance.name}
+            database_name: ${resources.database_catalogs.tagsonomy-catalog.database_name}
+            permission: CAN_CONNECT_AND_CREATE
+
+  database_instances:
+    tagsonomy-instance:
+      name: ${var.database_instance_name}
+      capacity: CU_1
+  database_catalogs:
+    tagsonomy-catalog:
+      database_instance_name: ${resources.database_instances.tagsonomy-instance.name}
+      name: tagsonomy-catalog
+      database_name: tagsonomy
+      create_database_if_not_exists: true
+

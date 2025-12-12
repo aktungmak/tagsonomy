@@ -1,0 +1,14 @@
+{% import "macros.html" as macros %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css">
+    <title>{% block title %}Tagsonomy{% endblock %}</title>
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+{{ macros.navbar() }}
+{% block content %}{% endblock %}
+</body>
+</html>

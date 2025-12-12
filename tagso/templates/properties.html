@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block title %}Tagsonomy | Properties{% endblock %}
+
+{% block extra_head %}
+<script>
+    function filter_properties() {
+      var input, filter, ul, li, i, spans, uri, name, txtValue;
+      input = document.getElementById('property_search');
+      filter = input.value.toUpperCase();
+      ul = document.getElementById("property_list");
+      li = ul.getElementsByTagName('li');
+
+      for (i = 0; i < li.length; i++) {
+        spans = li[i].getElementsByTagName('span');
+        uri = spans[0] ? (spans[0].textContent || spans[0].innerText) : '';
+        name = spans[1] ? (spans[1].textContent || spans[1].innerText) : '';
+        txtValue = uri + ' ' + name;
+        if (txtValue.toUpperCase().indexOf(filter) > -1) {
+          li[i].style.display = "";
+        } else {
+          li[i].style.display = "none";
+        }
+      }
+    }
+
+    function delete_property(property_uri) {
+      if (confirm('Are you sure you want to delete this property?')) {
+        fetch('{{ url_for("property_delete") }}', {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ uri: property_uri })
+        })
+        .then(response => {
+          if (response.ok) {
+            window.location.reload();
+          } else {
+            alert('Error deleting property');
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          alert('Error deleting property');
+        });
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', function() { 
+      filter_properties(); 
+    });
+</script>
+{% endblock %}
+
+{% block content %}
+<input type="text" 
+       id="property_search" 
+       value="{{ property_uri }}" 
+       onkeyup="filter_properties()" 
+       placeholder="Search for properties...">
+
+<ul id="property_list">
+    {% for property in properties %}
+    <li>
+        <div>
+            <b>URI:</b> <span>{{ property.uri | safe }}</span>
+        </div>
+        <div>
+            <b>Name:</b> <span>{{ property.name | safe }}</span>
+        </div>
+        <div>
+            <b>Domain:</b> <span>TODO</span>
+        </div>
+        <div>
+            <b>Range:</b> <span>TODO</span>
+        </div>
+        <button onclick="delete_property('{{ property.uri }}')">Delete</button>
+        <button onclick="assign('{{ property.uri }}')">Assign</button>
+    </li>
+    {% endfor %}
+</ul>
+
+<hr/>
+
+<h2>New Property</h2>
+<form action="{{ url_for('properties_post') }}" method='post'>
+    <label for="name">Property name:</label>
+    <input type="text" name="name" id="name" required/>
+    
+    <label for="uri">Property IRI (optional):</label>
+    <input type="text" name="uri" id="uri"/>
+    
+    <input type="submit" value="Create"/>
+</form>
+{% endblock %}
