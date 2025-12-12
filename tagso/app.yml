@@ -10,5 +10,3 @@ command:
 env:
   - name: FLASK_ENV
     value: production
-  - name: PGSCHEMA
-    value: "default"

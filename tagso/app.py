@@ -1,27 +1,30 @@
+import logging
 import urllib.parse
 import os
 from typing import Optional
 
 from rdflib import Graph, RDF, RDFS, Namespace, URIRef, Literal
 from rdflib.store import Store
-from rdflib_sqlalchemy import registerplugins
 from flask import request, Flask, render_template, url_for
 from werkzeug.utils import redirect
+from databricks.sdk import WorkspaceClient
+from psycopg2.errors import DuplicateTable
 
 # Database configuration
-# For Databricks Apps with Lakebase, the connection URL is auto-injected
-# Check multiple possible environment variable names for flexibility
+# For Databricks Apps with Lakebase, standard PG* environment variables are injected
 def get_database_url():
-    """Get database URL from environment, checking Lakebase-specific variables."""
-    # Check for Lakebase auto-injected URL (pattern may vary based on resource name)
-    for var in [
-        'LAKEBASE_DATABASE_URL',           # Common pattern
-        'LAKEBASE_TAGSONOMY_DB_DATABASE_URL',  # Named resource pattern
-        'DATABASE_URL',                    # Generic fallback
-    ]:
-        url = os.environ.get(var)
-        if url:
-            return url
+    """Get database URL from environment, using Lakebase PG* variables."""
+    workspace_client = WorkspaceClient()
+    pg_host = os.environ.get('PGHOST')
+    pg_database = os.environ.get('PGDATABASE')
+    pg_user = os.environ.get('DATABRICKS_CLIENT_ID')
+    pg_port = os.environ.get('PGPORT', '5432')
+    # TODO: handle password expiry and renewal
+    pg_pass = workspace_client.config.oauth_token().access_token
+    
+    if pg_host and pg_database and pg_user:
+        return f'postgresql://{pg_user}:{pg_pass}@{pg_host}:{pg_port}/{pg_database}'
+    
     # Default to SQLite for local development
     return 'sqlite:///tagso.db'
 
@@ -32,26 +35,25 @@ USER_NS = Namespace("http://example.com/ontology/")
 
 # Register SQLAlchemy store plugin
 # TODO do we need to do this?
-registerplugins()
+# registerplugins()
 
 
 class GraphManager:
     def __init__(self, db_url: str, identifier: str = 'tagsonomy'):
         """
-        Initialize GraphManager with SQLAlchemy store backed by Postgres.
+        Initialize GraphManager with SQLAlchemy store
         
         Args:
-            db_url: PostgreSQL connection string
+            db_url: connection string
             identifier: Identifier for the graph store
         """
-        self._db_url = db_url
-        self._identifier = URIRef(identifier)
-        self._graph = Graph(store='SQLAlchemy', identifier=self._identifier)
+        self._graph = Graph(store='SQLAlchemy', identifier=identifier)
         
-        # Open the store
-        self._graph.open(self._db_url, create=True)
+        try:
+            self._graph.open(db_url, create=True)
+        except psycopg2.errors.DuplicateTable:
+            self._graph.open(db_url)
         
-        # Bind namespaces
         self._graph.bind("uc", UC)
         self._graph.bind("user", USER_NS)
         self._graph.bind("rdf", RDF)
@@ -72,14 +74,8 @@ class GraphManager:
         if uri not in self._graph.subjects(RDF.type, UC.Table):
             self._graph.add((uri, RDF.type, UC.Table))
             self._graph.add((uri, UC.name, Literal(name)))
-        app.logger.info(f"Inserting table {name} iri: {type(uri)}")
+        app.logger.info(f"Inserting table {name} iri: {uri}")
 
-    def delete_table(self, uri: str):
-        uri = URIRef(uri)
-        # Remove all triples where this table is the subject
-        for pred, obj in self._graph.predicate_objects(subject=uri):
-            self._graph.remove((uri, pred, obj))
-        app.logger.info(f"Deleted table {uri}")
 
     def get_classes(self, uri: Optional[URIRef] = None):
         r = self._graph.query("""
@@ -95,34 +91,28 @@ class GraphManager:
 
     def insert_class(self, uri: str, name: str, superclass: Optional[URIRef] = None):
         uri = URIRef(uri)
-        if uri not in self._graph.subjects(RDF.type, UC.Class):
+        if uri not in self._graph.subjects(RDF.type, RDFS.Class):
             self._graph.add((uri, RDF.type, RDFS.Class))
             self._graph.add((uri, RDFS.label, Literal(name)))
             if superclass:
                 self._graph.add((uri, RDFS.subClassOf, superclass))
+        app.logger.info(f"Inserting class {name} iri: {uri}")
 
-    def delete_class(self, uri: str):
+
+
+    def delete_object(self, uri: str):
         uri = URIRef(uri)
-        # Remove all triples where this class is the subject
         for pred, obj in self._graph.predicate_objects(subject=uri):
             self._graph.remove((uri, pred, obj))
-    
-    def load_initial_data(self, ttl_file: str):
-        """Load initial data from a Turtle file into the database."""
-        temp_graph = Graph()
-        temp_graph.parse(ttl_file, format='turtle')
-        for triple in temp_graph:
-            self._graph.add(triple)
-        app.logger.info(f"Loaded {len(temp_graph)} triples from {ttl_file}")
-    
+        app.logger.info(f"Deleted object {uri}")
+
     def close(self):
-        """Close the database connection."""
         self._graph.close()
 
 
 app = Flask(__name__)
+app.logger.setLevel(logging.INFO)
 
-# Initialize GraphManager with database connection
 gm = GraphManager(DATABASE_URL)
 
 
@@ -160,7 +150,7 @@ def table_delete():
     table_uri = data.get('uri')
     if not table_uri:
         return {'error': 'URI is required'}, 400
-    gm.delete_table(table_uri)
+    gm.delete_object(table_uri)
     return {'success': True}, 200
 
 
@@ -187,7 +177,7 @@ def class_delete():
     class_uri = data.get('uri')
     if not class_uri:
         return {'error': 'URI is required'}, 400
-    gm.delete_class(class_uri)
+    gm.delete_object(class_uri)
     return {'success': True}, 200
 
 
