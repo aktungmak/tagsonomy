@@ -2,7 +2,7 @@
 
 {% block title %}Tagsonomy | Classes{% endblock %}
 
-{% block extra_head %}
+{% block scripts %}
 <script>
     function filter_classes() {
       var input, filter, ul, li, i, spans, uri, name, txtValue;
@@ -62,7 +62,6 @@
 
     window.addEventListener('DOMContentLoaded', function() { 
       filter_classes();
-      document.getElementById('label').addEventListener('input', update_uri_from_label);
     });
 </script>
 {% endblock %}
@@ -100,7 +99,7 @@
 <h2>New Class</h2>
 <form action="{{ url_for('classes_post') }}" method='post'>
     <label for="label">Label:</label>
-    <input type="text" name="label" id="label" required/>
+    <input type="text" name="label" id="label" oninput="update_uri_from_label()" required/>
     
     <label for="uri">IRI:</label>
     <input type="text" name="uri" id="uri"/>

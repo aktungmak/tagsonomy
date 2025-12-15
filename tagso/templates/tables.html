@@ -47,6 +47,74 @@
       }
     }
 
+    const USER_NS = "{{ user_ns }}";
+    const LOADING = 'Loading...';
+    const SELECT_SCHEMA = 'Select Schema...';
+    const SELECT_TABLE = 'Select Table...';
+
+    function populateSelect(selectElement, items, placeholder) {
+      selectElement.replaceChildren();
+      selectElement.add(new Option(placeholder, ''));
+      for (const item of items) {
+        selectElement.add(new Option(item, item));
+      }
+    }
+
+    async function loadSchemas() {
+      const catalog = document.getElementById('catalog').value;
+      const schemaSelect = document.getElementById('schema');
+      const tableSelect = document.getElementById('table_name');
+      
+      // Reset dependent dropdowns
+      populateSelect(schemaSelect, [], LOADING);
+      populateSelect(tableSelect, [], SELECT_TABLE);
+      tableSelect.disabled = true;
+      updateUriFromSelection();
+      
+      if (!catalog) {
+        populateSelect(schemaSelect, [], SELECT_SCHEMA);
+        schemaSelect.disabled = true;
+        return;
+      }
+      
+      const schemas = await fetch(`/api/schemas/${catalog}`).then(r => r.json());
+      populateSelect(schemaSelect, schemas, SELECT_SCHEMA);
+      schemaSelect.disabled = false;
+    }
+
+    async function loadTables() {
+      const catalog = document.getElementById('catalog').value;
+      const schema = document.getElementById('schema').value;
+      const tableSelect = document.getElementById('table_name');
+      
+      if (!schema) {
+        populateSelect(tableSelect, [], SELECT_TABLE);
+        tableSelect.disabled = true;
+        updateUriFromSelection();
+        return;
+      }
+      
+      populateSelect(tableSelect, [], LOADING);
+      const tables = await fetch(`/api/tables/${catalog}/${schema}`).then(r => r.json());
+      populateSelect(tableSelect, tables, SELECT_TABLE);
+      tableSelect.disabled = false;
+      updateUriFromSelection();
+    }
+
+    function generateUriFromTableName(catalog, schema, tableName) {
+      if (!catalog || !schema || !tableName) return '';
+      const fullName = `${catalog}.${schema}.${tableName}`;
+      return USER_NS + encodeURIComponent(fullName);
+    }
+
+    function updateUriFromSelection() {
+      const catalog = document.getElementById('catalog').value;
+      const schema = document.getElementById('schema').value;
+      const tableName = document.getElementById('table_name').value;
+      const uriInput = document.getElementById('uri');
+      uriInput.value = generateUriFromTableName(catalog, schema, tableName);
+    }
+
     window.addEventListener('DOMContentLoaded', function() { 
       filter_tables(); 
     });
@@ -54,7 +122,7 @@
 {% endblock %}
 
 {% block content %}
-<input type="text" 
+<input type="search" 
        id="table_search" 
        value="{{ table_uri }}" 
        onkeyup="filter_tables()" 
@@ -85,8 +153,23 @@
 
 <h2>New Table</h2>
 <form action="{{ url_for('tables_post') }}" method='post'>
-    <label for="name">Table name:</label>
-    <input type="text" name="name" id="name" required/>
+    <label for="catalog">Catalog:</label>
+    <select name="catalog" id="catalog" onchange="loadSchemas()" required>
+        <option value="">Select Catalog...</option>
+        {% for cat in catalogs %}
+        <option value="{{ cat }}">{{ cat }}</option>
+        {% endfor %}
+    </select>
+    
+    <label for="schema">Schema:</label>
+    <select name="schema" id="schema" onchange="loadTables()" required disabled>
+        <option value="">Select Schema...</option>
+    </select>
+    
+    <label for="table_name">Table:</label>
+    <select name="table_name" id="table_name" onchange="updateUriFromSelection()" required disabled>
+        <option value="">Select Table...</option>
+    </select>
     
     <label for="uri">Table IRI (optional):</label>
     <input type="text" name="uri" id="uri"/>

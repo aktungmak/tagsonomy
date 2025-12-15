@@ -3,7 +3,7 @@ import urllib.parse
 import os
 from typing import Optional
 
-from rdflib import Graph, RDF, RDFS, Namespace, URIRef, Literal
+from rdflib import SKOS, Graph, RDF, RDFS, Namespace, URIRef, Literal
 from rdflib.store import Store
 from flask import request, Flask, render_template, url_for
 from werkzeug.utils import redirect
@@ -33,10 +33,6 @@ DATABASE_URL = get_database_url()
 UC = Namespace("http://databricks.com/ontology/uc/")
 USER_NS = Namespace("http://example.com/ontology/")
 
-# Register SQLAlchemy store plugin
-# TODO do we need to do this?
-# registerplugins()
-
 
 class GraphManager:
     def __init__(self, db_url: str, identifier: str = 'tagsonomy'):
@@ -51,7 +47,7 @@ class GraphManager:
         
         try:
             self._graph.open(db_url, create=True)
-        except psycopg2.errors.DuplicateTable:
+        except DuplicateTable:
             self._graph.open(db_url)
         
         self._graph.bind("uc", UC)
@@ -89,14 +85,16 @@ class GraphManager:
         """, initBindings={'uri': uri} if uri else None)
         return r.bindings
 
-    def insert_class(self, uri: str, name: str, superclass: Optional[URIRef] = None):
+    def insert_class(self, uri: str, label: str, class_type: URIRef, comment: Optional[str] = None, superclass: Optional[URIRef] = None):
         uri = URIRef(uri)
-        if uri not in self._graph.subjects(RDF.type, RDFS.Class):
-            self._graph.add((uri, RDF.type, RDFS.Class))
-            self._graph.add((uri, RDFS.label, Literal(name)))
+        if uri not in self._graph.subjects(RDF.type, class_type):
+            self._graph.add((uri, RDF.type, class_type))
+            self._graph.add((uri, RDFS.label, Literal(label)))
+            if comment:
+                self._graph.add((uri, RDFS.comment, Literal(comment)))
             if superclass:
                 self._graph.add((uri, RDFS.subClassOf, superclass))
-        app.logger.info(f"Inserting class {name} iri: {uri}")
+        app.logger.info(f"Inserting class {label} iri: {uri}")
 
 
 
@@ -114,6 +112,7 @@ app = Flask(__name__)
 app.logger.setLevel(logging.INFO)
 
 gm = GraphManager(DATABASE_URL)
+workspace_client = WorkspaceClient()
 
 
 def _generate_uri_from_name(name: str) -> str:
@@ -131,13 +130,17 @@ def index():
 @app.get('/tables')
 def tables_get():
     table_uri = request.args.get('table_uri', '')
-    return render_template("tables.html", tables=gm.get_tables(), table_uri=table_uri)
+    catalogs = [c.name for c in workspace_client.catalogs.list()]
+    return render_template("tables.html", tables=gm.get_tables(), table_uri=table_uri, catalogs=catalogs, user_ns=str(USER_NS))
 
 
 @app.post('/tables')
 def tables_post():
-    uri = request.form['uri']
-    name = request.form['name']
+    uri = request.form.get('uri', '')
+    catalog = request.form['catalog']
+    schema = request.form['schema']
+    table_name = request.form['table_name']
+    name = f"{catalog}.{schema}.{table_name}"
     if not uri:
         uri = _generate_uri_from_name(name)
     gm.insert_table(uri, name)
@@ -154,20 +157,51 @@ def table_delete():
     return {'success': True}, 200
 
 
+# Unity Catalog API endpoints for cascading dropdowns
+@app.get('/api/catalogs')
+def api_catalogs():
+    catalogs = workspace_client.catalogs.list()
+    return [c.name for c in catalogs]
+
+
+@app.get('/api/schemas/<catalog>')
+def api_schemas(catalog):
+    schemas = workspace_client.schemas.list(catalog_name=catalog)
+    return [s.name for s in schemas]
+
+
+@app.get('/api/tables/<catalog>/<schema>')
+def api_tables(catalog, schema):
+    tables = workspace_client.tables.list(catalog_name=catalog, schema_name=schema)
+    return [t.name for t in tables]
+
+
 # Class routes ####################
 @app.get('/classes')
 def classes_get():
     class_uri = request.args.get('class_uri', '')
-    return render_template("classes.html", classes=gm.get_classes(), class_uri=class_uri)
+    return render_template("classes.html", classes=gm.get_classes(), class_uri=class_uri, user_ns=str(USER_NS))
 
 
 @app.post('/classes')
 def classes_post():
+    label = request.form['label']
+
     uri = request.form['uri']
-    name = request.form['name']
     if not uri:
-        uri = _generate_uri_from_name(name)
-    gm.insert_class(uri, name)
+        uri = _generate_uri_from_name(label)
+
+    class_type_str = request.form['type']
+    if class_type_str == 'rdfs_class':
+        class_type = RDFS.Class
+    elif class_type_str == 'skos_concept':
+        class_type = SKOS.Concept
+    else:
+        return {'error': f'Invalid class type: {class_type_str}'}, 400
+
+    comment = request.form['comment']
+
+    gm.insert_class(uri, label, class_type, comment)
     return redirect(url_for('classes_get', class_uri=uri))
 
 
