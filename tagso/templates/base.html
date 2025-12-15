@@ -3,12 +3,16 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.classless.min.css">
     <title>{% block title %}Tagsonomy{% endblock %}</title>
-    {% block extra_head %}{% endblock %}
+    {% block scripts %}{% endblock %}
 </head>
 <body>
+<header>
 {{ macros.navbar() }}
+</header>
+<main>
 {% block content %}{% endblock %}
+</main>
 </body>
 </html>

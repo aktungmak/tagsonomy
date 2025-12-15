@@ -47,14 +47,28 @@
       }
     }
 
+    const USER_NS = "{{ user_ns }}";
+
+    function generate_uri_from_label(label) {
+      if (!label) return '';
+      return USER_NS + encodeURIComponent(label);
+    }
+
+    function update_uri_from_label() {
+      const labelInput = document.getElementById('label');
+      const uriInput = document.getElementById('uri');
+      uriInput.value = generate_uri_from_label(labelInput.value);
+    }
+
     window.addEventListener('DOMContentLoaded', function() { 
-      filter_classes(); 
+      filter_classes();
+      document.getElementById('label').addEventListener('input', update_uri_from_label);
     });
 </script>
 {% endblock %}
 
 {% block content %}
-<input type="text" 
+<input type="search" 
        id="class_search" 
        value="{{ class_uri }}" 
        onkeyup="filter_classes()" 
@@ -85,11 +99,19 @@
 
 <h2>New Class</h2>
 <form action="{{ url_for('classes_post') }}" method='post'>
-    <label for="name">Class name:</label>
-    <input type="text" name="name" id="name" required/>
+    <label for="label">Label:</label>
+    <input type="text" name="label" id="label" required/>
     
-    <label for="uri">Class IRI (optional):</label>
+    <label for="uri">IRI:</label>
     <input type="text" name="uri" id="uri"/>
+
+    <label for="comment">Comment:</label>
+    <input type="text" name="comment" id="comment"/>
+
+    <input type="radio" name="type" id="rdfs_class" value="rdfs_class" checked>
+    <label for="rdfs_class">RDFS Class</label>
+    <input type="radio" name="type" id="skos_concept" value="skos_concept">
+    <label for="skos_concept">SKOS Concept</label>
     
     <input type="submit" value="Create"/>
 </form>
