@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block title %}Tagsonomy | Assign{% endblock %}
+
+{% block content %}
+<h1>Assign Table to Class</h1>
+<p>Select a table and a class to create a semantic assignment.</p>
+
+<form action="{{ url_for('assign_post') }}" method="post">
+    <label for="table_uri">Table:</label>
+    <select name="table_uri" id="table_uri" required>
+        <option value="">Select a table...</option>
+        {% for table in tables %}
+        <option value="{{ table.uri }}">{{ table.name + " - " if table.name else "" }}{{ table.uri }}</option>
+        {% endfor %}
+    </select>
+
+    <label for="class_uri">Class:</label>
+    <select name="class_uri" id="class_uri" required>
+        <option value="">Select a class...</option>
+        {% for class in classes %}
+        <option value="{{ class.uri }}">{{ class.name + " - " if class.name else "" }}{{ class.uri }}</option>
+        {% endfor %}
+    </select>
+
+    <input type="submit" value="Assign"/>
+</form>
+{% endblock %}
+

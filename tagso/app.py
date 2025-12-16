@@ -10,6 +10,7 @@ from werkzeug.utils import redirect
 from databricks.sdk import WorkspaceClient
 from psycopg2.errors import DuplicateTable
 
+
 # Database configuration
 # For Databricks Apps with Lakebase, standard PG* environment variables are injected
 def get_database_url():
@@ -21,12 +22,13 @@ def get_database_url():
     pg_port = os.environ.get('PGPORT', '5432')
     # TODO: handle password expiry and renewal
     pg_pass = workspace_client.config.oauth_token().access_token
-    
+
     if pg_host and pg_database and pg_user:
         return f'postgresql://{pg_user}:{pg_pass}@{pg_host}:{pg_port}/{pg_database}'
-    
+
     # Default to SQLite for local development
     return 'sqlite:///tagso.db'
+
 
 DATABASE_URL = get_database_url()
 
@@ -44,12 +46,12 @@ class GraphManager:
             identifier: Identifier for the graph store
         """
         self._graph = Graph(store='SQLAlchemy', identifier=identifier)
-        
+
         try:
             self._graph.open(db_url, create=True)
         except DuplicateTable:
             self._graph.open(db_url)
-        
+
         self._graph.bind("uc", UC)
         self._graph.bind("user", USER_NS)
         self._graph.bind("rdf", RDF)
@@ -72,7 +74,6 @@ class GraphManager:
             self._graph.add((uri, UC.name, Literal(name)))
         app.logger.info(f"Inserting table {name} iri: {uri}")
 
-
     def get_classes(self, uri: Optional[URIRef] = None):
         r = self._graph.query("""
             SELECT DISTINCT ?uri ?name
@@ -85,7 +86,8 @@ class GraphManager:
         """, initBindings={'uri': uri} if uri else None)
         return r.bindings
 
-    def insert_class(self, uri: str, label: str, class_type: URIRef, comment: Optional[str] = None, superclass: Optional[URIRef] = None):
+    def insert_class(self, uri: str, label: str, class_type: URIRef, comment: Optional[str] = None,
+                     superclass: Optional[URIRef] = None):
         uri = URIRef(uri)
         if uri not in self._graph.subjects(RDF.type, class_type):
             self._graph.add((uri, RDF.type, class_type))
@@ -96,7 +98,12 @@ class GraphManager:
                 self._graph.add((uri, RDFS.subClassOf, superclass))
         app.logger.info(f"Inserting class {label} iri: {uri}")
 
-
+    def insert_assignment(self, table_uri: str, class_uri: str):
+        """Insert a semantic assignment from a table to a class."""
+        table_uri = URIRef(table_uri)
+        class_uri = URIRef(class_uri)
+        self._graph.add((table_uri, UC.semanticAssignment, class_uri))
+        app.logger.info(f"Assigned table {table_uri} to class {class_uri}")
 
     def delete_object(self, uri: str):
         uri = URIRef(uri)
@@ -131,7 +138,8 @@ def index():
 def tables_get():
     table_uri = request.args.get('table_uri', '')
     catalogs = [c.name for c in workspace_client.catalogs.list()]
-    return render_template("tables.html", tables=gm.get_tables(), table_uri=table_uri, catalogs=catalogs, user_ns=str(USER_NS))
+    return render_template("tables.html", tables=gm.get_tables(), table_uri=table_uri, catalogs=catalogs,
+                           user_ns=str(USER_NS))
 
 
 @app.post('/tables')
@@ -232,12 +240,17 @@ def property(property_uri):
 
 
 # Semantic Assignment route #######
-@app.route('/assignments', methods=['POST', 'DELETE'])
-def assignments():
-    if request.method == 'POST':
-        raise NotImplementedError("POST method not implemented")
-    elif request.method == 'DELETE':
-        raise NotImplementedError("DELETE method not implemented")
+@app.get('/assign')
+def assign_get():
+    return render_template("assign.html", classes=gm.get_classes(), tables=gm.get_tables())
+
+
+@app.post('/assign')
+def assign_post():
+    class_uri = request.form.get('class_uri')
+    table_uri = request.form.get('table_uri')
+    gm.insert_assignment(table_uri, class_uri)
+    return redirect(url_for('assign_get'))
 
 
 # Sync to UC ######################
