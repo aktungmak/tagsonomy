@@ -300,5 +300,31 @@ def sync():
         raise NotImplementedError("POST method not implemented")
 
 
+# Import ontology #################
+@app.get('/import')
+def import_get():
+    return render_template("import.html")
+
+
+@app.post('/import')
+def import_post():
+    if 'file' not in request.files:
+        return render_template("import.html", message="No file selected")
+    
+    file = request.files['file']
+    
+    try:
+        before_count = len(gm._graph)
+        gm._graph.parse(file)
+        triples_added = len(gm._graph) - before_count
+        
+        app.logger.info(f"Imported {triples_added} triples from {file.filename}")
+        return render_template("import.html", message=f"Successfully imported {triples_added} triples from {file.filename}")
+    
+    except Exception as e:
+        app.logger.error(f"Error importing file: {e}")
+        return render_template("import.html", message=f"Error importing file: {str(e)}")
+
+
 if __name__ == '__main__':
     app.run(debug=True, port=5501)
