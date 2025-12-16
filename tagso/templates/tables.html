@@ -138,7 +138,16 @@
             <b>Name:</b> <span class="searchable">{{ table.name | safe }}</span>
         </div>
         <div>
-            <b>Related Classes:</b> <span>TODO</span>
+            <b>Assigned Classes:</b>
+            {% if table.assigned_classes %}
+            <ul>
+                {% for assignment in table.assigned_classes %}
+                <li>{{ assignment.class_name | default(assignment.class_uri, true) | safe }} ({{ assignment.class_uri | safe }})</li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <span>None</span>
+            {% endif %}
         </div>
         <div>
             <b>Related Properties:</b> <span>TODO</span>

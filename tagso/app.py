@@ -57,7 +57,11 @@ class GraphManager:
         self._graph.bind("rdf", RDF)
         self._graph.bind("rdfs", RDFS)
 
-    def get_tables(self, uri: Optional[URIRef] = None):
+    def _to_dicts(self, bindings) -> list[dict]:
+        """Convert SPARQL bindings to list of dicts with string keys and native Python values."""
+        return [{str(k): v.toPython() if v is not None else None for k, v in row.items()} for row in bindings]
+
+    def get_tables(self, uri: Optional[URIRef] = None) -> list[dict]:
         r = self._graph.query("""
             SELECT ?uri ?name
             WHERE {
@@ -65,7 +69,7 @@ class GraphManager:
                 OPTIONAL { ?uri uc:name ?name }
             }
         """, initBindings={'uri': uri} if uri else None)
-        return r.bindings
+        return self._to_dicts(r.bindings)
 
     def insert_table(self, uri: str, name: str):
         uri = URIRef(uri)
@@ -74,7 +78,7 @@ class GraphManager:
             self._graph.add((uri, UC.name, Literal(name)))
         app.logger.info(f"Inserting table {name} iri: {uri}")
 
-    def get_classes(self, uri: Optional[URIRef] = None):
+    def get_classes(self, uri: Optional[URIRef] = None) -> list[dict]:
         r = self._graph.query("""
             SELECT DISTINCT ?uri ?name
             WHERE {
@@ -84,7 +88,7 @@ class GraphManager:
                 OPTIONAL { ?uri rdfs:label ?name }
             }
         """, initBindings={'uri': uri} if uri else None)
-        return r.bindings
+        return self._to_dicts(r.bindings)
 
     def insert_class(self, uri: str, label: str, class_type: URIRef, comment: Optional[str] = None,
                      superclass: Optional[URIRef] = None):
@@ -104,6 +108,29 @@ class GraphManager:
         class_uri = URIRef(class_uri)
         self._graph.add((table_uri, UC.semanticAssignment, class_uri))
         app.logger.info(f"Assigned table {table_uri} to class {class_uri}")
+
+    def get_assignments(self, table_uri: Optional[str] = None, class_uri: Optional[str] = None) -> list[dict]:
+        """Get semantic assignments, filtered by table or class.
+        
+        Args:
+            table_uri: If provided, returns all classes assigned to this table
+            class_uri: If provided, returns all tables assigned to this class
+        """
+        bindings = {}
+        if table_uri:
+            bindings['table_uri'] = URIRef(table_uri)
+        if class_uri:
+            bindings['class_uri'] = URIRef(class_uri)
+        
+        r = self._graph.query("""
+            SELECT ?table_uri ?table_name ?class_uri ?class_name
+            WHERE {
+                ?table_uri uc:semanticAssignment ?class_uri .
+                OPTIONAL { ?table_uri uc:name ?table_name }
+                OPTIONAL { ?class_uri rdfs:label ?class_name }
+            }
+        """, initBindings=bindings if bindings else None)
+        return self._to_dicts(r.bindings)
 
     def delete_object(self, uri: str):
         uri = URIRef(uri)
@@ -138,7 +165,11 @@ def index():
 def tables_get():
     table_uri = request.args.get('table_uri', '')
     catalogs = [c.name for c in workspace_client.catalogs.list()]
-    return render_template("tables.html", tables=gm.get_tables(), table_uri=table_uri, catalogs=catalogs,
+    # TODO collect assigned_classes in a single query
+    tables = gm.get_tables()
+    for table in tables:
+        table['assigned_classes'] = gm.get_assignments(table_uri=table['uri'])
+    return render_template("tables.html", tables=tables, table_uri=table_uri, catalogs=catalogs,
                            user_ns=str(USER_NS))
 
 
@@ -188,7 +219,11 @@ def api_tables(catalog, schema):
 @app.get('/classes')
 def classes_get():
     class_uri = request.args.get('class_uri', '')
-    return render_template("classes.html", classes=gm.get_classes(), class_uri=class_uri, user_ns=str(USER_NS))
+    # TODO collect assigned_tables in a single query
+    classes = gm.get_classes()
+    for cls in classes:
+        cls['assigned_tables'] = gm.get_assignments(class_uri=cls['uri'])
+    return render_template("classes.html", classes=classes, class_uri=class_uri, user_ns=str(USER_NS))
 
 
 @app.post('/classes')

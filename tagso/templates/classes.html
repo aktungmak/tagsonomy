@@ -83,7 +83,16 @@
             <b>Name:</b> <span>{{ class.name | safe }}</span>
         </div>
         <div>
-            <b>Related Tables:</b> <span>TODO</span>
+            <b>Assigned Tables:</b>
+            {% if class.assigned_tables %}
+            <ul>
+                {% for assignment in class.assigned_tables %}
+                <li>{{ assignment.table_name | default(assignment.table_uri, true) | safe }} ({{ assignment.table_uri | safe }})</li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <span>None</span>
+            {% endif %}
         </div>
         <div>
             <b>Related Properties:</b> <span>TODO</span>
