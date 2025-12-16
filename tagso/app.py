@@ -4,11 +4,11 @@ import os
 from typing import Optional
 
 from rdflib import SKOS, Graph, RDF, RDFS, Namespace, URIRef, Literal
-from rdflib.store import Store
 from flask import request, Flask, render_template, url_for
 from werkzeug.utils import redirect
 from databricks.sdk import WorkspaceClient
 from psycopg2.errors import DuplicateTable
+from sqlalchemy import create_engine, text
 
 
 # Database configuration
@@ -20,7 +20,7 @@ def get_database_url():
     pg_database = os.environ.get('PGDATABASE')
     pg_user = os.environ.get('DATABRICKS_CLIENT_ID')
     pg_port = os.environ.get('PGPORT', '5432')
-    # TODO: handle password expiry and renewal
+    # TODO: handle password expiry and renewal properly
     pg_pass = workspace_client.config.oauth_token().access_token
 
     if pg_host and pg_database and pg_user:
@@ -121,7 +121,7 @@ class GraphManager:
             bindings['table_uri'] = URIRef(table_uri)
         if class_uri:
             bindings['class_uri'] = URIRef(class_uri)
-        
+
         r = self._graph.query("""
             SELECT ?table_uri ?table_name ?class_uri ?class_name
             WHERE {
@@ -310,20 +310,58 @@ def import_get():
 def import_post():
     if 'file' not in request.files:
         return render_template("import.html", message="No file selected")
-    
+
     file = request.files['file']
-    
+
     try:
         before_count = len(gm._graph)
         gm._graph.parse(file)
         triples_added = len(gm._graph) - before_count
-        
+
         app.logger.info(f"Imported {triples_added} triples from {file.filename}")
-        return render_template("import.html", message=f"Successfully imported {triples_added} triples from {file.filename}")
-    
+        return render_template("import.html",
+                               message=f"Successfully imported {triples_added} triples from {file.filename}")
+
     except Exception as e:
         app.logger.error(f"Error importing file: {e}")
         return render_template("import.html", message=f"Error importing file: {str(e)}")
+
+
+@app.get('/similar')
+def similar_get():
+    """Get concepts similar to a given question or text using vector similarity search."""
+    query_text = request.args.get('text', '')
+    if not query_text:
+        return {'error': 'Text is required'}, 400
+
+    limit = request.args.get('limit', 10, type=int)
+
+    # Generate embedding for the query text using Databricks serving endpoint
+    response = workspace_client.serving_endpoints.query(
+        name="databricks-gte-large-en",
+        input=query_text
+    )
+    embedding = response.data[0].embedding
+
+    # Query the embeddings table using vector similarity search
+    engine = create_engine(get_database_url())
+    if engine.dialect.name != 'postgresql':
+        return {'error': 'Unsupported database engine'}, 500
+
+    query = text("""
+        SELECT subject, predicate, object, object_embedding <-> (:embedding)::vector AS similarity
+        FROM public.embeddings
+        ORDER BY similarity DESC
+        LIMIT :limit
+    """)
+
+    with engine.connect() as conn:
+        result = conn.execute(query, {"embedding": str(embedding), "limit": limit})
+        # rows = [{"subject": row.subject, "predicate": row.predicate, "object": row.object, "similarity": row.similarity} 
+        # for row in result]
+        rows = [row._asdict() for row in result]
+
+    return {"results": rows, "query": query_text}
 
 
 if __name__ == '__main__':
