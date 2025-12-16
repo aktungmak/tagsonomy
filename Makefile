@@ -18,7 +18,9 @@ help:
 	@echo "  - Run 'databricks auth login' to authenticate"
 
 install:
-	pip install -r requirements.txt
+	python3 -m venv venv && \
+	. venv/bin/activate && \
+	pip install -r tagso/requirements.txt
 
 validate:
 	databricks bundle validate
@@ -37,11 +39,8 @@ status:
 
 dev:
 	@echo "Starting local development server..."
-	@if [ ! -d "venv" ]; then \
-		echo "Virtual environment not found. Creating one..."; \
-		python3 -m venv venv; \
-	fi
-	. venv/bin/activate && pip install -r requirements.txt && python tagso/app.py
+	. venv/bin/activate && \
+	python tagso/app.py
 
 clean:
 	@echo "Cleaning up local artifacts..."
