@@ -11,7 +11,7 @@
     <select name="table_uri" id="table_uri" required>
         <option value="">Select a table...</option>
         {% for table in tables %}
-        <option value="{{ table.uri }}">{{ table.name + " - " if table.name else "" }}{{ table.uri }}</option>
+        <option value="{{ table.uri }}"{% if table.uri.toPython() == selected_table_uri %} selected{% endif %}>{{ table.name + " - " if table.name else "" }}{{ table.uri }}</option>
         {% endfor %}
     </select>
 
@@ -19,7 +19,7 @@
     <select name="class_uri" id="class_uri" required>
         <option value="">Select a class...</option>
         {% for class in classes %}
-        <option value="{{ class.uri }}">{{ class.name + " - " if class.name else "" }}{{ class.uri }}</option>
+        <option value="{{ class.uri }}"{% if class.uri.toPython() == selected_class_uri %} selected{% endif %}>{{ class.name + " - " if class.name else "" }}{{ class.uri }}</option>
         {% endfor %}
     </select>
 

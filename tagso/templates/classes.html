@@ -89,7 +89,7 @@
             <b>Related Properties:</b> <span>TODO</span>
         </div>
         <button onclick="delete_class('{{ class.uri }}')">Delete</button>
-        <button onclick="assign('{{ class.uri }}')">Assign</button>
+        <a href="{{ url_for('assign_get', selected_class_uri=class.uri) }}"><button type="button">Assign</button></a>
     </li>
     {% endfor %}
 </ul>

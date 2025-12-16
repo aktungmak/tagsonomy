@@ -242,7 +242,10 @@ def property(property_uri):
 # Semantic Assignment route #######
 @app.get('/assign')
 def assign_get():
-    return render_template("assign.html", classes=gm.get_classes(), tables=gm.get_tables())
+    selected_class_uri = request.args.get('selected_class_uri', '')
+    selected_table_uri = request.args.get('selected_table_uri', '')
+    return render_template("assign.html", classes=gm.get_classes(), tables=gm.get_tables(),
+                           selected_class_uri=selected_class_uri, selected_table_uri=selected_table_uri)
 
 
 @app.post('/assign')

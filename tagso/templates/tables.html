@@ -144,7 +144,7 @@
             <b>Related Properties:</b> <span>TODO</span>
         </div>
         <button onclick="delete_table('{{ table.uri }}')">Delete</button>
-        <button onclick="assign('{{ table.uri }}')">Assign</button>
+        <a href="{{ url_for('assign_get', selected_table_uri=table.uri) }}"><button type="button">Assign</button></a>
     </li>
     {% endfor %}
 </ul>
