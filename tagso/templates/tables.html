@@ -138,11 +138,11 @@
             <b>Name:</b> <span class="searchable">{{ table.name | safe }}</span>
         </div>
         <div>
-            <b>Assigned Classes:</b>
-            {% if table.assigned_classes %}
+            <b>Assigned Concepts:</b>
+            {% if table.assigned_concepts %}
             <ul>
-                {% for assignment in table.assigned_classes %}
-                <li>{{ assignment.class_name | default(assignment.class_uri, true) | safe }} ({{ assignment.class_uri | safe }})</li>
+                {% for assignment in table.assigned_concepts %}
+                <li>{{ assignment.concept_name | default(assignment.concept_uri, true) | safe }} ({{ assignment.concept_uri | safe }})</li>
                 {% endfor %}
             </ul>
             {% else %}

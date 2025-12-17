@@ -3,8 +3,8 @@
 {% block title %}Tagsonomy | Assign{% endblock %}
 
 {% block content %}
-<h1>Assign Table to Class</h1>
-<p>Select a table and a class to create a semantic assignment.</p>
+<h1>Assign Table to Concept</h1>
+<p>Select a table and a concept to create a semantic assignment.</p>
 
 <form action="{{ url_for('assign.assign_post') }}" method="post">
     <label for="table_uri">Table:</label>
@@ -15,15 +15,14 @@
         {% endfor %}
     </select>
 
-    <label for="class_uri">Class:</label>
-    <select name="class_uri" id="class_uri" required>
-        <option value="">Select a class...</option>
-        {% for class in classes %}
-        <option value="{{ class.uri }}"{% if class.uri == selected_class_uri %} selected{% endif %}>{{ class.name + " - " if class.name else "" }}{{ class.uri }}</option>
+    <label for="concept_uri">Concept:</label>
+    <select name="concept_uri" id="concept_uri" required>
+        <option value="">Select a concept...</option>
+        {% for concept in concepts %}
+        <option value="{{ concept.uri }}"{% if concept.uri == selected_concept_uri %} selected{% endif %}>{{ concept.name + " - " if concept.name else "" }}{{ concept.uri }}</option>
         {% endfor %}
     </select>
 
     <input type="submit" value="Assign"/>
 </form>
 {% endblock %}
-

@@ -52,56 +52,54 @@ class GraphManager:
             self._graph.add((uri, UC.name, Literal(name)))
         logger.info(f"Inserting table {name} iri: {uri}")
 
-    def get_classes(self, uri: Optional[URIRef] = None) -> list[dict]:
+    def get_concepts(self, uri: Optional[URIRef] = None) -> list[dict]:
         r = self._graph.query("""
             SELECT DISTINCT ?uri ?name
             WHERE {
                 { ?uri a rdfs:Class . }
                 UNION
                 { ?uri rdfs:subClassOf ?other . }
+                UNION
+                { ?uri a skos:Concept . }
                 OPTIONAL { ?uri rdfs:label ?name }
             }
         """, initBindings={'uri': uri} if uri else None)
         return self._to_dicts(r.bindings)
 
-    def insert_class(self, uri: str, label: str, class_type: URIRef, comment: Optional[str] = None,
-                     superclass: Optional[URIRef] = None):
+    def insert_concept(self, uri: str, label: str, concept_type: URIRef, comment: Optional[str] = None):
         uri = URIRef(uri)
-        if uri not in self._graph.subjects(RDF.type, class_type):
-            self._graph.add((uri, RDF.type, class_type))
-            self._graph.add((uri, RDFS.label, Literal(label)))
-            if comment:
-                self._graph.add((uri, RDFS.comment, Literal(comment)))
-            if superclass:
-                self._graph.add((uri, RDFS.subClassOf, superclass))
-        logger.info(f"Inserting class {label} iri: {uri}")
+        self._graph.add((uri, RDF.type, concept_type))
+        self._graph.add((uri, RDFS.label, Literal(label)))
+        if comment:
+            self._graph.add((uri, RDFS.comment, Literal(comment)))
+        logger.info(f"Inserting concept {label} iri: {uri}")
 
-    def insert_assignment(self, table_uri: str, class_uri: str):
-        """Insert a semantic assignment from a table to a class."""
+    def insert_assignment(self, table_uri: str, concept_uri: str):
+        """Insert a semantic assignment from a table to a concept."""
         table_uri = URIRef(table_uri)
-        class_uri = URIRef(class_uri)
-        self._graph.add((table_uri, UC.semanticAssignment, class_uri))
-        logger.info(f"Assigned table {table_uri} to class {class_uri}")
+        concept_uri = URIRef(concept_uri)
+        self._graph.add((table_uri, UC.semanticAssignment, concept_uri))
+        logger.info(f"Assigned table {table_uri} to concept {concept_uri}")
 
-    def get_assignments(self, table_uri: Optional[str] = None, class_uri: Optional[str] = None) -> list[dict]:
-        """Get semantic assignments, filtered by table or class.
+    def get_assignments(self, table_uri: Optional[str] = None, concept_uri: Optional[str] = None) -> list[dict]:
+        """Get semantic assignments, filtered by table or concept.
         
         Args:
-            table_uri: If provided, returns all classes assigned to this table
-            class_uri: If provided, returns all tables assigned to this class
+            table_uri: If provided, returns all concepts assigned to this table
+            concept_uri: If provided, returns all tables assigned to this concept
         """
         bindings = {}
         if table_uri:
             bindings['table_uri'] = URIRef(table_uri)
-        if class_uri:
-            bindings['class_uri'] = URIRef(class_uri)
+        if concept_uri:
+            bindings['concept_uri'] = URIRef(concept_uri)
 
         r = self._graph.query("""
-            SELECT ?table_uri ?table_name ?class_uri ?class_name
+            SELECT ?table_uri ?table_name ?concept_uri ?concept_name
             WHERE {
-                ?table_uri uc:semanticAssignment ?class_uri .
+                ?table_uri uc:semanticAssignment ?concept_uri .
                 OPTIONAL { ?table_uri uc:name ?table_name }
-                OPTIONAL { ?class_uri rdfs:label ?class_name }
+                OPTIONAL { ?concept_uri rdfs:label ?concept_name }
             }
         """, initBindings=bindings if bindings else None)
         return self._to_dicts(r.bindings)

@@ -14,10 +14,10 @@ workspace_client = LocalProxy(lambda: current_app.workspace_client)
 def tables_get():
     table_uri = request.args.get('table_uri', '')
     catalogs = [c.name for c in workspace_client.catalogs.list()]
-    # TODO collect assigned_classes in a single query
+    # TODO collect assigned concepts in a single query
     tables = gm.get_tables()
     for table in tables:
-        table['assigned_classes'] = gm.get_assignments(table_uri=table['uri'])
+        table['assigned_concepts'] = gm.get_assignments(table_uri=table['uri'])
     return render_template("tables.html", tables=tables, table_uri=table_uri, catalogs=catalogs,
                            user_ns=str(USER_NS))
 
