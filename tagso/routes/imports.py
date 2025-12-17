@@ -1,0 +1,39 @@
+from flask import Blueprint, request, render_template, current_app
+
+imports_bp = Blueprint('imports', __name__)
+
+
+@imports_bp.get('/import')
+def import_get():
+    return render_template("import.html")
+
+
+@imports_bp.post('/import')
+def import_post():
+    gm = current_app.gm
+    
+    if 'file' not in request.files:
+        return render_template("import.html", message="No file selected")
+
+    file = request.files['file']
+
+    try:
+        before_count = len(gm._graph)
+        gm._graph.parse(file)
+        triples_added = len(gm._graph) - before_count
+
+        current_app.logger.info(f"Imported {triples_added} triples from {file.filename}")
+        return render_template("import.html",
+                               message=f"Successfully imported {triples_added} triples from {file.filename}")
+
+    except Exception as e:
+        current_app.logger.error(f"Error importing file: {e}")
+        return render_template("import.html", message=f"Error importing file: {str(e)}")
+
+
+@imports_bp.route('/sync', methods=['GET', 'POST'])
+def sync():
+    if request.method == 'GET':
+        return render_template("sync.html")
+    elif request.method == 'POST':
+        raise NotImplementedError("POST method not implemented")

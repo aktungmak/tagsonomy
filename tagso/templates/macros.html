@@ -2,11 +2,11 @@
 <nav>
     <ul>
         <li><a href="{{ url_for('index') }}">Home</a></li>
-        <li><a href="{{ url_for('tables_get') }}">Tables</a></li>
-        <li><a href="{{ url_for('classes_get') }}">Classes</a></li>
-        <li><a href="{{ url_for('properties_get') }}">Properties</a></li>
-        <li><a href="{{ url_for('assign_get') }}">Assign</a></li>
-        <li><a href="{{ url_for('import_get') }}">Import</a></li>
+        <li><a href="{{ url_for('tables.tables_get') }}">Tables</a></li>
+        <li><a href="{{ url_for('classes.classes_get') }}">Classes</a></li>
+        <li><a href="{{ url_for('properties.properties_get') }}">Properties</a></li>
+        <li><a href="{{ url_for('assign.assign_get') }}">Assign</a></li>
+        <li><a href="{{ url_for('imports.import_get') }}">Import</a></li>
     </ul>
 </nav>
 {% endmacro %}

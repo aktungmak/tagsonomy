@@ -26,7 +26,7 @@
 
     function delete_property(property_uri) {
       if (confirm('Are you sure you want to delete this property?')) {
-        fetch('{{ url_for("property_delete") }}', {
+        fetch('{{ url_for("properties.property_delete") }}', {
           method: 'DELETE',
           headers: {
             'Content-Type': 'application/json'
@@ -84,7 +84,7 @@
 <hr/>
 
 <h2>New Property</h2>
-<form action="{{ url_for('properties_post') }}" method='post'>
+<form action="{{ url_for('properties.properties_post') }}" method='post'>
     <label for="name">Property name:</label>
     <input type="text" name="name" id="name" required/>
     

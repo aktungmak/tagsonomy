@@ -6,7 +6,7 @@
 <h1>Assign Table to Class</h1>
 <p>Select a table and a class to create a semantic assignment.</p>
 
-<form action="{{ url_for('assign_post') }}" method="post">
+<form action="{{ url_for('assign.assign_post') }}" method="post">
     <label for="table_uri">Table:</label>
     <select name="table_uri" id="table_uri" required>
         <option value="">Select a table...</option>
