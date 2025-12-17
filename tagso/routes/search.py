@@ -31,9 +31,10 @@ def similar_get():
         return {'error': 'Unsupported database engine'}, 500
 
     query = text("""
-        SELECT subject, predicate, object, object_embedding <-> (:embedding)::vector AS similarity
+        SELECT subject, predicate, object,
+               object_embedding <=> (:embedding)::vector AS distance
         FROM public.embeddings
-        ORDER BY similarity DESC
+        ORDER BY distance DESC
         LIMIT :limit
     """)
 
