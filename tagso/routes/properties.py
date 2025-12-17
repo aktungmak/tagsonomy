@@ -1,6 +1,9 @@
 from flask import Blueprint, render_template, request, current_app
+from werkzeug.local import LocalProxy
 
 properties_bp = Blueprint('properties', __name__)
+
+gm = LocalProxy(lambda: current_app.gm)
 
 
 @properties_bp.get('/properties')
@@ -15,8 +18,6 @@ def properties_post():
 
 @properties_bp.delete('/property')
 def property_delete():
-    gm = current_app.gm
-    
     data = request.get_json()
     property_uri = data.get('uri')
     if not property_uri:

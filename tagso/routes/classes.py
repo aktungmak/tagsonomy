@@ -1,4 +1,5 @@
 from flask import Blueprint, request, render_template, url_for, current_app
+from werkzeug.local import LocalProxy
 from werkzeug.utils import redirect
 from rdflib import SKOS, RDFS
 
@@ -6,11 +7,11 @@ from config import USER_NS, generate_uri_from_name
 
 classes_bp = Blueprint('classes', __name__)
 
+gm = LocalProxy(lambda: current_app.gm)
+
 
 @classes_bp.get('/classes')
 def classes_get():
-    gm = current_app.gm
-    
     class_uri = request.args.get('class_uri', '')
     # TODO collect assigned_tables in a single query
     classes = gm.get_classes()
@@ -21,8 +22,6 @@ def classes_get():
 
 @classes_bp.post('/classes')
 def classes_post():
-    gm = current_app.gm
-    
     label = request.form['label']
 
     uri = request.form['uri']
@@ -45,8 +44,6 @@ def classes_post():
 
 @classes_bp.delete('/class')
 def class_delete():
-    gm = current_app.gm
-    
     data = request.get_json()
     class_uri = data.get('uri')
     if not class_uri:

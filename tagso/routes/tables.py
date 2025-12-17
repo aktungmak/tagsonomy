@@ -1,16 +1,17 @@
 from flask import Blueprint, request, render_template, url_for, current_app
+from werkzeug.local import LocalProxy
 from werkzeug.utils import redirect
 
 from config import USER_NS, generate_uri_from_name
 
 tables_bp = Blueprint('tables', __name__)
 
+gm = LocalProxy(lambda: current_app.gm)
+workspace_client = LocalProxy(lambda: current_app.workspace_client)
+
 
 @tables_bp.get('/tables')
 def tables_get():
-    gm = current_app.gm
-    workspace_client = current_app.workspace_client
-    
     table_uri = request.args.get('table_uri', '')
     catalogs = [c.name for c in workspace_client.catalogs.list()]
     # TODO collect assigned_classes in a single query
@@ -23,8 +24,6 @@ def tables_get():
 
 @tables_bp.post('/tables')
 def tables_post():
-    gm = current_app.gm
-    
     uri = request.form.get('uri', '')
     catalog = request.form['catalog']
     schema = request.form['schema']
@@ -38,8 +37,6 @@ def tables_post():
 
 @tables_bp.delete('/table')
 def table_delete():
-    gm = current_app.gm
-    
     data = request.get_json()
     table_uri = data.get('uri')
     if not table_uri:
@@ -51,20 +48,17 @@ def table_delete():
 # Unity Catalog API endpoints for cascading dropdowns
 @tables_bp.get('/api/catalogs')
 def api_catalogs():
-    workspace_client = current_app.workspace_client
     catalogs = workspace_client.catalogs.list()
     return [c.name for c in catalogs]
 
 
 @tables_bp.get('/api/schemas/<catalog>')
 def api_schemas(catalog):
-    workspace_client = current_app.workspace_client
     schemas = workspace_client.schemas.list(catalog_name=catalog)
     return [s.name for s in schemas]
 
 
 @tables_bp.get('/api/tables/<catalog>/<schema>')
 def api_tables(catalog, schema):
-    workspace_client = current_app.workspace_client
     tables = workspace_client.tables.list(catalog_name=catalog, schema_name=schema)
     return [t.name for t in tables]

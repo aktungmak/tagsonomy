@@ -1,6 +1,9 @@
 from flask import Blueprint, request, render_template, current_app
+from werkzeug.local import LocalProxy
 
 imports_bp = Blueprint('imports', __name__)
+
+gm = LocalProxy(lambda: current_app.gm)
 
 
 @imports_bp.get('/import')
@@ -10,8 +13,6 @@ def import_get():
 
 @imports_bp.post('/import')
 def import_post():
-    gm = current_app.gm
-    
     if 'file' not in request.files:
         return render_template("import.html", message="No file selected")
 

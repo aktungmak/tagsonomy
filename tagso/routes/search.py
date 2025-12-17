@@ -1,16 +1,17 @@
 from flask import Blueprint, request, current_app
+from werkzeug.local import LocalProxy
 from sqlalchemy import create_engine, text
 
 from config import get_database_url
 
 search_bp = Blueprint('search', __name__)
 
+workspace_client = LocalProxy(lambda: current_app.workspace_client)
+
 
 @search_bp.get('/similar')
 def similar_get():
     """Get concepts similar to a given question or text using vector similarity search."""
-    workspace_client = current_app.workspace_client
-    
     query_text = request.args.get('text', '')
     if not query_text:
         return {'error': 'Text is required'}, 400
