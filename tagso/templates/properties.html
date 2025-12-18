@@ -69,12 +69,16 @@
         <div>
             <b>Name:</b> <span>{{ property.name | safe }}</span>
         </div>
+        {% if property.domain %}
         <div>
-            <b>Domain:</b> <span>TODO</span>
+            <b>Domain:</b> <a href="{{ url_for('concepts.concepts_get', concept_uri=property.domain) }}">{{ property.domain_label or property.domain }}</a>
         </div>
+        {% endif %}
+        {% if property.range %}
         <div>
-            <b>Range:</b> <span>TODO</span>
+            <b>Range:</b> <a href="{{ url_for('concepts.concepts_get', concept_uri=property.range) }}">{{ property.range_label or property.range }}</a>
         </div>
+        {% endif %}
         <button onclick="delete_property('{{ property.uri }}')">Delete</button>
         <button onclick="assign('{{ property.uri }}')">Assign</button>
     </li>
@@ -90,6 +94,22 @@
     
     <label for="uri">Property IRI (optional):</label>
     <input type="text" name="uri" id="uri"/>
+    
+    <label for="domain">Domain (optional):</label>
+    <select name="domain" id="domain">
+        <option value="">— None —</option>
+        {% for concept in concepts %}
+        <option value="{{ concept.uri }}">{{ concept.label or concept.uri }}</option>
+        {% endfor %}
+    </select>
+    
+    <label for="range">Range (optional):</label>
+    <select name="range" id="range">
+        <option value="">— None —</option>
+        {% for concept in concepts %}
+        <option value="{{ concept.uri }}">{{ concept.label or concept.uri }}</option>
+        {% endfor %}
+    </select>
     
     <input type="submit" value="Create"/>
 </form>

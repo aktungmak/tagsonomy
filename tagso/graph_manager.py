@@ -184,6 +184,36 @@ class GraphManager:
         """, initBindings=bindings if bindings else None)
         return self._to_dicts(r.bindings)
 
+    def get_properties(self, uri: Optional[str] = None) -> list[dict]:
+        """Get all RDF properties with their domain and range."""
+        r = self._graph.query("""
+            SELECT DISTINCT ?uri ?name ?domain ?domain_label ?range ?range_label
+            WHERE {
+                ?uri a rdf:Property .
+                OPTIONAL { ?uri rdfs:label ?name }
+                OPTIONAL { 
+                    ?uri rdfs:domain ?domain .
+                    ?domain rdfs:label ?domain_label
+                }
+                OPTIONAL { 
+                    ?uri rdfs:range ?range .
+                    ?range rdfs:label ?range_label
+                }
+            }
+        """, initBindings={'uri': URIRef(uri)} if uri else None)
+        return self._to_dicts(r.bindings)
+
+    def insert_property(self, uri: str, name: str, domain: Optional[str] = None, range_: Optional[str] = None):
+        """Insert a new RDF property with optional domain and range."""
+        uri = URIRef(uri)
+        self._graph.add((uri, RDF.type, RDF.Property))
+        self._graph.add((uri, RDFS.label, Literal(name)))
+        if domain:
+            self._graph.add((uri, RDFS.domain, URIRef(domain)))
+        if range_:
+            self._graph.add((uri, RDFS.range, URIRef(range_)))
+        logger.info(f"Inserting property {name} iri: {uri}")
+
     def delete_object(self, uri: str):
         uri = URIRef(uri)
         for pred, obj in self._graph.predicate_objects(subject=uri):
