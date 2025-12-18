@@ -184,6 +184,23 @@ class GraphManager:
         """, initBindings=bindings if bindings else None)
         return self._to_dicts(r.bindings)
 
+    def get_columns(self, uri: Optional[URIRef] = None) -> list[dict]:
+        r = self._graph.query("""
+            SELECT ?uri ?name
+            WHERE {
+                ?uri rdf:type uc:Column .
+                OPTIONAL { ?uri uc:name ?name }
+            }
+        """, initBindings={'uri': uri} if uri else None)
+        return self._to_dicts(r.bindings)
+
+    def insert_column(self, uri: str, name: str):
+        uri = URIRef(uri)
+        if uri not in self._graph.subjects(RDF.type, UC.Column):
+            self._graph.add((uri, RDF.type, UC.Column))
+            self._graph.add((uri, UC.name, Literal(name)))
+        logger.info(f"Inserting column {name} iri: {uri}")
+
     def get_properties(self, uri: Optional[str] = None) -> list[dict]:
         """Get all RDF properties with their domain and range."""
         r = self._graph.query("""

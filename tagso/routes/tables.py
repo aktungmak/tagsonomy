@@ -27,8 +27,8 @@ def tables_post():
     uri = request.form.get('uri', '')
     catalog = request.form['catalog']
     schema = request.form['schema']
-    table_name = request.form['table_name']
-    name = f"{catalog}.{schema}.{table_name}"
+    table = request.form['table']
+    name = f"{catalog}.{schema}.{table}"
     if not uri:
         uri = generate_uri_from_name(name)
     gm.insert_table(uri, name)

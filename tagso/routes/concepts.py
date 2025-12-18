@@ -57,14 +57,14 @@ def concept_edit_get():
     concept_uri = request.args.get('uri')
     if not concept_uri:
         return redirect(url_for('concepts.concepts_get'))
-    
+
     concept = gm.get_concept_detail(concept_uri)
     if not concept:
         return {'error': 'Concept not found'}, 404
-    
+
     relationships = gm.get_concept_relationships(concept_uri)
     all_concepts = gm.get_concepts()
-    
+
     return render_template(
         "edit_concept.html",
         concept=concept,
@@ -80,7 +80,7 @@ def concept_edit_post():
     concept_uri = request.form['uri']
     label = request.form['label']
     comment = request.form.get('comment', '')
-    
+
     gm.update_concept(concept_uri, label, comment)
     return redirect(url_for('concepts.concept_edit_get', uri=concept_uri))
 
@@ -90,10 +90,10 @@ def concept_add_relationship():
     subject_uri = request.form['subject_uri']
     predicate_type = request.form['predicate_type']
     object_uri = request.form['object_uri']
-    
+
     if not all([subject_uri, predicate_type, object_uri]):
         return {'error': 'All fields are required'}, 400
-    
+
     gm.add_concept_relationship(subject_uri, predicate_type, object_uri)
     return redirect(url_for('concepts.concept_edit_get', uri=subject_uri))
 
@@ -104,10 +104,9 @@ def concept_delete_relationship():
     subject_uri = data.get('subject_uri')
     predicate_type = data.get('predicate_type')
     object_uri = data.get('object_uri')
-    
+
     if not all([subject_uri, predicate_type, object_uri]):
         return {'error': 'All fields are required'}, 400
-    
+
     gm.delete_concept_relationship(subject_uri, predicate_type, object_uri)
     return {'success': True}, 200
-

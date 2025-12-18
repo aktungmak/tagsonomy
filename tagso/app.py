@@ -7,6 +7,7 @@ from config import get_database_url
 from graph_manager import GraphManager
 from routes import (
     tables_bp,
+    columns_bp,
     concepts_bp,
     properties_bp,
     assign_bp,
@@ -26,6 +27,7 @@ def create_app():
 
     # Register blueprints
     app.register_blueprint(tables_bp)
+    app.register_blueprint(columns_bp)
     app.register_blueprint(concepts_bp)
     app.register_blueprint(properties_bp)
     app.register_blueprint(assign_bp)
