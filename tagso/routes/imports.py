@@ -1,4 +1,4 @@
-from flask import Blueprint, request, render_template, current_app
+from flask import Blueprint, request, render_template, current_app, Response
 from werkzeug.local import LocalProxy
 
 imports_bp = Blueprint('imports', __name__)
@@ -30,6 +30,18 @@ def import_post():
     except Exception as e:
         current_app.logger.error(f"Error importing file: {e}")
         return render_template("import.html", message=f"Error importing file: {str(e)}")
+
+
+@imports_bp.get('/export')
+def export_get():
+    """Export the graph as a Turtle file download."""
+    turtle_data = gm._graph.serialize(format='turtle')
+    
+    return Response(
+        turtle_data,
+        mimetype='text/turtle',
+        headers={'Content-Disposition': 'attachment; filename=tagsonomy_export.ttl'}
+    )
 
 
 @imports_bp.route('/sync', methods=['GET', 'POST'])

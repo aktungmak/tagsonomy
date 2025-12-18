@@ -1,24 +1,35 @@
 {% extends "base.html" %}
 
-{% block title %}Tagsonomy | Import{% endblock %}
+{% block title %}Tagsonomy | Import/Export{% endblock %}
 
 {% block content %}
-<h1>Import Ontology</h1>
-<p>Upload a Turtle (.ttl) or RDF/XML (.rdf, .xml) file to import into the graph.</p>
+<section>
+    <h2>Import</h2>
+    <p>Upload a Turtle (.ttl) or RDF/XML (.rdf, .xml) file to import into the graph.</p>
 
-<form method="post" enctype="multipart/form-data">
-    <label for="file">
-        Select ontology file
-        <input type="file" id="file" name="file" accept=".ttl,.rdf,.xml" required>
-    </label>
+    <form method="post" enctype="multipart/form-data">
+        <label for="file">
+            Select ontology file
+            <input type="file" id="file" name="file" accept=".ttl,.rdf,.xml" required>
+        </label>
+        
+        <button type="submit">Import</button>
+    </form>
+
+    {% if message %}
+    <article>
+        <p>{{ message }}</p>
+    </article>
+    {% endif %}
+</section>
+
+<hr>
+
+<section>
+    <h2>Export</h2>
+    <p>Download the current graph as a Turtle (.ttl) file.</p>
     
-    <button type="submit">Import</button>
-</form>
-
-{% if message %}
-<article>
-    <p>{{ message }}</p>
-</article>
-{% endif %}
+    <a href="{{ url_for('imports.export_get') }}" role="button">Download</a>
+</section>
 {% endblock %}
 
