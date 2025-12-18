@@ -67,7 +67,7 @@
             <b>URI:</b> <span>{{ property.uri | safe }}</span>
         </div>
         <div>
-            <b>Name:</b> <span>{{ property.name | safe }}</span>
+            <b>Label:</b> <span>{{ property.name | safe }}</span>
         </div>
         {% if property.domain %}
         <div>
@@ -89,7 +89,8 @@
 
 <h2>New Property</h2>
 <form action="{{ url_for('properties.properties_post') }}" method='post'>
-    <label for="name">Property name:</label>
+    <label for="name">Property label:</label>
+    <!-- TODO: rename to property label -->
     <input type="text" name="name" id="name" required/>
     
     <label for="uri">Property IRI (optional):</label>
