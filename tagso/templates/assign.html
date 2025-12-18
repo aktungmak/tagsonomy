@@ -4,7 +4,7 @@
 
 {% block content %}
 <h1>Assign Table to Concept</h1>
-<p>Select a table and a concept to create a semantic assignment.</p>
+<p>Select a table and a concept to create a concept assignment.</p>
 
 <form action="{{ url_for('assign.assign_post') }}" method="post">
     <label for="table_uri">Table:</label>
@@ -19,7 +19,32 @@
     <select name="concept_uri" id="concept_uri" required>
         <option value="">Select a concept...</option>
         {% for concept in concepts %}
-        <option value="{{ concept.uri }}"{% if concept.uri == selected_concept_uri %} selected{% endif %}>{{ concept.name + " - " if concept.name else "" }}{{ concept.uri }}</option>
+        <option value="{{ concept.uri }}"{% if concept.uri == selected_concept_uri %} selected{% endif %}>{{ concept.label + " - " if concept.label else "" }}{{ concept.uri }}</option>
+        {% endfor %}
+    </select>
+
+    <input type="submit" value="Assign"/>
+</form>
+
+<hr/>
+
+<h1>Assign Column to Property</h1>
+<p>Select a column and a property to create a property assignment.</p>
+
+<form action="{{ url_for('assign.assign_column_post') }}" method="post">
+    <label for="column_uri">Column:</label>
+    <select name="column_uri" id="column_uri" required>
+        <option value="">Select a column...</option>
+        {% for column in columns %}
+        <option value="{{ column.uri }}"{% if column.uri == selected_column_uri %} selected{% endif %}>{{ column.name + " - " if column.name else "" }}{{ column.uri }}</option>
+        {% endfor %}
+    </select>
+
+    <label for="property_uri">Property:</label>
+    <select name="property_uri" id="property_uri" required>
+        <option value="">Select a property...</option>
+        {% for property in properties %}
+        <option value="{{ property.uri }}"{% if property.uri == selected_property_uri %} selected{% endif %}>{{ property.name + " - " if property.name else "" }}{{ property.uri }}</option>
         {% endfor %}
     </select>
 

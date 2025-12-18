@@ -80,7 +80,7 @@
         </div>
         {% endif %}
         <button onclick="delete_property('{{ property.uri }}')">Delete</button>
-        <button onclick="assign('{{ property.uri }}')">Assign</button>
+        <a href="{{ url_for('assign.assign_get', selected_property_uri=property.uri) }}"><button type="button">Assign</button></a>
     </li>
     {% endfor %}
 </ul>

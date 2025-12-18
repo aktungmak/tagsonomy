@@ -154,20 +154,49 @@ class GraphManager:
         self._graph.remove((subject, predicate, obj))
         logger.info(f"Deleted relationship: {subject_uri} {predicate_type} {object_uri}")
 
-    def insert_assignment(self, table_uri: str, concept_uri: str):
-        """Insert a semantic assignment from a table to a concept."""
+    def insert_concept_assignment(self, table_uri: str, concept_uri: str):
+        """Insert a concept assignment from a table to a concept."""
         table_uri = URIRef(table_uri)
         concept_uri = URIRef(concept_uri)
-        self._graph.add((table_uri, UC.semanticAssignment, concept_uri))
+        self._graph.add((table_uri, UC.conceptAssignment, concept_uri))
         logger.info(f"Assigned table {table_uri} to concept {concept_uri}")
 
-    def get_assignments(self, table_uri: Optional[str] = None, concept_uri: Optional[str] = None) -> list[dict]:
-        """Get semantic assignments, filtered by table or concept.
+    def insert_column_property_assignment(self, column_uri: str, property_uri: str):
+        """Insert a property assignment from a column to a property."""
+        column_uri = URIRef(column_uri)
+        property_uri = URIRef(property_uri)
+        self._graph.add((column_uri, UC.propertyAssignment, property_uri))
+        logger.info(f"Assigned column {column_uri} to property {property_uri}")
+
+    def get_assignments(self, table_uri: Optional[str] = None, concept_uri: Optional[str] = None,
+                         column_uri: Optional[str] = None, property_uri: Optional[str] = None) -> list[dict]:
+        """Get semantic assignments, filtered by table/concept or column/property.
         
         Args:
             table_uri: If provided, returns all concepts assigned to this table
             concept_uri: If provided, returns all tables assigned to this concept
+            column_uri: If provided, returns all properties assigned to this column
+            property_uri: If provided, returns all columns assigned to this property
         """
+        # Handle column-property assignments
+        if column_uri or property_uri:
+            bindings = {}
+            if column_uri:
+                bindings['column_uri'] = URIRef(column_uri)
+            if property_uri:
+                bindings['property_uri'] = URIRef(property_uri)
+            
+            r = self._graph.query("""
+                SELECT ?column_uri ?column_name ?property_uri ?property_name
+                WHERE {
+                    ?column_uri uc:propertyAssignment ?property_uri .
+                    OPTIONAL { ?column_uri uc:name ?column_name }
+                    OPTIONAL { ?property_uri rdfs:label ?property_name }
+                }
+            """, initBindings=bindings if bindings else None)
+            return self._to_dicts(r.bindings)
+        
+        # Handle table-concept assignments
         bindings = {}
         if table_uri:
             bindings['table_uri'] = URIRef(table_uri)
