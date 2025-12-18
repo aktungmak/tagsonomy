@@ -39,6 +39,29 @@ def create_app():
     def index():
         return render_template("index.html")
 
+    @app.route('/visualisation')
+    def visualisation():
+        """Return graph data for visualisation."""
+        gm = app.gm
+        
+        concepts = gm.get_concepts()
+        concept_relationships = {c['uri']: gm.get_concept_relationships(c['uri']) for c in concepts}
+        properties = gm.get_properties()
+        tables = gm.get_tables()
+        columns = gm.get_columns()
+        table_assignments = gm.get_assignments()
+        column_assignments = [a for col in columns for a in gm.get_assignments(column_uri=col['uri'])]
+
+        return {
+            'concepts': concepts,
+            'concept_relationships': concept_relationships,
+            'properties': properties,
+            'tables': tables,
+            'columns': columns,
+            'table_assignments': table_assignments,
+            'column_assignments': column_assignments
+        }
+
     return app
 
 
