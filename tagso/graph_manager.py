@@ -1,7 +1,7 @@
 import logging
 from typing import Optional
 
-from rdflib import Graph, RDF, RDFS, URIRef, Literal
+from rdflib import Graph, RDF, RDFS, SKOS, URIRef, Literal
 from psycopg2.errors import DuplicateTable
 
 from config import UC, USER_NS
@@ -30,6 +30,7 @@ class GraphManager:
         self._graph.bind("user", USER_NS)
         self._graph.bind("rdf", RDF)
         self._graph.bind("rdfs", RDFS)
+        self._graph.bind("skos", SKOS)
 
     def _to_dicts(self, bindings) -> list[dict]:
         """Convert SPARQL bindings to list of dicts with string keys and native Python values."""
@@ -54,14 +55,14 @@ class GraphManager:
 
     def get_concepts(self, uri: Optional[URIRef] = None) -> list[dict]:
         r = self._graph.query("""
-            SELECT DISTINCT ?uri ?name
+            SELECT DISTINCT ?uri ?label
             WHERE {
                 { ?uri a rdfs:Class . }
                 UNION
                 { ?uri rdfs:subClassOf ?other . }
                 UNION
                 { ?uri a skos:Concept . }
-                OPTIONAL { ?uri rdfs:label ?name }
+                OPTIONAL { ?uri rdfs:label ?label }
             }
         """, initBindings={'uri': uri} if uri else None)
         return self._to_dicts(r.bindings)
@@ -73,6 +74,85 @@ class GraphManager:
         if comment:
             self._graph.add((uri, RDFS.comment, Literal(comment)))
         logger.info(f"Inserting concept {label} iri: {uri}")
+
+    def get_concept_detail(self, uri: str) -> Optional[dict]:
+        """Get detailed information about a single concept including label, comment, and type."""
+        r = self._graph.query("""
+            SELECT ?uri ?label ?comment ?type
+            WHERE {
+                ?uri ?p ?o .
+                OPTIONAL { ?uri rdfs:label ?label }
+                OPTIONAL { ?uri rdfs:comment ?comment }
+                OPTIONAL { ?uri rdf:type ?type }
+            }
+        """, initBindings={'uri': URIRef(uri)})
+        
+        bindings = list(r.bindings)
+        if not bindings:
+            return None
+
+        result = {str(k): v.toPython() if v is not None else None for k, v in bindings[0].items()}
+        return result
+
+    def get_concept_relationships(self, uri: str) -> list[dict]:
+        """Get all relationships (rdfs:subClassOf, skos:broader, skos:narrower) for a concept.
+        
+        Returns a list of dicts with predicate, predicate_type (prefixed name), object, and object_label.
+        """
+        # TODO: also find subclasses (where uri is object)
+        r = self._graph.query("""
+            SELECT ?predicate ?object ?object_label
+            WHERE {
+                ?uri ?predicate ?object .
+                FILTER(?predicate IN (rdfs:subClassOf, skos:broader, skos:narrower))
+                OPTIONAL { ?object rdfs:label ?object_label }
+            }
+        """, initBindings={'uri': URIRef(uri)})
+        
+        results = self._to_dicts(r.bindings)
+        for row in results:
+            row['predicate_type'] = self._graph.namespace_manager.qname(URIRef(row['predicate']))
+        return results
+
+    def update_concept(self, uri: str, label: str, comment: Optional[str] = None):
+        """Update the label and comment of an existing concept."""
+        uri_ref = URIRef(uri)
+        
+        # Remove existing label and comment
+        for old_label in self._graph.objects(uri_ref, RDFS.label):
+            self._graph.remove((uri_ref, RDFS.label, old_label))
+        self._graph.add((uri_ref, RDFS.label, Literal(label)))
+
+        if comment:
+            for old_comment in self._graph.objects(uri_ref, RDFS.comment):
+                self._graph.remove((uri_ref, RDFS.comment, old_comment))
+            self._graph.add((uri_ref, RDFS.comment, Literal(comment)))
+
+        logger.info(f"Updated concept {uri} with label: {label}")
+
+    def add_concept_relationship(self, subject_uri: str, predicate_type: str, object_uri: str):
+        """Add a relationship between concepts.
+        
+        Args:
+            subject_uri: The source concept URI
+            predicate_type: One of 'rdfs:subClassOf', 'skos:broader', 'skos:narrower'
+            object_uri: The target concept URI
+        """
+        subject = URIRef(subject_uri)
+        obj = URIRef(object_uri)
+        predicate = self._graph.namespace_manager.expand_curie(predicate_type)
+        
+        self._graph.add((subject, predicate, obj))
+        logger.info(f"Added relationship: {subject_uri} {predicate_type} {object_uri}")
+
+    def delete_concept_relationship(self, subject_uri: str, predicate_type: str, object_uri: str):
+        """Delete a relationship between concepts."""
+        subject = URIRef(subject_uri)
+        obj = URIRef(object_uri)
+        predicate = self._graph.namespace_manager.expand_curie(predicate_type)
+        
+        self._graph.remove((subject, predicate, obj))
+        logger.info(f"Deleted relationship: {subject_uri} {predicate_type} {object_uri}")
 
     def insert_assignment(self, table_uri: str, concept_uri: str):
         """Insert a semantic assignment from a table to a concept."""

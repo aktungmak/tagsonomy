@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+
+{% block title %}Tagsonomy | Edit Concept{% endblock %}
+
+{% block scripts %}
+<script>
+    function delete_relationship(subject_uri, predicate_type, object_uri) {
+        if (confirm('Are you sure you want to delete this relationship?')) {
+            fetch('{{ url_for("concepts.concept_delete_relationship") }}', {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    subject_uri: subject_uri,
+                    predicate_type: predicate_type,
+                    object_uri: object_uri
+                })
+            })
+            .then(response => {
+                if (response.ok) {
+                    window.location.reload();
+                } else {
+                    alert('Error deleting relationship');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error deleting relationship');
+            });
+        }
+    }
+</script>
+{% endblock %}
+
+{% block content %}
+<h1>Edit Concept</h1>
+<section>
+    <form action="{{ url_for('concepts.concept_edit_post') }}" method="post">
+        <input type="hidden" name="uri" value="{{ concept.uri }}"/>
+        
+        <p><b>URI:</b> {{ concept.uri }}</p>
+        <p><b>Type:</b> {% if concept.type == rdfs_class %}RDFS Class{% elif concept.type == skos_concept %}SKOS Concept{% else %}{{ concept.type or 'Unknown' }}{% endif %}</p>
+        
+        <label for="label">Label:</label>
+        <input type="text" name="label" id="label" value="{{ concept.label or '' }}" required/>
+        
+        <label for="comment">Comment:</label>
+        <textarea name="comment" id="comment" rows="3">{{ concept.comment or '' }}</textarea>
+        
+        <input type="submit" value="Save Changes"/>
+    </form>
+</section>
+
+<hr/>
+
+<section>
+    <h2>Relationships</h2>
+    
+    {% if relationships %}
+    <table>
+        <thead>
+            <tr>
+                <th>Relationship</th>
+                <th>Target Concept</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for rel in relationships %}
+            <tr>
+                <td>{{ rel.predicate_type }}</td>
+                <td>{{ rel.object_label or rel.object }}</td>
+                <td>
+                    <button type="button" onclick="delete_relationship('{{ concept.uri }}', '{{ rel.predicate_type }}', '{{ rel.object }}')">Delete</button>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>No relationships defined.</p>
+    {% endif %}
+    
+    <h3>Add Relationship</h3>
+    <form action="{{ url_for('concepts.concept_add_relationship') }}" method="post">
+        <input type="hidden" name="subject_uri" value="{{ concept.uri }}"/>
+        
+        <label for="predicate_type">Relationship Type:</label>
+        <select name="predicate_type" id="predicate_type" required>
+            <option value="">Select a relationship type...</option>
+            <option value="rdfs:subClassOf">rdfs:subClassOf</option>
+            <option value="skos:broader">skos:broader</option>
+            <option value="skos:narrower">skos:narrower</option>
+        </select>
+        
+        <label for="object_uri">Target Concept:</label>
+        <select name="object_uri" id="object_uri" required>
+            <option value="">Select a concept...</option>
+            {% for c in all_concepts %}
+            {% if c.uri != concept.uri %}
+            <option value="{{ c.uri }}">{{ c.name or c.uri }}</option>
+            {% endif %}
+            {% endfor %}
+        </select>
+        
+        <input type="submit" value="Add Relationship"/>
+    </form>
+</section>
+{% endblock %}
+
+
+

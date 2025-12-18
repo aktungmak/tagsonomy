@@ -80,7 +80,7 @@
             <b>URI:</b> <span>{{ concept.uri | safe }}</span>
         </div>
         <div>
-            <b>Name:</b> <span>{{ concept.name | safe }}</span>
+            <b>Label:</b> <span>{{ concept.label | safe }}</span>
         </div>
         <div>
             <b>Assigned Tables:</b>
@@ -97,6 +97,7 @@
         <div>
             <b>Related Properties:</b> <span>TODO</span>
         </div>
+        <a href="{{ url_for('concepts.concept_edit_get', uri=concept.uri) }}"><button type="button">Edit</button></a>
         <button onclick="delete_concept('{{ concept.uri }}')">Delete</button>
         <a href="{{ url_for('assign.assign_get', selected_concept_uri=concept.uri) }}"><button type="button">Assign</button></a>
     </li>
