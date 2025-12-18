@@ -12,12 +12,12 @@ gm = LocalProxy(lambda: current_app.gm)
 
 @concepts_bp.get('/concepts')
 def concepts_get():
-    concept_uri = request.args.get('concept_uri', '')
+    concept_uri = request.args.get('concept_uri')
     # TODO collect assigned_tables in a single query
     concepts = gm.get_concepts()
     for concept in concepts:
         concept['assigned_tables'] = gm.get_assignments(concept_uri=concept['uri'])
-    return render_template("concepts.html", concepts=concepts, concept_uri=concept_uri, user_ns=str(USER_NS))
+    return render_template("concepts.html", concepts=concepts, concept_uri=concept_uri or '', user_ns=str(USER_NS))
 
 
 @concepts_bp.post('/concepts')

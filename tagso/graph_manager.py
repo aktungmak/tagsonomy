@@ -64,7 +64,7 @@ class GraphManager:
                 { ?uri a skos:Concept . }
                 OPTIONAL { ?uri rdfs:label ?label }
             }
-        """, initBindings={'uri': uri} if uri else None)
+        """, initBindings={'uri': URIRef(uri)} if uri else None)
         return self._to_dicts(r.bindings)
 
     def insert_concept(self, uri: str, label: str, concept_type: URIRef, comment: Optional[str] = None):

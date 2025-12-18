@@ -14,7 +14,7 @@ def properties_get():
     property_uri = request.args.get('property_uri')
     properties = gm.get_properties(property_uri)
     concepts = gm.get_concepts()
-    return render_template("properties.html", properties=properties, property_uri=property_uri, concepts=concepts)
+    return render_template("properties.html", properties=properties, property_uri=property_uri or '', concepts=concepts)
 
 
 @properties_bp.post('/properties')
