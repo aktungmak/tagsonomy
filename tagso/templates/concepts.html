@@ -94,9 +94,19 @@
             <span>None</span>
             {% endif %}
         </div>
+        {% if concept.related_properties.as_domain or concept.related_properties.as_range %}
         <div>
-            <b>Related Properties:</b> <span>TODO</span>
+            <b>Related Properties:</b>
+            <ul>
+                {% for prop in concept.related_properties.as_domain %}
+                <li><a href="{{ url_for('properties.properties_get', property_uri=prop.uri) }}">{{ prop.name | default(prop.uri, true) | safe }}</a> (domain)</li>
+                {% endfor %}
+                {% for prop in concept.related_properties.as_range %}
+                <li><a href="{{ url_for('properties.properties_get', property_uri=prop.uri) }}">{{ prop.name | default(prop.uri, true) | safe }}</a> (range)</li>
+                {% endfor %}
+            </ul>
         </div>
+        {% endif %}
         <a href="{{ url_for('concepts.concept_edit_get', uri=concept.uri) }}"><button type="button">Edit</button></a>
         <button onclick="delete_concept('{{ concept.uri }}')">Delete</button>
         <a href="{{ url_for('assign.assign_get', selected_concept_uri=concept.uri) }}"><button type="button">Assign</button></a>

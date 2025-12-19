@@ -179,9 +179,6 @@
             <span>None</span>
             {% endif %}
         </div>
-        <div>
-            <b>Related Properties:</b> <span>TODO</span>
-        </div>
         <button onclick="delete_column('{{ column.uri }}')">Delete</button>
         <a href="{{ url_for('assign.assign_get', selected_column_uri=column.uri) }}"><button type="button">Assign</button></a>
     </li>
