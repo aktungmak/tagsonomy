@@ -2,38 +2,22 @@
 
 {% block title %}Tagsonomy | Tables{% endblock %}
 
-{% block head_scripts %}
-<script>
-    window.TAGSO_CONFIG = {
-        tableDeleteUrl: '{{ url_for("tables.table_delete") }}',
-        userNs: '{{ user_ns }}'
-    };
-</script>
-{% endblock %}
-
-{% block scripts %}
-<script>
-    window.addEventListener('DOMContentLoaded', function() { 
-        filter_tables(); 
-    });
-</script>
-{% endblock %}
-
 {% block content %}
+<span data-user-ns="{{ user_ns }}" hidden></span>
+
 <input type="search" 
-       id="table_search" 
+       data-filter-for="table_list"
        value="{{ table_uri }}" 
-       onkeyup="filter_tables()" 
        placeholder="Search for tables...">
 
 <ul id="table_list">
     {% for table in tables %}
     <li>
         <div>
-            <b>URI:</b> <span class="searchable">{{ table.uri | safe }}</span>
+            <b>URI:</b> <span data-searchable>{{ table.uri | safe }}</span>
         </div>
         <div>
-            <b>Name:</b> <span class="searchable">{{ table.name | safe }}</span>
+            <b>Name:</b> <span data-searchable>{{ table.name | safe }}</span>
         </div>
         <div>
             <b>Assigned Concepts:</b>
@@ -47,7 +31,10 @@
             <span>None</span>
             {% endif %}
         </div>
-        <button onclick="delete_table('{{ table.uri }}')">Delete</button>
+        <button data-delete 
+                data-url="{{ url_for('tables.table_delete') }}" 
+                data-type="table" 
+                data-uri="{{ table.uri }}">Delete</button>
         <a href="{{ url_for('assign.assign_get', selected_table_uri=table.uri) }}"><button type="button">Assign</button></a>
     </li>
     {% endfor %}
@@ -58,7 +45,10 @@
 <h2>New Table</h2>
 <form action="{{ url_for('tables.tables_post') }}" method='post'>
     <label for="catalog">Catalog:</label>
-    <select name="catalog" id="catalog" onchange="loadSchemas()" required>
+    <select name="catalog" id="catalog" 
+            data-cascade="/api/schemas/:catalog" 
+            data-enables="schema" 
+            data-resets="schema,table" required>
         <option value="">Select Catalog...</option>
         {% for cat in catalogs %}
         <option value="{{ cat }}">{{ cat }}</option>
@@ -66,17 +56,20 @@
     </select>
     
     <label for="schema">Schema:</label>
-    <select name="schema" id="schema" onchange="loadTables()" required disabled>
+    <select name="schema" id="schema" 
+            data-cascade="/api/tables/:catalog/:schema" 
+            data-enables="table" 
+            data-resets="table" required disabled>
         <option value="">Select Schema...</option>
     </select>
     
     <label for="table">Table:</label>
-    <select name="table" id="table" onchange="updateUriFromSelection()" required disabled>
+    <select name="table" id="table" required disabled>
         <option value="">Select Table...</option>
     </select>
     
     <label for="uri">Table IRI (optional):</label>
-    <input type="text" name="uri" id="uri"/>
+    <input type="text" name="uri" id="uri" data-uri-from="catalog,schema,table"/>
     
     <input type="submit" value="Create"/>
 </form>

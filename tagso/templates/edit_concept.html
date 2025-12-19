@@ -2,14 +2,6 @@
 
 {% block title %}Tagsonomy | Edit Concept{% endblock %}
 
-{% block head_scripts %}
-<script>
-    window.TAGSO_CONFIG = {
-        relationshipDeleteUrl: '{{ url_for("concepts.concept_delete_relationship") }}'
-    };
-</script>
-{% endblock %}
-
 {% block content %}
 <h1>Edit Concept</h1>
 <section>
@@ -30,11 +22,11 @@
             {% for alt_label in concept.alt_labels or [] %}
             <div class="alt-label-field">
                 <input type="text" name="alt_labels" value="{{ alt_label }}" placeholder="Alternative label" required/>
-                <button type="button" onclick="removeAltLabelField(this)">Remove</button>
+                <button type="button" data-remove-field>Remove</button>
             </div>
             {% endfor %}
         </div>
-        <button type="button" onclick="addAltLabelField()">Add Alternative Label</button>
+        <button type="button" data-add-alt-label="alt_labels_container">Add Alternative Label</button>
         
         <input type="submit" value="Save Changes"/>
     </form>
@@ -60,7 +52,13 @@
                 <td>{{ rel.predicate_type }}</td>
                 <td>{{ rel.object_label or rel.object }}</td>
                 <td>
-                    <button type="button" onclick="delete_relationship('{{ concept.uri }}', '{{ rel.predicate_type }}', '{{ rel.object }}')">Delete</button>
+                    <button type="button" 
+                            data-delete 
+                            data-url="{{ url_for('concepts.concept_delete_relationship') }}" 
+                            data-type="relationship"
+                            data-subject_uri="{{ concept.uri }}"
+                            data-predicate_type="{{ rel.predicate_type }}"
+                            data-object_uri="{{ rel.object }}">Delete</button>
                 </td>
             </tr>
             {% endfor %}
@@ -96,6 +94,3 @@
     </form>
 </section>
 {% endblock %}
-
-
-
