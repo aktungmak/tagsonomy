@@ -17,6 +17,7 @@ def concepts_get():
     concepts = gm.get_concepts()
     for concept in concepts:
         concept['assigned_tables'] = gm.get_assignments(concept_uri=concept['uri'])
+        concept['related_properties'] = gm.get_properties_for_concept(concept['uri'])
     return render_template("concepts.html", concepts=concepts, concept_uri=concept_uri or '', user_ns=str(USER_NS))
 
 
