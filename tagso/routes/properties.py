@@ -12,7 +12,10 @@ gm = LocalProxy(lambda: current_app.gm)
 @properties_bp.get('/properties')
 def properties_get():
     property_uri = request.args.get('property_uri')
+    # TODO collect assigned columns in a single query
     properties = gm.get_properties(property_uri)
+    for prop in properties:
+        prop['assigned_columns'] = gm.get_assignments(property_uri=prop['uri'])
     concepts = gm.get_concepts()
     return render_template("properties.html", properties=properties, property_uri=property_uri or '', concepts=concepts)
 

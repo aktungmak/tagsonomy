@@ -8,7 +8,7 @@
       input = document.getElementById('column_search');
       filter = input.value.toUpperCase();
       ul = document.getElementById("column_list");
-      li = ul.getElementsByTagName('li');
+      li = ul.children;
 
       for (i = 0; i < li.length; i++) {
         spans = li[i].getElementsByClassName('searchable');
@@ -172,7 +172,7 @@
             {% if column.assigned_properties %}
             <ul>
                 {% for assignment in column.assigned_properties %}
-                <li>{{ assignment.property_name | default(assignment.property_uri, true) | safe }} ({{ assignment.property_uri | safe }})</li>
+                <li><a href="{{ url_for('properties.properties_get', property_uri=assignment.property_uri) }}">{{ assignment.property_name | default(assignment.property_uri, true) | safe }}</a> ({{ assignment.property_uri | safe }})</li>
                 {% endfor %}
             </ul>
             {% else %}

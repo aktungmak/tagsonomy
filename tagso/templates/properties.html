@@ -9,7 +9,7 @@
       input = document.getElementById('property_search');
       filter = input.value.toUpperCase();
       ul = document.getElementById("property_list");
-      li = ul.getElementsByTagName('li');
+      li = ul.children;
 
       for (i = 0; i < li.length; i++) {
         spans = li[i].getElementsByTagName('span');
@@ -79,6 +79,18 @@
             <b>Range:</b> <a href="{{ url_for('concepts.concepts_get', concept_uri=property.range) }}">{{ property.range_label or property.range }}</a>
         </div>
         {% endif %}
+        <div>
+            <b>Assigned Columns:</b>
+            {% if property.assigned_columns %}
+            <ul>
+                {% for assignment in property.assigned_columns %}
+                <li><a href="{{ url_for('columns.columns_get', column_uri=assignment.column_uri) }}">{{ assignment.column_name | default(assignment.column_uri, true) | safe }}</a> ({{ assignment.column_uri | safe }})</li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <span>None</span>
+            {% endif %}
+        </div>
         <button onclick="delete_property('{{ property.uri }}')">Delete</button>
         <a href="{{ url_for('assign.assign_get', selected_property_uri=property.uri) }}"><button type="button">Assign</button></a>
     </li>
