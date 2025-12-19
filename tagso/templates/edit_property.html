@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}Tagsonomy | Edit Property{% endblock %}
+
+{% block content %}
+<h1>Edit Property</h1>
+<section>
+    <form action="{{ url_for('properties.property_edit_post') }}" method="post">
+        <input type="hidden" name="uri" value="{{ property.uri }}"/>
+        
+        <p><b>URI:</b> {{ property.uri }}</p>
+        
+        <label for="label">Label:</label>
+        <input type="text" name="label" id="label" value="{{ property.label or '' }}" required/>
+        
+        <label for="comment">Comment:</label>
+        <textarea name="comment" id="comment" rows="3">{{ property.comment or '' }}</textarea>
+        
+        <label for="domain">Domain:</label>
+        <select name="domain" id="domain">
+            <option value="">— None —</option>
+            {% for concept in concepts %}
+            <option value="{{ concept.uri }}" {% if property.domain == concept.uri %}selected{% endif %}>{{ concept.label or concept.uri }}</option>
+            {% endfor %}
+        </select>
+        
+        <label for="range">Range:</label>
+        <select name="range" id="range">
+            <option value="">— None —</option>
+            {% for concept in concepts %}
+            <option value="{{ concept.uri }}" {% if property.range == concept.uri %}selected{% endif %}>{{ concept.label or concept.uri }}</option>
+            {% endfor %}
+        </select>
+        
+        <input type="submit" value="Save Changes"/>
+    </form>
+</section>
+
+<hr/>
+
+<a href="{{ url_for('properties.properties_get', property_uri=property.uri) }}"><button type="button">Back to Properties</button></a>
+{% endblock %}
+

@@ -288,6 +288,61 @@ class GraphManager:
             self._graph.add((uri, RDFS.range, URIRef(range_)))
         logger.info(f"Inserting property {name} iri: {uri}")
 
+    def get_property_detail(self, uri: str) -> Optional[dict]:
+        """Get detailed information about a single property including label, comment, domain, and range."""
+        r = self._graph.query("""
+            SELECT ?uri ?label ?comment ?domain ?domain_label ?range ?range_label
+            WHERE {
+                ?uri a rdf:Property .
+                OPTIONAL { ?uri rdfs:label ?label }
+                OPTIONAL { ?uri rdfs:comment ?comment }
+                OPTIONAL { 
+                    ?uri rdfs:domain ?domain .
+                    OPTIONAL { ?domain rdfs:label ?domain_label }
+                }
+                OPTIONAL { 
+                    ?uri rdfs:range ?range .
+                    OPTIONAL { ?range rdfs:label ?range_label }
+                }
+            }
+        """, initBindings={'uri': URIRef(uri)})
+        
+        bindings = list(r.bindings)
+        if not bindings:
+            return None
+
+        return {str(k): v.toPython() if v is not None else None for k, v in bindings[0].items()}
+
+    def update_property(self, uri: str, label: str, comment: Optional[str] = None, 
+                        domain: Optional[str] = None, range_: Optional[str] = None):
+        """Update the label, comment, domain, and range of an existing property."""
+        uri_ref = URIRef(uri)
+        
+        # Update label
+        for old_label in self._graph.objects(uri_ref, RDFS.label):
+            self._graph.remove((uri_ref, RDFS.label, old_label))
+        self._graph.add((uri_ref, RDFS.label, Literal(label)))
+
+        # Update comment
+        for old_comment in self._graph.objects(uri_ref, RDFS.comment):
+            self._graph.remove((uri_ref, RDFS.comment, old_comment))
+        if comment:
+            self._graph.add((uri_ref, RDFS.comment, Literal(comment)))
+
+        # Update domain
+        for old_domain in self._graph.objects(uri_ref, RDFS.domain):
+            self._graph.remove((uri_ref, RDFS.domain, old_domain))
+        if domain:
+            self._graph.add((uri_ref, RDFS.domain, URIRef(domain)))
+
+        # Update range
+        for old_range in self._graph.objects(uri_ref, RDFS.range):
+            self._graph.remove((uri_ref, RDFS.range, old_range))
+        if range_:
+            self._graph.add((uri_ref, RDFS.range, URIRef(range_)))
+
+        logger.info(f"Updated property {uri} with label: {label}")
+
     def delete_object(self, uri: str):
         uri = URIRef(uri)
         for pred, obj in self._graph.predicate_objects(subject=uri):

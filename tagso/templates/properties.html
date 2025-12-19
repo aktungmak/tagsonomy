@@ -91,6 +91,7 @@
             <span>None</span>
             {% endif %}
         </div>
+        <a href="{{ url_for('properties.property_edit_get', uri=property.uri) }}"><button type="button">Edit</button></a>
         <button onclick="delete_property('{{ property.uri }}')">Delete</button>
         <a href="{{ url_for('assign.assign_get', selected_property_uri=property.uri) }}"><button type="button">Assign</button></a>
     </li>
