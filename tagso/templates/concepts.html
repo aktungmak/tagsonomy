@@ -94,15 +94,12 @@
             <span>None</span>
             {% endif %}
         </div>
-        {% if concept.related_properties.as_domain or concept.related_properties.as_range %}
+        {% if concept.related_properties %}
         <div>
             <b>Related Properties:</b>
             <ul>
-                {% for prop in concept.related_properties.as_domain %}
-                <li><a href="{{ url_for('properties.properties_get', property_uri=prop.uri) }}">{{ prop.name | default(prop.uri, true) | safe }}</a> (domain)</li>
-                {% endfor %}
-                {% for prop in concept.related_properties.as_range %}
-                <li><a href="{{ url_for('properties.properties_get', property_uri=prop.uri) }}">{{ prop.name | default(prop.uri, true) | safe }}</a> (range)</li>
+                {% for prop in concept.related_properties %}
+                <li><a href="{{ url_for('properties.properties_get', property_uri=prop.uri) }}">{{ prop.name | default(prop.uri, true) | safe }}</a> ({{ prop.role }})</li>
                 {% endfor %}
             </ul>
         </div>

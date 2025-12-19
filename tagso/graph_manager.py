@@ -249,37 +249,33 @@ class GraphManager:
         """, initBindings={'uri': URIRef(uri)} if uri else None)
         return self._to_dicts(r.bindings)
 
-    def get_properties_for_concept(self, concept_uri: str) -> dict:
+    def get_properties_for_concept(self, concept_uri: str) -> list[dict]:
         """Get properties where the concept is used as domain or range.
         
-        Returns a dict with 'as_domain' and 'as_range' lists of properties.
+        Returns a list of property dicts, each with a 'role' key ('domain' or 'range').
         """
         concept_ref = URIRef(concept_uri)
         
-        # Properties where concept is the domain
-        domain_result = self._graph.query("""
-            SELECT ?uri ?name
+        result = self._graph.query("""
+            SELECT ?uri ?name ?role
             WHERE {
-                ?uri a rdf:Property .
-                ?uri rdfs:domain ?concept .
-                OPTIONAL { ?uri rdfs:label ?name }
+                {
+                    ?uri a rdf:Property .
+                    ?uri rdfs:domain ?concept .
+                    OPTIONAL { ?uri rdfs:label ?name }
+                    BIND("domain" AS ?role)
+                }
+                UNION
+                {
+                    ?uri a rdf:Property .
+                    ?uri rdfs:range ?concept .
+                    OPTIONAL { ?uri rdfs:label ?name }
+                    BIND("range" AS ?role)
+                }
             }
         """, initBindings={'concept': concept_ref})
         
-        # Properties where concept is the range
-        range_result = self._graph.query("""
-            SELECT ?uri ?name
-            WHERE {
-                ?uri a rdf:Property .
-                ?uri rdfs:range ?concept .
-                OPTIONAL { ?uri rdfs:label ?name }
-            }
-        """, initBindings={'concept': concept_ref})
-        
-        return {
-            'as_domain': self._to_dicts(domain_result.bindings),
-            'as_range': self._to_dicts(range_result.bindings)
-        }
+        return self._to_dicts(result.bindings)
 
     def insert_property(self, uri: str, name: str, domain: Optional[str] = None, range_: Optional[str] = None):
         """Insert a new RDF property with optional domain and range."""
