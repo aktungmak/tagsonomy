@@ -1,0 +1,12 @@
+name: tagsonomy
+description: "Tagsonomy - RDF-based taxonomy and metadata management application"
+
+command:
+  - gunicorn
+  - app:app
+  - -w
+  - 4
+
+env:
+  - name: FLASK_ENV
+    value: production

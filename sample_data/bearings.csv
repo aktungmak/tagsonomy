@@ -1,6 +1,0 @@
-"BearingID","EngineID","Location","Type","Material","LoadType","LubricationType","L10Life (hours)"
-"1","1","Fan Frame (No.1)","Thrust Ball Bearing","AISI M-50","Axial/Radial","Oil (dry sump)","50,000"
-"2","1","Fan Frame (No.2)","Cylindrical Roller","AISI M-50","Radial","Oil (dry sump)","48,000"
-"3","1","HP Shaft (No.3)","Double Ball Bearing","AISI M-50","Axial/Radial","Oil (dry sump)","45,000"
-"4","1","HP Shaft (No.4)","Cylindrical Roller","AISI M-50","Radial","Oil (dry sump)","42,000"
-"5","1","LP Shaft (No.5)","Cylindrical Roller","AISI M-50","Radial","Oil (dry sump)","40,000"

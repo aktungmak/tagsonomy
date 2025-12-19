@@ -1,0 +1,223 @@
+{% extends "base.html" %}
+
+{% block title %}Tagsonomy | Columns{% endblock %}
+
+{% block scripts %}
+<script>
+    function filter_columns() {
+      input = document.getElementById('column_search');
+      filter = input.value.toUpperCase();
+      ul = document.getElementById("column_list");
+      li = ul.getElementsByTagName('li');
+
+      for (i = 0; i < li.length; i++) {
+        spans = li[i].getElementsByClassName('searchable');
+        txt = '';
+        for (j = 0; j < spans.length; j++) {
+          txt += spans[j].textContent || spans[j].innerText;
+        }
+        if (txt.toUpperCase().indexOf(filter) > -1) {
+          li[i].style.display = "";
+        } else {
+          li[i].style.display = "none";
+        }
+      }
+    }
+
+    function delete_column(column_uri) {
+      if (confirm('Are you sure you want to delete this column?')) {
+        fetch('{{ url_for("columns.column_delete") }}', {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ uri: column_uri })
+        })
+        .then(response => {
+          if (response.ok) {
+            window.location.reload();
+          } else {
+            alert('Error deleting column');
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          alert('Error deleting column');
+        });
+      }
+    }
+
+    const USER_NS = "{{ user_ns }}";
+    const LOADING = 'Loading...';
+    const SELECT_SCHEMA = 'Select Schema...';
+    const SELECT_TABLE = 'Select Table...';
+    const SELECT_COLUMN = 'Select Column...';
+
+    function populateSelect(selectElement, items, placeholder) {
+      selectElement.replaceChildren();
+      selectElement.add(new Option(placeholder, ''));
+      for (const item of items) {
+        selectElement.add(new Option(item, item));
+      }
+    }
+
+    async function loadSchemas() {
+      const catalog = document.getElementById('catalog').value;
+      const schemaSelect = document.getElementById('schema');
+      const tableSelect = document.getElementById('table');
+      const columnSelect = document.getElementById('column');
+      
+      // Reset dependent dropdowns
+      populateSelect(schemaSelect, [], LOADING);
+      populateSelect(tableSelect, [], SELECT_TABLE);
+      populateSelect(columnSelect, [], SELECT_COLUMN);
+      tableSelect.disabled = true;
+      columnSelect.disabled = true;
+      updateUriFromSelection();
+      
+      if (!catalog) {
+        populateSelect(schemaSelect, [], SELECT_SCHEMA);
+        schemaSelect.disabled = true;
+        return;
+      }
+      
+      const schemas = await fetch(`/api/schemas/${catalog}`).then(r => r.json());
+      populateSelect(schemaSelect, schemas, SELECT_SCHEMA);
+      schemaSelect.disabled = false;
+    }
+
+    async function loadTables() {
+      const catalog = document.getElementById('catalog').value;
+      const schema = document.getElementById('schema').value;
+      const tableSelect = document.getElementById('table');
+      const columnSelect = document.getElementById('column');
+      
+      // Reset column dropdown
+      populateSelect(columnSelect, [], SELECT_COLUMN);
+      columnSelect.disabled = true;
+      
+      if (!schema) {
+        populateSelect(tableSelect, [], SELECT_TABLE);
+        tableSelect.disabled = true;
+        updateUriFromSelection();
+        return;
+      }
+      
+      populateSelect(tableSelect, [], LOADING);
+      const tables = await fetch(`/api/tables/${catalog}/${schema}`).then(r => r.json());
+      populateSelect(tableSelect, tables, SELECT_TABLE);
+      tableSelect.disabled = false;
+      updateUriFromSelection();
+    }
+
+    async function loadColumns() {
+      const catalog = document.getElementById('catalog').value;
+      const schema = document.getElementById('schema').value;
+      const table = document.getElementById('table').value;
+      const columnSelect = document.getElementById('column');
+      
+      if (!table) {
+        populateSelect(columnSelect, [], SELECT_COLUMN);
+        columnSelect.disabled = true;
+        updateUriFromSelection();
+        return;
+      }
+      
+      populateSelect(columnSelect, [], LOADING);
+      const columns = await fetch(`/api/columns/${catalog}/${schema}/${table}`).then(r => r.json());
+      populateSelect(columnSelect, columns, SELECT_COLUMN);
+      columnSelect.disabled = false;
+      updateUriFromSelection();
+    }
+
+    function generateUriFromColumnName(catalog, schema, table, column) {
+      if (!catalog || !schema || !table || !column) return '';
+      const fullName = `${catalog}.${schema}.${table}.${column}`;
+      return USER_NS + encodeURIComponent(fullName);
+    }
+
+    function updateUriFromSelection() {
+      const catalog = document.getElementById('catalog').value;
+      const schema = document.getElementById('schema').value;
+      const table = document.getElementById('table').value;
+      const column = document.getElementById('column').value;
+      const uriInput = document.getElementById('uri');
+      uriInput.value = generateUriFromColumnName(catalog, schema, table, column);
+    }
+
+    window.addEventListener('DOMContentLoaded', function() { 
+      filter_columns(); 
+    });
+</script>
+{% endblock %}
+
+{% block content %}
+<input type="search" 
+       id="column_search" 
+       value="{{ column_uri }}" 
+       onkeyup="filter_columns()" 
+       placeholder="Search for columns...">
+
+<ul id="column_list">
+    {% for column in columns %}
+    <li>
+        <div>
+            <b>URI:</b> <span class="searchable">{{ column.uri | safe }}</span>
+        </div>
+        <div>
+            <b>Name:</b> <span class="searchable">{{ column.name | safe }}</span>
+        </div>
+        <div>
+            <b>Assigned Properties:</b>
+            {% if column.assigned_properties %}
+            <ul>
+                {% for assignment in column.assigned_properties %}
+                <li>{{ assignment.property_name | default(assignment.property_uri, true) | safe }} ({{ assignment.property_uri | safe }})</li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <span>None</span>
+            {% endif %}
+        </div>
+        <div>
+            <b>Related Properties:</b> <span>TODO</span>
+        </div>
+        <button onclick="delete_column('{{ column.uri }}')">Delete</button>
+        <a href="{{ url_for('assign.assign_get', selected_column_uri=column.uri) }}"><button type="button">Assign</button></a>
+    </li>
+    {% endfor %}
+</ul>
+
+<hr/>
+
+<h2>New Column</h2>
+<form action="{{ url_for('columns.columns_post') }}" method='post'>
+    <label for="catalog">Catalog:</label>
+    <select name="catalog" id="catalog" onchange="loadSchemas()" required>
+        <option value="">Select Catalog...</option>
+        {% for cat in catalogs %}
+        <option value="{{ cat }}">{{ cat }}</option>
+        {% endfor %}
+    </select>
+    
+    <label for="schema">Schema:</label>
+    <select name="schema" id="schema" onchange="loadTables()" required disabled>
+        <option value="">Select Schema...</option>
+    </select>
+    
+    <label for="table">Table:</label>
+    <select name="table" id="table" onchange="loadColumns()" required disabled>
+        <option value="">Select Table...</option>
+    </select>
+
+    <label for="column">Column:</label>
+    <select name="column" id="column" onchange="updateUriFromSelection()" required disabled>
+        <option value="">Select Column...</option>
+    </select>
+    
+    <label for="uri">Column IRI:</label>
+    <input type="text" name="uri" id="uri"/>
+    
+    <input type="submit" value="Create"/>
+</form>
+{% endblock %}

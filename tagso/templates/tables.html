@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+
+{% block title %}Tagsonomy | Tables{% endblock %}
+
+{% block scripts %}
+<script>
+    function filter_tables() {
+      input = document.getElementById('table_search');
+      filter = input.value.toUpperCase();
+      ul = document.getElementById("table_list");
+      li = ul.children;
+
+      for (i = 0; i < li.length; i++) {
+        spans = li[i].getElementsByClassName('searchable');
+        txt = '';
+        for (j = 0; j < spans.length; j++) {
+          txt += spans[j].textContent || spans[j].innerText;
+        }
+        if (txt.toUpperCase().indexOf(filter) > -1) {
+          li[i].style.display = "";
+        } else {
+          li[i].style.display = "none";
+        }
+      }
+    }
+
+    function delete_table(table_uri) {
+      if (confirm('Are you sure you want to delete this table?')) {
+        fetch('{{ url_for("tables.table_delete") }}', {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ uri: table_uri })
+        })
+        .then(response => {
+          if (response.ok) {
+            window.location.reload();
+          } else {
+            alert('Error deleting table');
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          alert('Error deleting table');
+        });
+      }
+    }
+
+    const USER_NS = "{{ user_ns }}";
+    const LOADING = 'Loading...';
+    const SELECT_SCHEMA = 'Select Schema...';
+    const SELECT_TABLE = 'Select Table...';
+
+    function populateSelect(selectElement, items, placeholder) {
+      selectElement.replaceChildren();
+      selectElement.add(new Option(placeholder, ''));
+      for (const item of items) {
+        selectElement.add(new Option(item, item));
+      }
+    }
+
+    async function loadSchemas() {
+      const catalog = document.getElementById('catalog').value;
+      const schemaSelect = document.getElementById('schema');
+      const tableSelect = document.getElementById('table');
+      
+      // Reset dependent dropdowns
+      populateSelect(schemaSelect, [], LOADING);
+      populateSelect(tableSelect, [], SELECT_TABLE);
+      tableSelect.disabled = true;
+      updateUriFromSelection();
+      
+      if (!catalog) {
+        populateSelect(schemaSelect, [], SELECT_SCHEMA);
+        schemaSelect.disabled = true;
+        return;
+      }
+      
+      const schemas = await fetch(`/api/schemas/${catalog}`).then(r => r.json());
+      populateSelect(schemaSelect, schemas, SELECT_SCHEMA);
+      schemaSelect.disabled = false;
+    }
+
+    async function loadTables() {
+      const catalog = document.getElementById('catalog').value;
+      const schema = document.getElementById('schema').value;
+      const tableSelect = document.getElementById('table');
+      
+      if (!schema) {
+        populateSelect(tableSelect, [], SELECT_TABLE);
+        tableSelect.disabled = true;
+        updateUriFromSelection();
+        return;
+      }
+      
+      populateSelect(tableSelect, [], LOADING);
+      const tables = await fetch(`/api/tables/${catalog}/${schema}`).then(r => r.json());
+      populateSelect(tableSelect, tables, SELECT_TABLE);
+      tableSelect.disabled = false;
+      updateUriFromSelection();
+    }
+
+    function generateUriFromTableName(catalog, schema, tableName) {
+      if (!catalog || !schema || !tableName) return '';
+      const fullName = `${catalog}.${schema}.${tableName}`;
+      return USER_NS + encodeURIComponent(fullName);
+    }
+
+    function updateUriFromSelection() {
+      const catalog = document.getElementById('catalog').value;
+      const schema = document.getElementById('schema').value;
+      const table = document.getElementById('table').value;
+      const uriInput = document.getElementById('uri');
+      uriInput.value = generateUriFromTableName(catalog, schema, table);
+    }
+
+    window.addEventListener('DOMContentLoaded', function() { 
+      filter_tables(); 
+    });
+</script>
+{% endblock %}
+
+{% block content %}
+<input type="search" 
+       id="table_search" 
+       value="{{ table_uri }}" 
+       onkeyup="filter_tables()" 
+       placeholder="Search for tables...">
+
+<ul id="table_list">
+    {% for table in tables %}
+    <li>
+        <div>
+            <b>URI:</b> <span class="searchable">{{ table.uri | safe }}</span>
+        </div>
+        <div>
+            <b>Name:</b> <span class="searchable">{{ table.name | safe }}</span>
+        </div>
+        <div>
+            <b>Assigned Concepts:</b>
+            {% if table.assigned_concepts %}
+            <ul>
+                {% for assignment in table.assigned_concepts %}
+                <li><a href="{{ url_for('concepts.concepts_get', concept_uri=assignment.concept_uri) }}">{{ assignment.concept_name | default(assignment.concept_uri, true) | safe }}</a> ({{ assignment.concept_uri | safe }})</li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <span>None</span>
+            {% endif %}
+        </div>
+        <button onclick="delete_table('{{ table.uri }}')">Delete</button>
+        <a href="{{ url_for('assign.assign_get', selected_table_uri=table.uri) }}"><button type="button">Assign</button></a>
+    </li>
+    {% endfor %}
+</ul>
+
+<hr/>
+
+<h2>New Table</h2>
+<form action="{{ url_for('tables.tables_post') }}" method='post'>
+    <label for="catalog">Catalog:</label>
+    <select name="catalog" id="catalog" onchange="loadSchemas()" required>
+        <option value="">Select Catalog...</option>
+        {% for cat in catalogs %}
+        <option value="{{ cat }}">{{ cat }}</option>
+        {% endfor %}
+    </select>
+    
+    <label for="schema">Schema:</label>
+    <select name="schema" id="schema" onchange="loadTables()" required disabled>
+        <option value="">Select Schema...</option>
+    </select>
+    
+    <label for="table">Table:</label>
+    <select name="table" id="table" onchange="updateUriFromSelection()" required disabled>
+        <option value="">Select Table...</option>
+    </select>
+    
+    <label for="uri">Table IRI (optional):</label>
+    <input type="text" name="uri" id="uri"/>
+    
+    <input type="submit" value="Create"/>
+</form>
+{% endblock %}

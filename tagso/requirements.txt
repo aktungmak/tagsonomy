@@ -1,0 +1,7 @@
+rdflib
+rdflib-sqlalchemy
+psycopg2-binary
+flask
+gunicorn
+databricks-sdk
+setuptools

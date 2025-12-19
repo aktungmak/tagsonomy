@@ -1,4 +1,0 @@
-pandas
-rdflib
-requests
-streamlit
