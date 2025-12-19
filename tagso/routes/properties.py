@@ -16,6 +16,7 @@ def properties_get():
     properties = gm.get_properties(property_uri)
     for prop in properties:
         prop['assigned_columns'] = gm.get_assignments(property_uri=prop['uri'])
+        prop['alt_labels'] = gm.get_alt_labels(prop['uri'])
     concepts = gm.get_concepts()
     return render_template("properties.html", properties=properties, property_uri=property_uri or '', concepts=concepts)
 
@@ -31,7 +32,9 @@ def properties_post():
     domain = request.form.get('domain')
     range_ = request.form.get('range')
 
-    gm.insert_property(uri, name, domain=domain, range_=range_)
+    alt_labels = request.form.getlist('alt_labels')
+
+    gm.insert_property(uri, name, domain=domain, range_=range_, alt_labels=alt_labels)
     return redirect(url_for('properties.properties_get', property_uri=uri))
 
 
@@ -72,5 +75,7 @@ def property_edit_post():
     domain = request.form.get('domain', '').strip() or None
     range_ = request.form.get('range', '').strip() or None
     
-    gm.update_property(uri, label, comment=comment, domain=domain, range_=range_)
+    alt_labels = request.form.getlist('alt_labels')
+    
+    gm.update_property(uri, label, comment=comment, domain=domain, range_=range_, alt_labels=alt_labels)
     return redirect(url_for('properties.properties_get', property_uri=uri))

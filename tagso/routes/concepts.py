@@ -18,6 +18,7 @@ def concepts_get():
     for concept in concepts:
         concept['assigned_tables'] = gm.get_assignments(concept_uri=concept['uri'])
         concept['related_properties'] = gm.get_properties_for_concept(concept['uri'])
+        concept['alt_labels'] = gm.get_alt_labels(concept['uri'])
     return render_template("concepts.html", concepts=concepts, concept_uri=concept_uri or '', user_ns=str(USER_NS))
 
 
@@ -38,8 +39,10 @@ def concepts_post():
         return {'error': f'Invalid concept type: {concept_type_str}'}, 400
 
     comment = request.form['comment']
+    
+    alt_labels = request.form.getlist('alt_labels')
 
-    gm.insert_concept(uri, label, concept_type, comment)
+    gm.insert_concept(uri, label, concept_type, comment, alt_labels=alt_labels)
     return redirect(url_for('concepts.concepts_get', concept_uri=uri))
 
 
@@ -82,7 +85,9 @@ def concept_edit_post():
     label = request.form['label']
     comment = request.form.get('comment', '')
 
-    gm.update_concept(concept_uri, label, comment)
+    alt_labels = request.form.getlist('alt_labels')
+
+    gm.update_concept(concept_uri, label, comment, alt_labels=alt_labels)
     return redirect(url_for('concepts.concept_edit_get', uri=concept_uri))
 
 

@@ -47,6 +47,31 @@
       }
     }
 
+    function addAltLabelField(containerId) {
+        const container = document.getElementById(containerId);
+        const newField = document.createElement('div');
+        newField.className = 'alt-label-field';
+
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.name = 'alt_labels';
+        input.placeholder = 'Alternative label';
+        input.required = true;
+
+        const removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.textContent = 'Remove';
+        removeBtn.onclick = function() { removeAltLabelField(this); };
+
+        newField.appendChild(input);
+        newField.appendChild(removeBtn);
+        container.appendChild(newField);
+    }
+
+    function removeAltLabelField(button) {
+        button.parentElement.remove();
+    }
+
     window.addEventListener('DOMContentLoaded', function() { 
       filter_properties(); 
     });
@@ -69,6 +94,16 @@
         <div>
             <b>Label:</b> <span>{{ property.name | safe }}</span>
         </div>
+        {% if property.alt_labels %}
+        <div>
+            <b>Alternative Labels:</b>
+            <ul>
+                {% for alt_label in property.alt_labels %}
+                <li>{{ alt_label | safe }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
         {% if property.domain %}
         <div>
             <b>Domain:</b> <a href="{{ url_for('concepts.concepts_get', concept_uri=property.domain) }}">{{ property.domain_label or property.domain }}</a>
@@ -124,6 +159,10 @@
         <option value="{{ concept.uri }}">{{ concept.label or concept.uri }}</option>
         {% endfor %}
     </select>
+    
+    <label>Alternative Labels (skos:altLabel):</label>
+    <div id="new_property_alt_labels_container"></div>
+    <button type="button" onclick="addAltLabelField('new_property_alt_labels_container')">Add Alternative Label</button>
     
     <input type="submit" value="Create"/>
 </form>
