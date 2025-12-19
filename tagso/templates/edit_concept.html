@@ -2,59 +2,11 @@
 
 {% block title %}Tagsonomy | Edit Concept{% endblock %}
 
-{% block scripts %}
+{% block head_scripts %}
 <script>
-    function delete_relationship(subject_uri, predicate_type, object_uri) {
-        if (confirm('Are you sure you want to delete this relationship?')) {
-            fetch('{{ url_for("concepts.concept_delete_relationship") }}', {
-                method: 'DELETE',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    subject_uri: subject_uri,
-                    predicate_type: predicate_type,
-                    object_uri: object_uri
-                })
-            })
-            .then(response => {
-                if (response.ok) {
-                    window.location.reload();
-                } else {
-                    alert('Error deleting relationship');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Error deleting relationship');
-            });
-        }
-    }
-
-    function addAltLabelField() {
-        const container = document.getElementById('alt_labels_container');
-        const newField = document.createElement('div');
-        newField.className = 'alt-label-field';
-
-        const input = document.createElement('input');
-        input.type = 'text';
-        input.name = 'alt_labels';
-        input.placeholder = 'Alternative label';
-        input.required = true;
-
-        const removeBtn = document.createElement('button');
-        removeBtn.type = 'button';
-        removeBtn.textContent = 'Remove';
-        removeBtn.onclick = function() { removeAltLabelField(this); };
-
-        newField.appendChild(input);
-        newField.appendChild(removeBtn);
-        container.appendChild(newField);
-    }
-
-    function removeAltLabelField(button) {
-        button.parentElement.remove();
-    }
+    window.TAGSO_CONFIG = {
+        relationshipDeleteUrl: '{{ url_for("concepts.concept_delete_relationship") }}'
+    };
 </script>
 {% endblock %}
 

@@ -2,93 +2,19 @@
 
 {% block title %}Tagsonomy | Concepts{% endblock %}
 
+{% block head_scripts %}
+<script>
+    window.TAGSO_CONFIG = {
+        conceptDeleteUrl: '{{ url_for("concepts.concept_delete") }}',
+        userNs: '{{ user_ns }}'
+    };
+</script>
+{% endblock %}
+
 {% block scripts %}
 <script>
-    function filter_concepts() {
-      var input, filter, ul, li, i, spans, uri, name, altLabels, txtValue;
-      input = document.getElementById('concept_search');
-      filter = input.value.toUpperCase();
-      ul = document.getElementById("concept_list");
-      li = ul.children;
-
-      for (i = 0; i < li.length; i++) {
-        spans = li[i].getElementsByTagName('span');
-        uri = spans[0] ? (spans[0].textContent || spans[0].innerText) : '';
-        name = spans[1] ? (spans[1].textContent || spans[1].innerText) : '';
-        altLabels = li[i].querySelector('.alt-labels-search');
-        altLabels = altLabels ? (altLabels.textContent || altLabels.innerText) : '';
-        txtValue = uri + ' ' + name + ' ' + altLabels;
-        if (txtValue.toUpperCase().indexOf(filter) > -1) {
-          li[i].style.display = "";
-        } else {
-          li[i].style.display = "none";
-        }
-      }
-    }
-
-    function delete_concept(concept_uri) {
-      if (confirm('Are you sure you want to delete this concept?')) {
-        fetch('{{ url_for("concepts.concept_delete") }}', {
-          method: 'DELETE',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ uri: concept_uri })
-        })
-        .then(response => {
-          if (response.ok) {
-            window.location.reload();
-          } else {
-            alert('Error deleting concept');
-          }
-        })
-        .catch(error => {
-          console.error('Error:', error);
-          alert('Error deleting concept');
-        });
-      }
-    }
-
-    const USER_NS = "{{ user_ns }}";
-
-    function generate_uri_from_label(label) {
-      if (!label) return '';
-      return USER_NS + encodeURIComponent(label);
-    }
-
-    function update_uri_from_label() {
-      const labelInput = document.getElementById('label');
-      const uriInput = document.getElementById('uri');
-      uriInput.value = generate_uri_from_label(labelInput.value);
-    }
-
-    function addAltLabelField(containerId) {
-        const container = document.getElementById(containerId);
-        const newField = document.createElement('div');
-        newField.className = 'alt-label-field';
-
-        const input = document.createElement('input');
-        input.type = 'text';
-        input.name = 'alt_labels';
-        input.placeholder = 'Alternative label';
-        input.required = true;
-
-        const removeBtn = document.createElement('button');
-        removeBtn.type = 'button';
-        removeBtn.textContent = 'Remove';
-        removeBtn.onclick = function() { removeAltLabelField(this); };
-
-        newField.appendChild(input);
-        newField.appendChild(removeBtn);
-        container.appendChild(newField);
-    }
-
-    function removeAltLabelField(button) {
-        button.parentElement.remove();
-    }
-
     window.addEventListener('DOMContentLoaded', function() { 
-      filter_concepts();
+        filter_concepts();
     });
 </script>
 {% endblock %}

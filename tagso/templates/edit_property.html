@@ -2,35 +2,6 @@
 
 {% block title %}Tagsonomy | Edit Property{% endblock %}
 
-{% block scripts %}
-<script>
-    function addAltLabelField() {
-        const container = document.getElementById('alt_labels_container');
-        const newField = document.createElement('div');
-        newField.className = 'alt-label-field';
-
-        const input = document.createElement('input');
-        input.type = 'text';
-        input.name = 'alt_labels';
-        input.placeholder = 'Alternative label';
-        input.required = true;
-
-        const removeBtn = document.createElement('button');
-        removeBtn.type = 'button';
-        removeBtn.textContent = 'Remove';
-        removeBtn.onclick = function() { removeAltLabelField(this); };
-
-        newField.appendChild(input);
-        newField.appendChild(removeBtn);
-        container.appendChild(newField);
-    }
-
-    function removeAltLabelField(button) {
-        button.parentElement.remove();
-    }
-</script>
-{% endblock %}
-
 {% block content %}
 <h1>Edit Property</h1>
 <section>
