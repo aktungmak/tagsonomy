@@ -5,7 +5,7 @@
 {% block scripts %}
 <script>
     function filter_properties() {
-      var input, filter, ul, li, i, spans, uri, name, txtValue;
+      var input, filter, ul, li, i, spans, uri, name, altLabels, txtValue;
       input = document.getElementById('property_search');
       filter = input.value.toUpperCase();
       ul = document.getElementById("property_list");
@@ -15,7 +15,9 @@
         spans = li[i].getElementsByTagName('span');
         uri = spans[0] ? (spans[0].textContent || spans[0].innerText) : '';
         name = spans[1] ? (spans[1].textContent || spans[1].innerText) : '';
-        txtValue = uri + ' ' + name;
+        altLabels = li[i].querySelector('.alt-labels-search');
+        altLabels = altLabels ? (altLabels.textContent || altLabels.innerText) : '';
+        txtValue = uri + ' ' + name + ' ' + altLabels;
         if (txtValue.toUpperCase().indexOf(filter) > -1) {
           li[i].style.display = "";
         } else {
@@ -88,6 +90,7 @@
 <ul id="property_list">
     {% for property in properties %}
     <li>
+        <span class="alt-labels-search" hidden>{{ property.alt_labels | join(' ') }}</span>
         <div>
             <b>URI:</b> <span>{{ property.uri | safe }}</span>
         </div>
