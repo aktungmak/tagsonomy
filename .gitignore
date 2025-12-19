@@ -1,4 +1,7 @@
 venv
 .idea
 .vscode
+**/__pycache__/
+scratch/
+*.db
 .DS_Store

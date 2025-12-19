@@ -1,0 +1,161 @@
+@prefix : <http://example.com/insurance/> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@base <http://example.com/insurance/> .
+
+
+#################################################################
+#    Insurance Products
+#################################################################
+
+:InsuranceProduct rdf:type rdfs:Class ;
+    rdfs:label "Insurance Product" .
+
+:LifeInsurance rdf:type rdfs:Class ;
+    rdfs:subClassOf :InsuranceProduct ;
+    rdfs:label "Life Insurance" .
+
+:TermLife rdf:type rdfs:Class ;
+    rdfs:subClassOf :LifeInsurance ;
+    rdfs:label "Term Life" .
+
+:WholeLife rdf:type rdfs:Class ;
+    rdfs:subClassOf :LifeInsurance ;
+    rdfs:label "Whole Life" .
+
+:HealthInsurance rdf:type rdfs:Class ;
+    rdfs:subClassOf :InsuranceProduct ;
+    rdfs:label "Health Insurance" .
+
+:MedicalInsurance rdf:type rdfs:Class ;
+    rdfs:subClassOf :HealthInsurance ;
+    rdfs:label "Medical Insurance" .
+
+:DentalInsurance rdf:type rdfs:Class ;
+    rdfs:subClassOf :HealthInsurance ;
+    rdfs:label "Dental Insurance" .
+
+:AutoInsurance rdf:type rdfs:Class ;
+    rdfs:subClassOf :InsuranceProduct ;
+    rdfs:label "Auto Insurance" .
+
+:Collision rdf:type rdfs:Class ;
+    rdfs:subClassOf :AutoInsurance ;
+    rdfs:label "Collision Coverage" .
+
+:Comprehensive rdf:type rdfs:Class ;
+    rdfs:subClassOf :AutoInsurance ;
+    rdfs:label "Comprehensive Coverage" .
+
+:PropertyInsurance rdf:type rdfs:Class ;
+    rdfs:subClassOf :InsuranceProduct ;
+    rdfs:label "Property Insurance" .
+
+:HomeownersInsurance rdf:type rdfs:Class ;
+    rdfs:subClassOf :PropertyInsurance ;
+    rdfs:label "Homeowners Insurance" .
+
+:RentersInsurance rdf:type rdfs:Class ;
+    rdfs:subClassOf :PropertyInsurance ;
+    rdfs:label "Renters Insurance" .
+
+#################################################################
+#    Policy & Claims
+#################################################################
+
+:Policy rdf:type rdfs:Class ;
+    rdfs:label "Policy" .
+
+:ActivePolicy rdf:type rdfs:Class ;
+    rdfs:subClassOf :Policy ;
+    rdfs:label "Active Policy" .
+
+:CancelledPolicy rdf:type rdfs:Class ;
+    rdfs:subClassOf :Policy ;
+    rdfs:label "Cancelled Policy" .
+
+:Claim rdf:type rdfs:Class ;
+    rdfs:label "Claim" .
+
+:MedicalClaim rdf:type rdfs:Class ;
+    rdfs:subClassOf :Claim ;
+    rdfs:label "Medical Claim" .
+
+:PropertyClaim rdf:type rdfs:Class ;
+    rdfs:subClassOf :Claim ;
+    rdfs:label "Property Claim" .
+
+:VehicleClaim rdf:type rdfs:Class ;
+    rdfs:subClassOf :Claim ;
+    rdfs:label "Vehicle Claim" .
+
+#################################################################
+#    Parties
+#################################################################
+
+:Party rdf:type rdfs:Class ;
+    rdfs:label "Party" .
+
+:Policyholder rdf:type rdfs:Class ;
+    rdfs:subClassOf :Party ;
+    rdfs:label "Policyholder" .
+
+:Beneficiary rdf:type rdfs:Class ;
+    rdfs:subClassOf :Party ;
+    rdfs:label "Beneficiary" .
+
+:Agent rdf:type rdfs:Class ;
+    rdfs:subClassOf :Party ;
+    rdfs:label "Agent" .
+
+#################################################################
+#    Properties
+#################################################################
+
+:policyNumber rdf:type rdf:Property ;
+    rdfs:label "Policy Number" ;
+    rdfs:domain :Policy .
+
+:effectiveDate rdf:type rdf:Property ;
+    rdfs:label "Effective Date" ;
+    rdfs:domain :Policy .
+
+:premiumAmount rdf:type rdf:Property ;
+    rdfs:label "Premium Amount" ;
+    rdfs:domain :Policy .
+
+:claimNumber rdf:type rdf:Property ;
+    rdfs:label "Claim Number" ;
+    rdfs:domain :Claim .
+
+:claimAmount rdf:type rdf:Property ;
+    rdfs:label "Claim Amount" ;
+    rdfs:domain :Claim .
+
+:dateOfLoss rdf:type rdf:Property ;
+    rdfs:label "Date of Loss" ;
+    rdfs:domain :Claim .
+
+:partyName rdf:type rdf:Property ;
+    rdfs:label "Party Name" ;
+    rdfs:domain :Party .
+
+:contactEmail rdf:type rdf:Property ;
+    rdfs:label "Contact Email" ;
+    rdfs:domain :Party .
+
+:dateOfBirth rdf:type rdf:Property ;
+    rdfs:label "Date of Birth" ;
+    rdfs:domain :Policyholder .
+
+:vehicleVIN rdf:type rdf:Property ;
+    rdfs:label "Vehicle VIN" ;
+    rdfs:domain :AutoInsurance .
+
+:propertyAddress rdf:type rdf:Property ;
+    rdfs:label "Property Address" ;
+    rdfs:domain :PropertyInsurance .
+
+:faceAmount rdf:type rdf:Property ;
+    rdfs:label "Face Amount" ;
+    rdfs:domain :LifeInsurance .
