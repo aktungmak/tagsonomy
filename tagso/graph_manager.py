@@ -206,7 +206,7 @@ class GraphManager:
         r = self._graph.query("""
             SELECT ?table_uri ?table_name ?concept_uri ?concept_name
             WHERE {
-                ?table_uri uc:semanticAssignment ?concept_uri .
+                ?table_uri uc:conceptAssignment ?concept_uri .
                 OPTIONAL { ?table_uri uc:name ?table_name }
                 OPTIONAL { ?concept_uri rdfs:label ?concept_name }
             }
