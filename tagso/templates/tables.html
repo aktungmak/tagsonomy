@@ -8,7 +8,7 @@
       input = document.getElementById('table_search');
       filter = input.value.toUpperCase();
       ul = document.getElementById("table_list");
-      li = ul.getElementsByTagName('li');
+      li = ul.children;
 
       for (i = 0; i < li.length; i++) {
         spans = li[i].getElementsByClassName('searchable');
@@ -142,15 +142,12 @@
             {% if table.assigned_concepts %}
             <ul>
                 {% for assignment in table.assigned_concepts %}
-                <li>{{ assignment.concept_name | default(assignment.concept_uri, true) | safe }} ({{ assignment.concept_uri | safe }})</li>
+                <li><a href="{{ url_for('concepts.concepts_get', concept_uri=assignment.concept_uri) }}">{{ assignment.concept_name | default(assignment.concept_uri, true) | safe }}</a> ({{ assignment.concept_uri | safe }})</li>
                 {% endfor %}
             </ul>
             {% else %}
             <span>None</span>
             {% endif %}
-        </div>
-        <div>
-            <b>Related Properties:</b> <span>TODO</span>
         </div>
         <button onclick="delete_table('{{ table.uri }}')">Delete</button>
         <a href="{{ url_for('assign.assign_get', selected_table_uri=table.uri) }}"><button type="button">Assign</button></a>

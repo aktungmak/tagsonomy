@@ -9,7 +9,7 @@
       input = document.getElementById('concept_search');
       filter = input.value.toUpperCase();
       ul = document.getElementById("concept_list");
-      li = ul.getElementsByTagName('li');
+      li = ul.children;
 
       for (i = 0; i < li.length; i++) {
         spans = li[i].getElementsByTagName('span');
@@ -87,7 +87,7 @@
             {% if concept.assigned_tables %}
             <ul>
                 {% for assignment in concept.assigned_tables %}
-                <li>{{ assignment.table | default(assignment.table_uri, true) | safe }} ({{ assignment.table_uri | safe }})</li>
+                <li><a href="{{ url_for('tables.tables_get', table_uri=assignment.table_uri) }}">{{ assignment.table_name | default(assignment.table_uri, true) | safe }}</a> ({{ assignment.table_uri | safe }})</li>
                 {% endfor %}
             </ul>
             {% else %}
