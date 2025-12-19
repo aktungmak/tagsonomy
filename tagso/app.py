@@ -11,7 +11,7 @@ from routes import (
     concepts_bp,
     properties_bp,
     assign_bp,
-    imports_bp,
+    import_export_bp,
     search_bp,
 )
 
@@ -31,7 +31,7 @@ def create_app():
     app.register_blueprint(concepts_bp)
     app.register_blueprint(properties_bp)
     app.register_blueprint(assign_bp)
-    app.register_blueprint(imports_bp)
+    app.register_blueprint(import_export_bp)
     app.register_blueprint(search_bp)
 
     # Index route

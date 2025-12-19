@@ -3,7 +3,7 @@ from routes.columns import columns_bp
 from routes.concepts import concepts_bp
 from routes.properties import properties_bp
 from routes.assign import assign_bp
-from routes.imports import imports_bp
+from routes.import_export import import_export_bp
 from routes.search import search_bp
 
 __all__ = [
@@ -12,6 +12,6 @@ __all__ = [
     'concepts_bp',
     'properties_bp',
     'assign_bp',
-    'imports_bp',
+    'import_export_bp',
     'search_bp',
 ]
