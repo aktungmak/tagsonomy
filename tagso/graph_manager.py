@@ -20,13 +20,13 @@ class GraphManager:
             db_url: connection string
             identifier: Identifier for the graph store
         """
-        self._db_url = db_url
+        self._engine = create_engine(db_url)
         self._graph = Graph(store="SQLAlchemy", identifier=identifier)
 
         try:
-            self._graph.open(db_url, create=True)
+            self._graph.open(self._engine, create=True)
         except DuplicateTable:
-            self._graph.open(db_url)
+            self._graph.open(self._engine)
 
         self._graph.bind("uc", UC)
         self._graph.bind("user", USER_NS)
@@ -466,8 +466,8 @@ class GraphManager:
 
     def search(self, query: str, kind: Optional[str] = None) -> list[dict]:
         """Search for concepts and properties using trigram similarity search."""
-        # TODO create the engine in __init__ and then use it here and to create the graph
-        engine = create_engine(self._db_url)
+        if self._engine.dialect.name != "postgresql":
+            raise ValueError("Unsupported database engine")
         literal_statements = self._graph.store.tables["literal_statements"]
 
         conditions = [literal_statements.c.object.op("%")(query)]
@@ -483,8 +483,9 @@ class GraphManager:
             .where(*conditions)
             .distinct()
         )
-        with engine.connect() as conn:
+        with self._engine.connect() as conn:
             return [row._asdict() for row in conn.execute(stmt).fetchall()]
 
     def close(self):
         self._graph.close()
+        self._engine.dispose()
