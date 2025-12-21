@@ -125,6 +125,7 @@ def call_search(data):
         "jsonrpc": "2.0",
         "id": data.get("id"),
         "result": {
+            "structuredContent": results,
             "content": [{"type": "text", "text": str(results)}],
             "isError": False,
         },

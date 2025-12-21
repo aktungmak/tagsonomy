@@ -475,10 +475,16 @@ class GraphManager:
         # if kind is not None:
         #     conditions.append(literal_statements.c.type == kind)
 
-        stmt = select(literal_statements).where(*conditions)
+        stmt = (
+            select(
+                literal_statements.c.subject.label("uri"),
+                literal_statements.c.object.label("text"),
+            )
+            .where(*conditions)
+            .distinct()
+        )
         with engine.connect() as conn:
-            result = conn.execute(stmt)
-            return result.fetchall()
+            return [row._asdict() for row in conn.execute(stmt).fetchall()]
 
     def close(self):
         self._graph.close()
