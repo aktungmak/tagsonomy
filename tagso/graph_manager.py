@@ -3,7 +3,7 @@ from typing import Optional
 
 from rdflib import Graph, RDF, RDFS, SKOS, URIRef, Literal
 from psycopg2.errors import DuplicateTable
-from sqlalchemy import Table, MetaData, create_engine, select, or_
+from sqlalchemy import select
 
 from config import UC, USER_NS
 
@@ -20,13 +20,15 @@ class GraphManager:
             db_url: connection string
             identifier: Identifier for the graph store
         """
-        self._engine = create_engine(db_url)
         self._graph = Graph(store="SQLAlchemy", identifier=identifier)
 
         try:
-            self._graph.open(self._engine, create=True)
+            self._graph.open(db_url, create=True)
         except DuplicateTable:
-            self._graph.open(self._engine)
+            self._graph.open(db_url)
+
+        # Reuse the engine created by rdflib_sqlalchemy
+        self._engine = self._graph.store.engine
 
         self._graph.bind("uc", UC)
         self._graph.bind("user", USER_NS)
@@ -228,6 +230,7 @@ class GraphManager:
         self._graph.add((column_uri, UC.propertyAssignment, property_uri))
         logger.info(f"Assigned column {column_uri} to property {property_uri}")
 
+    # TODO consider separating this into multiple functions for each type of assignment
     def get_assignments(
         self,
         table_uri: Optional[str] = None,
@@ -488,4 +491,3 @@ class GraphManager:
 
     def close(self):
         self._graph.close()
-        self._engine.dispose()

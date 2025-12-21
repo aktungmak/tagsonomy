@@ -136,12 +136,14 @@ def call_assigned_data_objects(data):
     params = data.get("params", {})
     arguments = params.get("arguments", {})
     uri = arguments.get("uri")
-    # results = gm.get_assigned_data_objects(uri)
-    results = ["table1", "table2"]
+    tables = gm.get_assignments(concept_uri=uri)
+    columns = gm.get_assignments(property_uri=uri)
+    results = tables + columns
     return {
         "jsonrpc": "2.0",
         "id": data.get("id"),
         "result": {
+            "structuredContent": results,
             "content": [{"type": "text", "text": str(results)}],
             "isError": False,
         },
