@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, current_app
+from flask import Blueprint, request, current_app
 from werkzeug.local import LocalProxy
 
 
@@ -10,6 +10,11 @@ SEARCH_TOOL = "semantic_search"
 ASSIGNED_DATA_OBJECTS_TOOL = "assigned_data_objects"
 
 
+@mcp_bp.route("/mcp", methods=["OPTIONS"])
+def mcp_options():
+    return "", 204
+
+
 @mcp_bp.post("/mcp")
 def mcp_handler():
     data = request.get_json()
@@ -19,6 +24,8 @@ def mcp_handler():
         return initialize(data)
     elif method == "notifications/initialized":
         return notifications_initialized(data)
+    elif method == "ping":
+        return ping(data)
     elif method == "tools/list":
         return tools_list(data)
     elif method == "tools/call":
@@ -47,6 +54,10 @@ def initialize(data):
 
 def notifications_initialized(data):
     return "", 202
+
+
+def ping(data):
+    return {"jsonrpc": "2.0", "id": data.get("id"), "result": {}}, 200
 
 
 def tools_list(data):
@@ -109,8 +120,7 @@ def call_search(data):
     query = arguments.get("query")
     kind = arguments.get("kind")
 
-    # results = gm.search(query, kind)
-    results = ["tree", "flower"]
+    results = gm.search(query, kind)
     return {
         "jsonrpc": "2.0",
         "id": data.get("id"),
