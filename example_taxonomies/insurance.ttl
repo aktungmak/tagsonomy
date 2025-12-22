@@ -1,161 +1,215 @@
 @prefix : <http://example.com/insurance/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
-@base <http://example.com/insurance/> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix uc: <http://databricks.com/ontology/uc/> .
+@prefix user: <http://example.com/ontology/> .
 
+:ActivePolicy a rdfs:Class,
+        owl:Class ;
+    rdfs:label "Active Policy" ;
+    rdfs:subClassOf :Policy .
 
-#################################################################
-#    Insurance Products
-#################################################################
+:Agent a rdfs:Class,
+        owl:Class ;
+    rdfs:label "Agent" ;
+    rdfs:subClassOf :Party .
 
-:InsuranceProduct rdf:type rdfs:Class ;
-    rdfs:label "Insurance Product" .
+:AutoInsurance a rdfs:Class,
+        owl:Class ;
+    rdfs:label "Auto Insurance" ;
+    rdfs:subClassOf :InsuranceProduct .
 
-:LifeInsurance rdf:type rdfs:Class ;
-    rdfs:subClassOf :InsuranceProduct ;
-    rdfs:label "Life Insurance" .
+:Beneficiary a rdfs:Class,
+        owl:Class ;
+    rdfs:label "Beneficiary" ;
+    rdfs:subClassOf :Party .
 
-:TermLife rdf:type rdfs:Class ;
-    rdfs:subClassOf :LifeInsurance ;
-    rdfs:label "Term Life" .
+:CancelledPolicy a rdfs:Class,
+        owl:Class ;
+    rdfs:label "Cancelled Policy" ;
+    rdfs:subClassOf :Policy .
 
-:WholeLife rdf:type rdfs:Class ;
-    rdfs:subClassOf :LifeInsurance ;
-    rdfs:label "Whole Life" .
-
-:HealthInsurance rdf:type rdfs:Class ;
-    rdfs:subClassOf :InsuranceProduct ;
-    rdfs:label "Health Insurance" .
-
-:MedicalInsurance rdf:type rdfs:Class ;
-    rdfs:subClassOf :HealthInsurance ;
-    rdfs:label "Medical Insurance" .
-
-:DentalInsurance rdf:type rdfs:Class ;
-    rdfs:subClassOf :HealthInsurance ;
-    rdfs:label "Dental Insurance" .
-
-:AutoInsurance rdf:type rdfs:Class ;
-    rdfs:subClassOf :InsuranceProduct ;
-    rdfs:label "Auto Insurance" .
-
-:Collision rdf:type rdfs:Class ;
-    rdfs:subClassOf :AutoInsurance ;
-    rdfs:label "Collision Coverage" .
-
-:Comprehensive rdf:type rdfs:Class ;
-    rdfs:subClassOf :AutoInsurance ;
-    rdfs:label "Comprehensive Coverage" .
-
-:PropertyInsurance rdf:type rdfs:Class ;
-    rdfs:subClassOf :InsuranceProduct ;
-    rdfs:label "Property Insurance" .
-
-:HomeownersInsurance rdf:type rdfs:Class ;
-    rdfs:subClassOf :PropertyInsurance ;
-    rdfs:label "Homeowners Insurance" .
-
-:RentersInsurance rdf:type rdfs:Class ;
-    rdfs:subClassOf :PropertyInsurance ;
-    rdfs:label "Renters Insurance" .
-
-#################################################################
-#    Policy & Claims
-#################################################################
-
-:Policy rdf:type rdfs:Class ;
-    rdfs:label "Policy" .
-
-:ActivePolicy rdf:type rdfs:Class ;
-    rdfs:subClassOf :Policy ;
-    rdfs:label "Active Policy" .
-
-:CancelledPolicy rdf:type rdfs:Class ;
-    rdfs:subClassOf :Policy ;
-    rdfs:label "Cancelled Policy" .
-
-:Claim rdf:type rdfs:Class ;
+:Claim a rdfs:Class,
+        owl:Class ;
     rdfs:label "Claim" .
 
-:MedicalClaim rdf:type rdfs:Class ;
-    rdfs:subClassOf :Claim ;
-    rdfs:label "Medical Claim" .
+:Collision a rdfs:Class,
+        owl:Class ;
+    rdfs:label "Collision Coverage" ;
+    rdfs:subClassOf :AutoInsurance .
 
-:PropertyClaim rdf:type rdfs:Class ;
-    rdfs:subClassOf :Claim ;
-    rdfs:label "Property Claim" .
+:Comprehensive a rdfs:Class,
+        owl:Class ;
+    rdfs:label "Comprehensive Coverage" ;
+    rdfs:subClassOf :AutoInsurance .
 
-:VehicleClaim rdf:type rdfs:Class ;
-    rdfs:subClassOf :Claim ;
-    rdfs:label "Vehicle Claim" .
+:DentalInsurance a rdfs:Class,
+        owl:Class ;
+    rdfs:label "Dental Insurance" ;
+    rdfs:subClassOf :HealthInsurance .
 
-#################################################################
-#    Parties
-#################################################################
+:HealthInsurance a rdfs:Class,
+        owl:Class ;
+    rdfs:label "Health Insurance" ;
+    rdfs:subClassOf :InsuranceProduct .
 
-:Party rdf:type rdfs:Class ;
+:HomeownersInsurance a rdfs:Class,
+        owl:Class ;
+    rdfs:label "Homeowners Insurance" ;
+    rdfs:subClassOf :PropertyInsurance .
+
+:InsuranceProduct a rdfs:Class,
+        owl:Class ;
+    rdfs:label "Insurance Product" ;
+    rdfs:subClassOf :Policy ;
+    skos:altLabel "Produit Insuré" .
+
+:LifeInsurance a rdfs:Class,
+        owl:Class ;
+    rdfs:label "Life Insurance" ;
+    rdfs:subClassOf :InsuranceProduct .
+
+:MedicalClaim a rdfs:Class,
+        owl:Class ;
+    rdfs:label "Medical Claim" ;
+    rdfs:subClassOf :Claim .
+
+:MedicalInsurance a rdfs:Class,
+        owl:Class ;
+    rdfs:label "Medical Insurance" ;
+    rdfs:subClassOf :HealthInsurance .
+
+:Party a rdfs:Class,
+        owl:Class ;
     rdfs:label "Party" .
 
-:Policyholder rdf:type rdfs:Class ;
+:Policy a rdfs:Class,
+        owl:Class ;
+    rdfs:label "Policy" .
+
+:Policyholder a rdfs:Class,
+        owl:Class ;
+    rdfs:label "Policyholder" ;
     rdfs:subClassOf :Party ;
-    rdfs:label "Policyholder" .
+    skos:altLabel "polholler" .
 
-:Beneficiary rdf:type rdfs:Class ;
-    rdfs:subClassOf :Party ;
-    rdfs:label "Beneficiary" .
+:PropertyClaim a rdfs:Class,
+        owl:Class ;
+    rdfs:label "Property Claim" ;
+    rdfs:subClassOf :Claim .
 
-:Agent rdf:type rdfs:Class ;
-    rdfs:subClassOf :Party ;
-    rdfs:label "Agent" .
+:PropertyInsurance a rdfs:Class,
+        owl:Class ;
+    rdfs:label "Property Insurance" ;
+    rdfs:subClassOf :InsuranceProduct .
 
-#################################################################
-#    Properties
-#################################################################
+:RentersInsurance a rdfs:Class,
+        owl:Class ;
+    rdfs:label "Renters Insurance" ;
+    rdfs:subClassOf :PropertyInsurance .
 
-:policyNumber rdf:type rdf:Property ;
-    rdfs:label "Policy Number" ;
-    rdfs:domain :Policy .
+:TermLife a rdfs:Class,
+        owl:Class ;
+    rdfs:label "Term Life" ;
+    rdfs:subClassOf :LifeInsurance .
 
-:effectiveDate rdf:type rdf:Property ;
-    rdfs:label "Effective Date" ;
-    rdfs:domain :Policy .
+:VehicleClaim a rdfs:Class,
+        owl:Class ;
+    rdfs:label "Vehicle Claim" ;
+    rdfs:subClassOf :Claim .
 
-:premiumAmount rdf:type rdf:Property ;
-    rdfs:label "Premium Amount" ;
-    rdfs:domain :Policy .
+:WholeLife a rdfs:Class,
+        owl:Class ;
+    rdfs:label "Whole Life" ;
+    rdfs:subClassOf :LifeInsurance .
 
-:claimNumber rdf:type rdf:Property ;
-    rdfs:label "Claim Number" ;
-    rdfs:domain :Claim .
-
-:claimAmount rdf:type rdf:Property ;
+:claimAmount a rdf:Property ;
     rdfs:label "Claim Amount" ;
     rdfs:domain :Claim .
 
-:dateOfLoss rdf:type rdf:Property ;
-    rdfs:label "Date of Loss" ;
-    rdfs:domain :Claim .
-
-:partyName rdf:type rdf:Property ;
-    rdfs:label "Party Name" ;
-    rdfs:domain :Party .
-
-:contactEmail rdf:type rdf:Property ;
+:contactEmail a rdf:Property ;
     rdfs:label "Contact Email" ;
     rdfs:domain :Party .
 
-:dateOfBirth rdf:type rdf:Property ;
+:dateOfBirth a rdf:Property ;
     rdfs:label "Date of Birth" ;
     rdfs:domain :Policyholder .
 
-:vehicleVIN rdf:type rdf:Property ;
-    rdfs:label "Vehicle VIN" ;
-    rdfs:domain :AutoInsurance .
+:dateOfLoss a rdf:Property ;
+    rdfs:label "Date of Loss" ;
+    rdfs:domain :Claim .
 
-:propertyAddress rdf:type rdf:Property ;
+:effectiveDate a rdf:Property ;
+    rdfs:label "Effective Date" ;
+    rdfs:domain :Policy .
+
+:faceAmount a rdf:Property ;
+    rdfs:label "Face Amount" ;
+    rdfs:domain :LifeInsurance .
+
+:partyName a rdf:Property ;
+    rdfs:label "Party Name" ;
+    rdfs:domain :Party .
+
+:policyNumber a rdf:Property ;
+    rdfs:label "Policy Number" ;
+    rdfs:domain :Policy ;
+    rdfs:range :VehicleClaim ;
+    skos:altLabel "Policynummer" .
+
+:premiumAmount a rdf:Property ;
+    rdfs:label "Premium Amount" ;
+    rdfs:domain :Policy .
+
+:propertyAddress a rdf:Property ;
     rdfs:label "Property Address" ;
     rdfs:domain :PropertyInsurance .
 
-:faceAmount rdf:type rdf:Property ;
-    rdfs:label "Face Amount" ;
-    rdfs:domain :LifeInsurance .
+:vehicleVIN a rdf:Property ;
+    rdfs:label "Vehicle VIN" ;
+    rdfs:domain :AutoInsurance .
+
+user:tagsonomy.insurance_demo.auto_policies a uc:Table ;
+    uc:conceptAssignment :AutoInsurance ;
+    uc:name "tagsonomy.insurance_demo.auto_policies" .
+
+user:tagsonomy.insurance_demo.health_plans a uc:Table ;
+    uc:conceptAssignment :HealthInsurance ;
+    uc:name "tagsonomy.insurance_demo.health_plans" .
+
+user:tagsonomy.insurance_demo.legacy_claims_history a uc:Table ;
+    uc:conceptAssignment :Claim ;
+    uc:name "tagsonomy.insurance_demo.legacy_claims_history" .
+
+user:tagsonomy.insurance_demo.legacy_claims_history.clm_num a uc:Column ;
+    uc:name "tagsonomy.insurance_demo.legacy_claims_history.clm_num" ;
+    uc:propertyAssignment :claimNumber .
+
+user:tagsonomy.insurance_demo.legacy_policy_file a uc:Table ;
+    uc:conceptAssignment :Policy ;
+    uc:name "tagsonomy.insurance_demo.legacy_policy_file" .
+
+user:tagsonomy.insurance_demo.medical_claims a uc:Table ;
+    uc:conceptAssignment :MedicalClaim ;
+    uc:name "tagsonomy.insurance_demo.medical_claims" .
+
+user:tagsonomy.insurance_demo.property_claims a uc:Table ;
+    uc:conceptAssignment :PropertyClaim ;
+    uc:name "tagsonomy.insurance_demo.property_claims" .
+
+user:tagsonomy.insurance_demo.property_claims.claim_ref a uc:Column ;
+    uc:name "tagsonomy.insurance_demo.property_claims.claim_ref" ;
+    uc:propertyAssignment :claimNumber .
+
+:claimNumber a rdf:Property ;
+    rdfs:label "Claim Number" ;
+    rdfs:domain :Claim .
+
+[] a owl:Ontology ;
+    rdfs:label "Insurance Domain Ontology" .
+
+[] a owl:Ontology ;
+    rdfs:label "Insurance Domain Ontology" .
+
