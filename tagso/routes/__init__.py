@@ -4,7 +4,7 @@ from routes.concepts import concepts_bp
 from routes.properties import properties_bp
 from routes.assign import assign_bp
 from routes.import_export import import_export_bp
-from routes.search import search_bp
+from routes.sync import sync_bp
 from routes.mcp import mcp_bp
 
 __all__ = [
@@ -14,6 +14,6 @@ __all__ = [
     "properties_bp",
     "assign_bp",
     "import_export_bp",
-    "search_bp",
+    "sync_bp",
     "mcp_bp",
 ]

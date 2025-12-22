@@ -230,44 +230,17 @@ class GraphManager:
         self._graph.add((column_uri, UC.propertyAssignment, property_uri))
         logger.info(f"Assigned column {column_uri} to property {property_uri}")
 
-    # TODO consider separating this into multiple functions for each type of assignment
-    def get_assignments(
+    def concept_table_assignments(
         self,
         table_uri: Optional[str] = None,
         concept_uri: Optional[str] = None,
-        column_uri: Optional[str] = None,
-        property_uri: Optional[str] = None,
     ) -> list[dict]:
-        """Get semantic assignments, filtered by table/concept or column/property.
+        """Get table/concept assignments.
 
         Args:
             table_uri: If provided, returns all concepts assigned to this table
             concept_uri: If provided, returns all tables assigned to this concept
-            column_uri: If provided, returns all properties assigned to this column
-            property_uri: If provided, returns all columns assigned to this property
         """
-        # Handle column-property assignments
-        if column_uri or property_uri:
-            bindings = {}
-            if column_uri:
-                bindings["column_uri"] = URIRef(column_uri)
-            if property_uri:
-                bindings["property_uri"] = URIRef(property_uri)
-
-            r = self._graph.query(
-                """
-                SELECT ?column_uri ?column_name ?property_uri ?property_name
-                WHERE {
-                    ?column_uri uc:propertyAssignment ?property_uri .
-                    OPTIONAL { ?column_uri uc:name ?column_name }
-                    OPTIONAL { ?property_uri rdfs:label ?property_name }
-                }
-            """,
-                initBindings=bindings if bindings else None,
-            )
-            return self._to_dicts(r.bindings)
-
-        # Handle table-concept assignments
         bindings = {}
         if table_uri:
             bindings["table_uri"] = URIRef(table_uri)
@@ -281,6 +254,36 @@ class GraphManager:
                 ?table_uri uc:conceptAssignment ?concept_uri .
                 OPTIONAL { ?table_uri uc:name ?table_name }
                 OPTIONAL { ?concept_uri rdfs:label ?concept_name }
+            }
+        """,
+            initBindings=bindings if bindings else None,
+        )
+        return self._to_dicts(r.bindings)
+
+    def column_property_assignments(
+        self,
+        column_uri: Optional[str] = None,
+        property_uri: Optional[str] = None,
+    ) -> list[dict]:
+        """Get column/property assignments.
+
+        Args:
+            column_uri: If provided, returns all properties assigned to this column
+            property_uri: If provided, returns all columns assigned to this property
+        """
+        bindings = {}
+        if column_uri:
+            bindings["column_uri"] = URIRef(column_uri)
+        if property_uri:
+            bindings["property_uri"] = URIRef(property_uri)
+
+        r = self._graph.query(
+            """
+            SELECT ?column_uri ?column_name ?property_uri ?property_name
+            WHERE {
+                ?column_uri uc:propertyAssignment ?property_uri .
+                OPTIONAL { ?column_uri uc:name ?column_name }
+                OPTIONAL { ?property_uri rdfs:label ?property_name }
             }
         """,
             initBindings=bindings if bindings else None,
