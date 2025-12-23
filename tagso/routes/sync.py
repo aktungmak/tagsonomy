@@ -31,6 +31,7 @@ def sync_get():
 def sync_post():
     prefix = request.args.get("prefix", "TYPE_")
     job_id = environ.get("SYNC_JOB_ID")
+    hostname = environ.get("DATABRICKS_APP_URL")
     error = None
     run_page_url = None
 
@@ -39,8 +40,7 @@ def sync_post():
             job_id,
             job_parameters={
                 "prefix": prefix,
-                "mappings_url": request.url_root.rstrip("/")
-                + url_for("sync.sync_mappings_get"),
+                "mappings_url": hostname + url_for("sync.sync_mappings_get"),
             },
         )
         run_page_url = workspace_client.jobs.get_run(run_id=r.run_id).run_page_url
@@ -78,8 +78,8 @@ def sync_mappings_get():
 
     result = []
     for name, tags in table_tags.items():
-        result.append({"name": name, "type": "table", "tags": tags})
+        result.append({"name": name, "type": "tables", "tags": tags})
     for name, tags in column_tags.items():
-        result.append({"name": name, "type": "column", "tags": tags})
+        result.append({"name": name, "type": "columns", "tags": tags})
 
     return result
