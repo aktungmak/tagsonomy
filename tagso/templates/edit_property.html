@@ -6,48 +6,71 @@
 <h1>Edit Property</h1>
 <section>
     <form action="{{ url_for('properties.property_edit_post') }}" method="post">
-        <input type="hidden" name="uri" value="{{ property.uri }}"/>
-        
+        <input type="hidden" name="uri" value="{{ property.uri }}" />
+
         <p><b>URI:</b> {{ property.uri }}</p>
-        
+
         <label for="label">Label:</label>
-        <input type="text" name="label" id="label" value="{{ property.label or '' }}" required/>
-        
+        <input type="text" name="label" id="label" value="{{ property.label or '' }}" required />
+
         <label for="comment">Comment:</label>
         <textarea name="comment" id="comment" rows="3">{{ property.comment or '' }}</textarea>
-        
+
         <label for="domain">Domain:</label>
         <select name="domain" id="domain">
             <option value="">— None —</option>
             {% for concept in concepts %}
-            <option value="{{ concept.uri }}" {% if property.domain == concept.uri %}selected{% endif %}>{{ concept.label or concept.uri }}</option>
+            <option value="{{ concept.uri }}" {% if property.domain==concept.uri %}selected{% endif %}>{{ concept.label
+                or concept.uri }}</option>
             {% endfor %}
         </select>
-        
+
         <label for="range">Range:</label>
         <select name="range" id="range">
             <option value="">— None —</option>
             {% for concept in concepts %}
-            <option value="{{ concept.uri }}" {% if property.range == concept.uri %}selected{% endif %}>{{ concept.label or concept.uri }}</option>
+            <option value="{{ concept.uri }}" {% if property.range==concept.uri %}selected{% endif %}>{{ concept.label
+                or concept.uri }}</option>
             {% endfor %}
         </select>
-        
+
         <label>Alternative Labels:</label>
         <div id="alt_labels_container">
             {% for alt_label in property.alt_labels or [] %}
             <div class="alt-label-field">
-                <input type="text" name="alt_labels" value="{{ alt_label }}" placeholder="Alternative label" required/>
+                <input type="text" name="alt_labels" value="{{ alt_label }}" placeholder="Alternative label" required />
                 <button type="button" data-remove-field>Remove</button>
             </div>
             {% endfor %}
         </div>
         <button type="button" data-add-alt-label="alt_labels_container">Add Alternative Label</button>
-        
-        <input type="submit" value="Save Changes"/>
+
+        <input type="submit" value="Save Changes" />
     </form>
 </section>
 
-<hr/>
+<hr />
 
-<a href="{{ url_for('properties.properties_get', property_uri=property.uri) }}"><button type="button">Back to Properties</button></a>
+<section>
+    <h2>Assigned Columns</h2>
+    {% if assigned_columns %}
+    <ul>
+        {% for assignment in assigned_columns %}
+        <li>
+            <a href="{{ url_for('columns.column_edit_get', uri=assignment.column_uri) }}">
+                {{ assignment.column_name | default(assignment.column_uri, true) | safe }}
+            </a>
+        </li>
+        {% endfor %}
+    </ul>
+    {% else %}
+    <p>No columns assigned to this property.</p>
+    {% endif %}
+    <a href="{{ url_for('assign.assign_get', selected_property_uri=property.uri) }}"><button type="button">Assign
+            Columns</button></a>
+</section>
+
+<hr />
+
+<a href="{{ url_for('properties.properties_get') }}"><button type="button">Back to Properties</button></a>
 {% endblock %}

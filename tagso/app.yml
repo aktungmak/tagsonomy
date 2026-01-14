@@ -10,3 +10,5 @@ command:
 env:
   - name: FLASK_ENV
     value: production
+  - name: SYNC_JOB_ID
+    valueFrom: sync-tags-job

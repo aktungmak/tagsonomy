@@ -5,10 +5,7 @@
 {% block content %}
 <span data-user-ns="{{ user_ns }}" hidden></span>
 
-<input type="search" 
-       data-filter-for="concept_list"
-       value="{{ concept_uri }}" 
-       placeholder="Search for concepts...">
+<input type="search" data-filter-for="concept_list" value="{{ concept_uri }}" placeholder="Search for concepts...">
 
 <ul id="concept_list">
     {% for concept in concepts %}
@@ -22,59 +19,32 @@
         </div>
         {% if concept.alt_labels %}
         <div>
-            <b>Alternative Labels:</b>
-            <ul>
-                {% for alt_label in concept.alt_labels %}
-                <li>{{ alt_label | safe }}</li>
-                {% endfor %}
-            </ul>
+            <b>Alternative Labels:</b> {{ concept.alt_labels | join(', ') | safe }}
         </div>
         {% endif %}
-        <div>
-            <b>Assigned Tables:</b>
-            {% if concept.assigned_tables %}
-            <ul>
-                {% for assignment in concept.assigned_tables %}
-                <li><a href="{{ url_for('tables.tables_get', table_uri=assignment.table_uri) }}">{{ assignment.table_name | default(assignment.table_uri, true) | safe }}</a> ({{ assignment.table_uri | safe }})</li>
-                {% endfor %}
-            </ul>
-            {% else %}
-            <span>None</span>
-            {% endif %}
-        </div>
-        {% if concept.related_properties %}
-        <div>
-            <b>Related Properties:</b>
-            <ul>
-                {% for prop in concept.related_properties %}
-                <li><a href="{{ url_for('properties.properties_get', property_uri=prop.uri) }}">{{ prop.name | default(prop.uri, true) | safe }}</a> ({{ prop.role }})</li>
-                {% endfor %}
-            </ul>
-        </div>
-        {% endif %}
-        <a href="{{ url_for('concepts.concept_edit_get', uri=concept.uri) }}"><button type="button">Edit</button></a>
-        <button data-delete 
-                data-url="{{ url_for('concepts.concept_delete') }}" 
-                data-type="concept" 
-                data-uri="{{ concept.uri }}">Delete</button>
-        <a href="{{ url_for('assign.assign_get', selected_concept_uri=concept.uri) }}"><button type="button">Assign</button></a>
+        <a href="{{ url_for('concepts.concept_edit_get', uri=concept.uri) }}"><button type="button">View /
+                Edit</button></a>
+        <button data-delete data-url="{{ url_for('concepts.concept_delete') }}" data-type="concept"
+            data-uri="{{ concept.uri }}">Delete</button>
+        <a href="{{ url_for('assign.assign_get', selected_concept_uri=concept.uri) }}"><button
+                type="button">Assign</button></a>
     </li>
     {% endfor %}
 </ul>
 
-<hr/>
+<hr />
 
 <h2>New Concept</h2>
 <form action="{{ url_for('concepts.concepts_post') }}" method='post'>
     <label for="label">Label:</label>
-    <input type="text" name="label" id="label" required/>
-    
+    <input type="text" name="label" id="label" required />
+
     <label for="uri">IRI:</label>
-    <input type="text" name="uri" id="uri" data-uri-from="label" data-uri-separator=""/>
+    <input type="text" name="uri" id="uri" data-uri-from="label" data-uri-separator="" />
 
     <label for="comment">Comment:</label>
-    <input type="text" name="comment" id="comment"/>
-    
+    <input type="text" name="comment" id="comment" />
+
     <label>Alternative Labels (skos:altLabel):</label>
     <div id="new_concept_alt_labels_container"></div>
     <button type="button" data-add-alt-label="new_concept_alt_labels_container">Add Alternative Label</button>
@@ -83,7 +53,7 @@
     <label for="rdfs_class">RDFS Class</label>
     <input type="radio" name="type" id="skos_concept" value="skos_concept">
     <label for="skos_concept">SKOS Concept</label>
-    
-    <input type="submit" value="Create"/>
+
+    <input type="submit" value="Create" />
 </form>
 {% endblock %}

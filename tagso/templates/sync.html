@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block title %}Tagsonomy | Sync{% endblock %}
+
+{% block content %}
+<p>Synchronise ontology tags to Unity Catalog tables and columns.</p>
+
+{% if error %}
+<article>
+    <strong>Error:</strong> {{ error }}
+</article>
+{% endif %}
+
+{% if run_page_url %}
+<article>
+    Sync job started. <a href="{{ run_page_url }}" target="_blank">View run in Databricks →</a>
+</article>
+{% endif %}
+
+<form method="post" action="{{ url_for('sync.sync_post') }}">
+    <button type="submit" {% if not job_id %}disabled{% endif %}>
+        Trigger Sync Job
+    </button>
+</form>
+
+{% if job_url %}
+<p><a href="{{ job_url }}" target="_blank">View job in Databricks →</a></p>
+{% endif %}
+{% endblock %}

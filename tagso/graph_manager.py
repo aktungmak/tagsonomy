@@ -43,7 +43,7 @@ class GraphManager:
             for row in bindings
         ]
 
-    def get_tables(self, uri: Optional[URIRef] = None) -> list[dict]:
+    def get_tables(self, uri: Optional[str] = None) -> list[dict]:
         r = self._graph.query(
             """
             SELECT ?uri ?name
@@ -52,7 +52,7 @@ class GraphManager:
                 OPTIONAL { ?uri uc:name ?name }
             }
         """,
-            initBindings={"uri": uri} if uri else None,
+            initBindings={"uri": URIRef(uri)} if uri else None,
         )
         return self._to_dicts(r.bindings)
 
@@ -63,7 +63,7 @@ class GraphManager:
             self._graph.add((uri, UC.name, Literal(name)))
         logger.info(f"Inserting table {name} iri: {uri}")
 
-    def get_concepts(self, uri: Optional[URIRef] = None) -> list[dict]:
+    def get_concepts(self, uri: Optional[str] = None) -> list[dict]:
         r = self._graph.query(
             """
             SELECT DISTINCT ?uri ?label
@@ -79,6 +79,40 @@ class GraphManager:
             initBindings={"uri": URIRef(uri)} if uri else None,
         )
         return self._to_dicts(r.bindings)
+
+    def get_concepts_with_alt_labels(self) -> list[dict]:
+        """Get all concepts with their alt labels in a single query.
+
+        Returns list of dicts with uri, label, and alt_labels (as a list).
+        """
+        r = self._graph.query(
+            """
+            SELECT DISTINCT ?uri ?label (GROUP_CONCAT(?alt; separator="||") AS ?alt_labels_concat)
+            WHERE {
+                { ?uri a rdfs:Class . }
+                UNION
+                { ?uri rdfs:subClassOf ?other . }
+                UNION
+                { ?uri a skos:Concept . }
+                OPTIONAL { ?uri rdfs:label ?label }
+                OPTIONAL { ?uri skos:altLabel ?alt }
+            }
+            GROUP BY ?uri ?label
+        """
+        )
+        results = []
+        for row in r.bindings:
+            concept = {
+                "uri": row["uri"].toPython() if row.get("uri") else None,
+                "label": row["label"].toPython() if row.get("label") else None,
+            }
+            alt_concat = row.get("alt_labels_concat")
+            if alt_concat and str(alt_concat):
+                concept["alt_labels"] = str(alt_concat).split("||")
+            else:
+                concept["alt_labels"] = []
+            results.append(concept)
+        return results
 
     def insert_concept(
         self,
@@ -230,44 +264,17 @@ class GraphManager:
         self._graph.add((column_uri, UC.propertyAssignment, property_uri))
         logger.info(f"Assigned column {column_uri} to property {property_uri}")
 
-    # TODO consider separating this into multiple functions for each type of assignment
-    def get_assignments(
+    def concept_table_assignments(
         self,
         table_uri: Optional[str] = None,
         concept_uri: Optional[str] = None,
-        column_uri: Optional[str] = None,
-        property_uri: Optional[str] = None,
     ) -> list[dict]:
-        """Get semantic assignments, filtered by table/concept or column/property.
+        """Get table/concept assignments.
 
         Args:
             table_uri: If provided, returns all concepts assigned to this table
             concept_uri: If provided, returns all tables assigned to this concept
-            column_uri: If provided, returns all properties assigned to this column
-            property_uri: If provided, returns all columns assigned to this property
         """
-        # Handle column-property assignments
-        if column_uri or property_uri:
-            bindings = {}
-            if column_uri:
-                bindings["column_uri"] = URIRef(column_uri)
-            if property_uri:
-                bindings["property_uri"] = URIRef(property_uri)
-
-            r = self._graph.query(
-                """
-                SELECT ?column_uri ?column_name ?property_uri ?property_name
-                WHERE {
-                    ?column_uri uc:propertyAssignment ?property_uri .
-                    OPTIONAL { ?column_uri uc:name ?column_name }
-                    OPTIONAL { ?property_uri rdfs:label ?property_name }
-                }
-            """,
-                initBindings=bindings if bindings else None,
-            )
-            return self._to_dicts(r.bindings)
-
-        # Handle table-concept assignments
         bindings = {}
         if table_uri:
             bindings["table_uri"] = URIRef(table_uri)
@@ -287,7 +294,37 @@ class GraphManager:
         )
         return self._to_dicts(r.bindings)
 
-    def get_columns(self, uri: Optional[URIRef] = None) -> list[dict]:
+    def column_property_assignments(
+        self,
+        column_uri: Optional[str] = None,
+        property_uri: Optional[str] = None,
+    ) -> list[dict]:
+        """Get column/property assignments.
+
+        Args:
+            column_uri: If provided, returns all properties assigned to this column
+            property_uri: If provided, returns all columns assigned to this property
+        """
+        bindings = {}
+        if column_uri:
+            bindings["column_uri"] = URIRef(column_uri)
+        if property_uri:
+            bindings["property_uri"] = URIRef(property_uri)
+
+        r = self._graph.query(
+            """
+            SELECT ?column_uri ?column_name ?property_uri ?property_name
+            WHERE {
+                ?column_uri uc:propertyAssignment ?property_uri .
+                OPTIONAL { ?column_uri uc:name ?column_name }
+                OPTIONAL { ?property_uri rdfs:label ?property_name }
+            }
+        """,
+            initBindings=bindings if bindings else None,
+        )
+        return self._to_dicts(r.bindings)
+
+    def get_columns(self, uri: Optional[str] = None) -> list[dict]:
         r = self._graph.query(
             """
             SELECT ?uri ?name
@@ -296,7 +333,7 @@ class GraphManager:
                 OPTIONAL { ?uri uc:name ?name }
             }
         """,
-            initBindings={"uri": uri} if uri else None,
+            initBindings={"uri": URIRef(uri)} if uri else None,
         )
         return self._to_dicts(r.bindings)
 
@@ -328,6 +365,36 @@ class GraphManager:
             initBindings={"uri": URIRef(uri)} if uri else None,
         )
         return self._to_dicts(r.bindings)
+
+    def get_properties_with_alt_labels(self) -> list[dict]:
+        """Get all properties with their alt labels in a single query.
+
+        Returns list of dicts with uri, name, and alt_labels (as a list).
+        """
+        r = self._graph.query(
+            """
+            SELECT DISTINCT ?uri ?name (GROUP_CONCAT(?alt; separator="||") AS ?alt_labels_concat)
+            WHERE {
+                ?uri a rdf:Property .
+                OPTIONAL { ?uri rdfs:label ?name }
+                OPTIONAL { ?uri skos:altLabel ?alt }
+            }
+            GROUP BY ?uri ?name
+        """
+        )
+        results = []
+        for row in r.bindings:
+            prop = {
+                "uri": row["uri"].toPython() if row.get("uri") else None,
+                "name": row["name"].toPython() if row.get("name") else None,
+            }
+            alt_concat = row.get("alt_labels_concat")
+            if alt_concat and str(alt_concat):
+                prop["alt_labels"] = str(alt_concat).split("||")
+            else:
+                prop["alt_labels"] = []
+            results.append(prop)
+        return results
 
     def get_properties_for_concept(self, concept_uri: str) -> list[dict]:
         """Get properties where the concept is used as domain or range.

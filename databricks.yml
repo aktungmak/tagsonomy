@@ -30,6 +30,10 @@ resources:
             # database_name: ${resources.database_catalogs.tagsonomy-catalog.database_name}
             database_name: tagsonomy
             permission: CAN_CONNECT_AND_CREATE
+        - name: sync-tags-job
+          job:
+            id: ${resources.jobs.sync-tags.id}
+            permission: CAN_MANAGE_RUN
 
   database_instances:
     tagsonomy-instance:
@@ -41,4 +45,19 @@ resources:
   #     name: tagsonomy-catalog
   #     database_name: tagsonomy
   #     create_database_if_not_exists: true
+  jobs:
+    sync-tags:
+      name: sync-ontology-tags
+      max_concurrent_runs: 1
 
+      tasks:
+
+        - task_key: run_script
+          notebook_task:
+            notebook_path: jobs/sync_tags.ipynb
+          environment_key: default
+          max_retries: 0
+      environments:
+        - environment_key: default
+          spec:
+            client: "4"

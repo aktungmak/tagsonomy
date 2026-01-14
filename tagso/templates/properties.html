@@ -3,10 +3,7 @@
 {% block title %}Tagsonomy | Properties{% endblock %}
 
 {% block content %}
-<input type="search" 
-       data-filter-for="property_list"
-       value="{{ property_uri }}" 
-       placeholder="Search for properties...">
+<input type="search" data-filter-for="property_list" value="{{ property_uri }}" placeholder="Search for properties...">
 
 <ul id="property_list">
     {% for property in properties %}
@@ -20,56 +17,29 @@
         </div>
         {% if property.alt_labels %}
         <div>
-            <b>Alternative Labels:</b>
-            <ul>
-                {% for alt_label in property.alt_labels %}
-                <li>{{ alt_label | safe }}</li>
-                {% endfor %}
-            </ul>
+            <b>Alternative Labels:</b> {{ property.alt_labels | join(', ') | safe }}
         </div>
         {% endif %}
-        {% if property.domain %}
-        <div>
-            <b>Domain:</b> <a href="{{ url_for('concepts.concepts_get', concept_uri=property.domain) }}">{{ property.domain_label or property.domain }}</a>
-        </div>
-        {% endif %}
-        {% if property.range %}
-        <div>
-            <b>Range:</b> <a href="{{ url_for('concepts.concepts_get', concept_uri=property.range) }}">{{ property.range_label or property.range }}</a>
-        </div>
-        {% endif %}
-        <div>
-            <b>Assigned Columns:</b>
-            {% if property.assigned_columns %}
-            <ul>
-                {% for assignment in property.assigned_columns %}
-                <li><a href="{{ url_for('columns.columns_get', column_uri=assignment.column_uri) }}">{{ assignment.column_name | default(assignment.column_uri, true) | safe }}</a> ({{ assignment.column_uri | safe }})</li>
-                {% endfor %}
-            </ul>
-            {% else %}
-            <span>None</span>
-            {% endif %}
-        </div>
-        <a href="{{ url_for('properties.property_edit_get', uri=property.uri) }}"><button type="button">Edit</button></a>
-        <button data-delete 
-                data-url="{{ url_for('properties.property_delete') }}" 
-                data-type="property" 
-                data-uri="{{ property.uri }}">Delete</button>
-        <a href="{{ url_for('assign.assign_get', selected_property_uri=property.uri) }}"><button type="button">Assign</button></a>
+        <a href="{{ url_for('properties.property_edit_get', uri=property.uri) }}"><button type="button">View /
+                Edit</button></a>
+        <button data-delete data-url="{{ url_for('properties.property_delete') }}" data-type="property"
+            data-uri="{{ property.uri }}">Delete</button>
+        <a href="{{ url_for('assign.assign_get', selected_property_uri=property.uri) }}"><button
+                type="button">Assign</button></a>
     </li>
     {% endfor %}
 </ul>
 
-<hr/>
+<hr />
 
 <h2>New Property</h2>
 <form action="{{ url_for('properties.properties_post') }}" method='post'>
     <label for="name">Property label:</label>
-    <input type="text" name="name" id="name" required/>
-    
+    <input type="text" name="name" id="name" required />
+
     <label for="uri">Property IRI (optional):</label>
-    <input type="text" name="uri" id="uri"/>
-    
+    <input type="text" name="uri" id="uri" />
+
     <label for="domain">Domain (optional):</label>
     <select name="domain" id="domain">
         <option value="">— None —</option>
@@ -77,7 +47,7 @@
         <option value="{{ concept.uri }}">{{ concept.label or concept.uri }}</option>
         {% endfor %}
     </select>
-    
+
     <label for="range">Range (optional):</label>
     <select name="range" id="range">
         <option value="">— None —</option>
@@ -85,11 +55,11 @@
         <option value="{{ concept.uri }}">{{ concept.label or concept.uri }}</option>
         {% endfor %}
     </select>
-    
+
     <label>Alternative Labels (skos:altLabel):</label>
     <div id="new_property_alt_labels_container"></div>
     <button type="button" data-add-alt-label="new_property_alt_labels_container">Add Alternative Label</button>
-    
-    <input type="submit" value="Create"/>
+
+    <input type="submit" value="Create" />
 </form>
 {% endblock %}

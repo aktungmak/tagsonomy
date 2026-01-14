@@ -136,8 +136,8 @@ def call_assigned_data_objects(data):
     params = data.get("params", {})
     arguments = params.get("arguments", {})
     uri = arguments.get("uri")
-    tables = gm.get_assignments(concept_uri=uri)
-    columns = gm.get_assignments(property_uri=uri)
+    tables = gm.concept_table_assignments(concept_uri=uri)
+    columns = gm.column_property_assignments(property_uri=uri)
     results = tables + columns
     return {
         "jsonrpc": "2.0",

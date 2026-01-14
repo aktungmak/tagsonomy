@@ -5,10 +5,7 @@
 {% block content %}
 <span data-user-ns="{{ user_ns }}" hidden></span>
 
-<input type="search" 
-       data-filter-for="column_list"
-       value="{{ column_uri }}" 
-       placeholder="Search for columns...">
+<input type="search" data-filter-for="column_list" value="{{ column_uri }}" placeholder="Search for columns...">
 
 <ul id="column_list">
     {% for column in columns %}
@@ -19,55 +16,38 @@
         <div>
             <b>Name:</b> <span data-searchable>{{ column.name | safe }}</span>
         </div>
-        <div>
-            <b>Assigned Properties:</b>
-            {% if column.assigned_properties %}
-            <ul>
-                {% for assignment in column.assigned_properties %}
-                <li><a href="{{ url_for('properties.properties_get', property_uri=assignment.property_uri) }}">{{ assignment.property_name | default(assignment.property_uri, true) | safe }}</a> ({{ assignment.property_uri | safe }})</li>
-                {% endfor %}
-            </ul>
-            {% else %}
-            <span>None</span>
-            {% endif %}
-        </div>
-        <button data-delete 
-                data-url="{{ url_for('columns.column_delete') }}" 
-                data-type="column" 
-                data-uri="{{ column.uri }}">Delete</button>
-        <a href="{{ url_for('assign.assign_get', selected_column_uri=column.uri) }}"><button type="button">Assign</button></a>
+        <a href="{{ url_for('columns.column_edit_get', uri=column.uri) }}"><button type="button">View /
+                Edit</button></a>
+        <button data-delete data-url="{{ url_for('columns.column_delete') }}" data-type="column"
+            data-uri="{{ column.uri }}">Delete</button>
+        <a href="{{ url_for('assign.assign_get', selected_column_uri=column.uri) }}"><button
+                type="button">Assign</button></a>
     </li>
     {% endfor %}
 </ul>
 
-<hr/>
+<hr />
 
 <h2>New Column</h2>
 <form action="{{ url_for('columns.columns_post') }}" method='post'>
     <label for="catalog">Catalog:</label>
-    <select name="catalog" id="catalog" 
-            data-cascade="/api/schemas/:catalog" 
-            data-enables="schema" 
-            data-resets="schema,table,column" required>
+    <select name="catalog" id="catalog" data-cascade="/api/schemas/:catalog" data-enables="schema"
+        data-resets="schema,table,column" required>
         <option value="">Select Catalog...</option>
         {% for cat in catalogs %}
         <option value="{{ cat }}">{{ cat }}</option>
         {% endfor %}
     </select>
-    
+
     <label for="schema">Schema:</label>
-    <select name="schema" id="schema" 
-            data-cascade="/api/tables/:catalog/:schema" 
-            data-enables="table" 
-            data-resets="table,column" required disabled>
+    <select name="schema" id="schema" data-cascade="/api/tables/:catalog/:schema" data-enables="table"
+        data-resets="table,column" required disabled>
         <option value="">Select Schema...</option>
     </select>
-    
+
     <label for="table">Table:</label>
-    <select name="table" id="table" 
-            data-cascade="/api/columns/:catalog/:schema/:table" 
-            data-enables="column" 
-            data-resets="column" required disabled>
+    <select name="table" id="table" data-cascade="/api/columns/:catalog/:schema/:table" data-enables="column"
+        data-resets="column" required disabled>
         <option value="">Select Table...</option>
     </select>
 
@@ -75,10 +55,10 @@
     <select name="column" id="column" required disabled>
         <option value="">Select Column...</option>
     </select>
-    
+
     <label for="uri">Column IRI:</label>
-    <input type="text" name="uri" id="uri" data-uri-from="catalog,schema,table,column"/>
-    
-    <input type="submit" value="Create"/>
+    <input type="text" name="uri" id="uri" data-uri-from="catalog,schema,table,column" />
+
+    <input type="submit" value="Create" />
 </form>
 {% endblock %}
