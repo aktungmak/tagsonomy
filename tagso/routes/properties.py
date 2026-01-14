@@ -12,13 +12,7 @@ gm = LocalProxy(lambda: current_app.gm)
 @properties_bp.get("/properties")
 def properties_get():
     property_uri = request.args.get("property_uri")
-    # TODO collect assigned columns in a single query
-    properties = gm.get_properties(property_uri)
-    for prop in properties:
-        prop["assigned_columns"] = gm.column_property_assignments(
-            property_uri=prop["uri"]
-        )
-        prop["alt_labels"] = gm.get_alt_labels(prop["uri"])
+    properties = gm.get_properties_with_alt_labels()
     concepts = gm.get_concepts()
     return render_template(
         "properties.html",
@@ -71,7 +65,13 @@ def property_edit_get():
         return redirect(url_for("properties.properties_get"))
 
     concepts = gm.get_concepts()
-    return render_template("edit_property.html", property=prop, concepts=concepts)
+    assigned_columns = gm.column_property_assignments(property_uri=property_uri)
+    return render_template(
+        "edit_property.html",
+        property=prop,
+        concepts=concepts,
+        assigned_columns=assigned_columns,
+    )
 
 
 @properties_bp.post("/property/edit")

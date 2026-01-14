@@ -6,37 +6,38 @@
 <h1>Edit Concept</h1>
 <section>
     <form action="{{ url_for('concepts.concept_edit_post') }}" method="post">
-        <input type="hidden" name="uri" value="{{ concept.uri }}"/>
-        
+        <input type="hidden" name="uri" value="{{ concept.uri }}" />
+
         <p><b>URI:</b> {{ concept.uri }}</p>
-        <p><b>Type:</b> {% if concept.type == rdfs_class %}RDFS Class{% elif concept.type == skos_concept %}SKOS Concept{% else %}{{ concept.type or 'Unknown' }}{% endif %}</p>
-        
+        <p><b>Type:</b> {% if concept.type == rdfs_class %}RDFS Class{% elif concept.type == skos_concept %}SKOS
+            Concept{% else %}{{ concept.type or 'Unknown' }}{% endif %}</p>
+
         <label for="label">Label:</label>
-        <input type="text" name="label" id="label" value="{{ concept.label or '' }}" required/>
-        
+        <input type="text" name="label" id="label" value="{{ concept.label or '' }}" required />
+
         <label for="comment">Comment:</label>
         <textarea name="comment" id="comment" rows="3">{{ concept.comment or '' }}</textarea>
-        
+
         <label>Alternative Labels:</label>
         <div id="alt_labels_container">
             {% for alt_label in concept.alt_labels or [] %}
             <div class="alt-label-field">
-                <input type="text" name="alt_labels" value="{{ alt_label }}" placeholder="Alternative label" required/>
+                <input type="text" name="alt_labels" value="{{ alt_label }}" placeholder="Alternative label" required />
                 <button type="button" data-remove-field>Remove</button>
             </div>
             {% endfor %}
         </div>
         <button type="button" data-add-alt-label="alt_labels_container">Add Alternative Label</button>
-        
-        <input type="submit" value="Save Changes"/>
+
+        <input type="submit" value="Save Changes" />
     </form>
 </section>
 
-<hr/>
+<hr />
 
 <section>
     <h2>Relationships</h2>
-    
+
     {% if relationships %}
     <table>
         <thead>
@@ -50,15 +51,13 @@
             {% for rel in relationships %}
             <tr>
                 <td>{{ rel.predicate_type }}</td>
-                <td>{{ rel.object_label or rel.object }}</td>
+                <td><a href="{{ url_for('concepts.concept_edit_get', uri=rel.object) }}">{{ rel.object_label or
+                        rel.object }}</a></td>
                 <td>
-                    <button type="button" 
-                            data-delete 
-                            data-url="{{ url_for('concepts.concept_delete_relationship') }}" 
-                            data-type="relationship"
-                            data-subject_uri="{{ concept.uri }}"
-                            data-predicate_type="{{ rel.predicate_type }}"
-                            data-object_uri="{{ rel.object }}">Delete</button>
+                    <button type="button" data-delete data-url="{{ url_for('concepts.concept_delete_relationship') }}"
+                        data-type="relationship" data-subject_uri="{{ concept.uri }}"
+                        data-predicate_type="{{ rel.predicate_type }}"
+                        data-object_uri="{{ rel.object }}">Delete</button>
                 </td>
             </tr>
             {% endfor %}
@@ -67,11 +66,11 @@
     {% else %}
     <p>No relationships defined.</p>
     {% endif %}
-    
+
     <h3>Add Relationship</h3>
     <form action="{{ url_for('concepts.concept_add_relationship') }}" method="post">
-        <input type="hidden" name="subject_uri" value="{{ concept.uri }}"/>
-        
+        <input type="hidden" name="subject_uri" value="{{ concept.uri }}" />
+
         <label for="predicate_type">Relationship Type:</label>
         <select name="predicate_type" id="predicate_type" required>
             <option value="">Select a relationship type...</option>
@@ -79,7 +78,7 @@
             <option value="skos:broader">skos:broader</option>
             <option value="skos:narrower">skos:narrower</option>
         </select>
-        
+
         <label for="object_uri">Target Concept:</label>
         <select name="object_uri" id="object_uri" required>
             <option value="">Select a concept...</option>
@@ -89,8 +88,52 @@
             {% endif %}
             {% endfor %}
         </select>
-        
-        <input type="submit" value="Add Relationship"/>
+
+        <input type="submit" value="Add Relationship" />
     </form>
 </section>
+
+<hr />
+
+<section>
+    <h2>Assigned Tables</h2>
+    {% if assigned_tables %}
+    <ul>
+        {% for assignment in assigned_tables %}
+        <li>
+            <a href="{{ url_for('tables.table_edit_get', uri=assignment.table_uri) }}">
+                {{ assignment.table_name | default(assignment.table_uri, true) | safe }}
+            </a>
+        </li>
+        {% endfor %}
+    </ul>
+    {% else %}
+    <p>No tables assigned to this concept.</p>
+    {% endif %}
+    <a href="{{ url_for('assign.assign_get', selected_concept_uri=concept.uri) }}"><button type="button">Assign
+            Tables</button></a>
+</section>
+
+<hr />
+
+<section>
+    <h2>Related Properties</h2>
+    {% if related_properties %}
+    <ul>
+        {% for prop in related_properties %}
+        <li>
+            <a href="{{ url_for('properties.property_edit_get', uri=prop.uri) }}">{{ prop.name | default(prop.uri, true)
+                | safe }}</a>
+            <span>({{ prop.role }})</span>
+        </li>
+        {% endfor %}
+    </ul>
+    {% else %}
+    <p>No properties use this concept as domain or range.</p>
+    {% endif %}
+</section>
+
+<hr />
+
+<a href="{{ url_for('concepts.concepts_get') }}"><button type="button">Back to Concepts</button></a>
 {% endblock %}

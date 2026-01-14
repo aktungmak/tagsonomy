@@ -14,12 +14,7 @@ workspace_client = LocalProxy(lambda: current_app.workspace_client)
 def columns_get():
     column_uri = request.args.get("column_uri", "")
     catalogs = [c.name for c in workspace_client.catalogs.list()]
-    # TODO collect assigned concepts in a single query
     columns = gm.get_columns()
-    for column in columns:
-        column["assigned_properties"] = gm.column_property_assignments(
-            column_uri=column["uri"]
-        )
     return render_template(
         "columns.html",
         columns=columns,
@@ -51,6 +46,26 @@ def column_delete():
         return {"error": "URI is required"}, 400
     gm.delete_object(column_uri)
     return {"success": True}, 200
+
+
+@columns_bp.get("/column/edit")
+def column_edit_get():
+    column_uri = request.args.get("uri")
+    if not column_uri:
+        return redirect(url_for("columns.columns_get"))
+
+    columns = gm.get_columns(uri=column_uri)
+    if not columns:
+        return {"error": "Column not found"}, 404
+
+    column = columns[0]
+    assigned_properties = gm.column_property_assignments(column_uri=column_uri)
+
+    return render_template(
+        "edit_column.html",
+        column=column,
+        assigned_properties=assigned_properties,
+    )
 
 
 # TODO put this in a file with the other api passthrough endpoints

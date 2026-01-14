@@ -14,12 +14,7 @@ workspace_client = LocalProxy(lambda: current_app.workspace_client)
 def tables_get():
     table_uri = request.args.get("table_uri", "")
     catalogs = [c.name for c in workspace_client.catalogs.list()]
-    # TODO collect assigned concepts in a single query
     tables = gm.get_tables()
-    for table in tables:
-        table["assigned_concepts"] = gm.concept_table_assignments(
-            table_uri=table["uri"]
-        )
     return render_template(
         "tables.html",
         tables=tables,
@@ -50,6 +45,26 @@ def table_delete():
         return {"error": "URI is required"}, 400
     gm.delete_object(table_uri)
     return {"success": True}, 200
+
+
+@tables_bp.get("/table/edit")
+def table_edit_get():
+    table_uri = request.args.get("uri")
+    if not table_uri:
+        return redirect(url_for("tables.tables_get"))
+
+    tables = gm.get_tables(uri=table_uri)
+    if not tables:
+        return {"error": "Table not found"}, 404
+
+    table = tables[0]
+    assigned_concepts = gm.concept_table_assignments(table_uri=table_uri)
+
+    return render_template(
+        "edit_table.html",
+        table=table,
+        assigned_concepts=assigned_concepts,
+    )
 
 
 # Unity Catalog API endpoints for cascading dropdowns

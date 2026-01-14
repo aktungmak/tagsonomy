@@ -5,10 +5,7 @@
 {% block content %}
 <span data-user-ns="{{ user_ns }}" hidden></span>
 
-<input type="search" 
-       data-filter-for="table_list"
-       value="{{ table_uri }}" 
-       placeholder="Search for tables...">
+<input type="search" data-filter-for="table_list" value="{{ table_uri }}" placeholder="Search for tables...">
 
 <ul id="table_list">
     {% for table in tables %}
@@ -19,58 +16,42 @@
         <div>
             <b>Name:</b> <span data-searchable>{{ table.name | safe }}</span>
         </div>
-        <div>
-            <b>Assigned Concepts:</b>
-            {% if table.assigned_concepts %}
-            <ul>
-                {% for assignment in table.assigned_concepts %}
-                <li><a href="{{ url_for('concepts.concepts_get', concept_uri=assignment.concept_uri) }}">{{ assignment.concept_name | default(assignment.concept_uri, true) | safe }}</a> ({{ assignment.concept_uri | safe }})</li>
-                {% endfor %}
-            </ul>
-            {% else %}
-            <span>None</span>
-            {% endif %}
-        </div>
-        <button data-delete 
-                data-url="{{ url_for('tables.table_delete') }}" 
-                data-type="table" 
-                data-uri="{{ table.uri }}">Delete</button>
-        <a href="{{ url_for('assign.assign_get', selected_table_uri=table.uri) }}"><button type="button">Assign</button></a>
+        <a href="{{ url_for('tables.table_edit_get', uri=table.uri) }}"><button type="button">View / Edit</button></a>
+        <button data-delete data-url="{{ url_for('tables.table_delete') }}" data-type="table"
+            data-uri="{{ table.uri }}">Delete</button>
+        <a href="{{ url_for('assign.assign_get', selected_table_uri=table.uri) }}"><button
+                type="button">Assign</button></a>
     </li>
     {% endfor %}
 </ul>
 
-<hr/>
+<hr />
 
 <h2>New Table</h2>
 <form action="{{ url_for('tables.tables_post') }}" method='post'>
     <label for="catalog">Catalog:</label>
-    <select name="catalog" id="catalog" 
-            data-cascade="/api/schemas/:catalog" 
-            data-enables="schema" 
-            data-resets="schema,table" required>
+    <select name="catalog" id="catalog" data-cascade="/api/schemas/:catalog" data-enables="schema"
+        data-resets="schema,table" required>
         <option value="">Select Catalog...</option>
         {% for cat in catalogs %}
         <option value="{{ cat }}">{{ cat }}</option>
         {% endfor %}
     </select>
-    
+
     <label for="schema">Schema:</label>
-    <select name="schema" id="schema" 
-            data-cascade="/api/tables/:catalog/:schema" 
-            data-enables="table" 
-            data-resets="table" required disabled>
+    <select name="schema" id="schema" data-cascade="/api/tables/:catalog/:schema" data-enables="table"
+        data-resets="table" required disabled>
         <option value="">Select Schema...</option>
     </select>
-    
+
     <label for="table">Table:</label>
     <select name="table" id="table" required disabled>
         <option value="">Select Table...</option>
     </select>
-    
+
     <label for="uri">Table IRI (optional):</label>
-    <input type="text" name="uri" id="uri" data-uri-from="catalog,schema,table"/>
-    
-    <input type="submit" value="Create"/>
+    <input type="text" name="uri" id="uri" data-uri-from="catalog,schema,table" />
+
+    <input type="submit" value="Create" />
 </form>
 {% endblock %}
