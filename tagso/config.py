@@ -33,3 +33,8 @@ def get_database_url():
 def generate_uri_from_name(name: str) -> str:
     """Generate an IRI from a catalog object name."""
     return str(USER_NS[urllib.parse.quote(name)])
+
+
+def generate_scheme_uri(label: str) -> str:
+    """Generate an IRI for a concept scheme from its label."""
+    return str(USER_NS["scheme/" + urllib.parse.quote(label)])

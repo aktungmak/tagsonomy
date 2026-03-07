@@ -3,19 +3,24 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.classless.min.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="{{ url_for('static', filename='custom.css') }}">
     <title>{% block title %}Tagsonomy{% endblock %}</title>
     {% block head_scripts %}{% endblock %}
     <script src="{{ url_for('static', filename='common.js') }}"></script>
     {% block scripts %}{% endblock %}
 </head>
-<body>
+<body class="{% block body_class %}{% endblock %}">
 <header>
-{{ macros.navbar() }}
+    <h1 style="margin:0; font-size:1.05rem;">Tagsonomy</h1>
+    {{ macros.navbar() }}
 </header>
 <main>
+{% block main_inner %}
+<section class="page-content" aria-label="Content">
 {% block content %}{% endblock %}
+</section>
+{% endblock %}
 </main>
 </body>
 </html>

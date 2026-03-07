@@ -14,17 +14,29 @@ gm = LocalProxy(lambda: current_app.gm)
 def concepts_get():
     concept_uri = request.args.get("concept_uri")
     concepts = gm.get_concepts_with_alt_labels()
+    concept_schemes = gm.get_concept_schemes()
     return render_template(
         "concepts.html",
         concepts=concepts,
         concept_uri=concept_uri or "",
         user_ns=str(USER_NS),
+        concept_schemes=concept_schemes,
     )
 
 
 @concepts_bp.post("/concepts")
 def concepts_post():
     label = request.form["label"]
+    concept_scheme = request.form.get("concept_scheme", "").strip()
+    if not concept_scheme:
+        return render_template(
+            "concepts.html",
+            concepts=gm.get_concepts_with_alt_labels(),
+            concept_uri="",
+            user_ns=str(USER_NS),
+            concept_schemes=gm.get_concept_schemes(),
+            message="Concept Scheme is required.",
+        ), 400
 
     uri = request.form["uri"]
     if not uri:
@@ -42,7 +54,7 @@ def concepts_post():
 
     alt_labels = request.form.getlist("alt_labels")
 
-    gm.insert_concept(uri, label, concept_type, comment, alt_labels=alt_labels)
+    gm.insert_concept(uri, label, concept_type, concept_scheme, comment, alt_labels=alt_labels)
     return redirect(url_for("concepts.concepts_get", concept_uri=uri))
 
 

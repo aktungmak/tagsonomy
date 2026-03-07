@@ -7,13 +7,27 @@
     <h2>Import</h2>
     <p>Upload a Turtle (.ttl) or RDF/XML (.rdf, .xml) file to import into the graph.</p>
 
+    {% if not concept_schemes %}
+    <article>
+        <p>Create a Concept Scheme first. <a href="{{ url_for('concept_schemes.concept_schemes_get') }}">Go to Concept Schemes</a></p>
+    </article>
+    {% endif %}
+
     <form method="post" enctype="multipart/form-data">
         <label for="file">
             Select ontology file
             <input type="file" id="file" name="file" accept=".ttl,.rdf,.xml" required>
         </label>
-        
-        <button type="submit">Import</button>
+
+        <label for="default_scheme">Default Concept Scheme (for items without skos:inScheme)</label>
+        <select name="default_scheme" id="default_scheme" {% if not concept_schemes %}disabled{% endif %}>
+            <option value="">— None —</option>
+            {% for scheme in concept_schemes %}
+            <option value="{{ scheme.uri }}">{{ scheme.label or scheme.uri }}</option>
+            {% endfor %}
+        </select>
+
+        <button type="submit" {% if not concept_schemes %}disabled{% endif %}>Import</button>
     </form>
 
     {% if message %}

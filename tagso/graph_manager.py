@@ -63,6 +63,87 @@ class GraphManager:
             self._graph.add((uri, UC.name, Literal(name)))
         logger.info(f"Inserting table {name} iri: {uri}")
 
+    def get_concept_schemes(self) -> list[dict]:
+        """Get all skos:ConceptScheme resources with optional rdfs:label."""
+        r = self._graph.query(
+            """
+            SELECT ?uri ?label
+            WHERE {
+                ?uri a skos:ConceptScheme .
+                OPTIONAL { ?uri rdfs:label ?label }
+            }
+            ORDER BY ?label
+            """
+        )
+        return self._to_dicts(r.bindings)
+
+    def get_members_in_scheme(self, scheme_uri: str) -> list[dict]:
+        """Return Classes, Concepts, and Properties where ?resource skos:inScheme ?scheme.
+        Each item has uri, label, and type (rdfs:Class, skos:Concept, or rdf:Property).
+        """
+        r = self._graph.query(
+            """
+            SELECT ?uri ?label ?type
+            WHERE {
+                ?uri skos:inScheme ?scheme .
+                ?uri rdf:type ?type .
+                FILTER(?type IN (rdfs:Class, skos:Concept, rdf:Property))
+                OPTIONAL { ?uri rdfs:label ?label }
+            }
+            ORDER BY ?label
+            """,
+            initBindings={"scheme": URIRef(scheme_uri)},
+        )
+        return self._to_dicts(r.bindings)
+
+    def insert_concept_scheme(self, uri: str, label: str, comment: Optional[str] = None):
+        """Add a skos:ConceptScheme with label and optional comment."""
+        uri_ref = URIRef(uri)
+        self._graph.add((uri_ref, RDF.type, SKOS.ConceptScheme))
+        self._graph.add((uri_ref, RDFS.label, Literal(label)))
+        if comment:
+            self._graph.add((uri_ref, RDFS.comment, Literal(comment)))
+        logger.info(f"Inserted concept scheme {label} iri: {uri_ref}")
+
+    def update_concept_scheme(
+        self, uri: str, label: str, comment: Optional[str] = None
+    ):
+        """Update the label and comment of an existing concept scheme."""
+        uri_ref = URIRef(uri)
+        for old_label in self._graph.objects(uri_ref, RDFS.label):
+            self._graph.remove((uri_ref, RDFS.label, old_label))
+        self._graph.add((uri_ref, RDFS.label, Literal(label)))
+        for old_comment in self._graph.objects(uri_ref, RDFS.comment):
+            self._graph.remove((uri_ref, RDFS.comment, old_comment))
+        if comment:
+            self._graph.add((uri_ref, RDFS.comment, Literal(comment)))
+        logger.info(f"Updated concept scheme {uri} with label: {label}")
+
+    def add_members_to_scheme(self, scheme_uri: str, resource_uris: list[str]):
+        """Add skos:inScheme triples for the given Concepts/Properties to the scheme."""
+        scheme_ref = URIRef(scheme_uri)
+        for res_uri in resource_uris:
+            res_ref = URIRef(res_uri)
+            self._graph.add((res_ref, SKOS.inScheme, scheme_ref))
+        logger.info(f"Added {len(resource_uris)} members to scheme {scheme_uri}")
+
+    def get_concept_scheme_detail(self, uri: str) -> Optional[dict]:
+        """Get detailed information about a concept scheme (uri, label, comment)."""
+        r = self._graph.query(
+            """
+            SELECT ?uri ?label ?comment
+            WHERE {
+                ?uri a skos:ConceptScheme .
+                OPTIONAL { ?uri rdfs:label ?label }
+                OPTIONAL { ?uri rdfs:comment ?comment }
+            }
+            LIMIT 1
+            """,
+            initBindings={"uri": URIRef(uri)},
+        )
+        rows = self._to_dicts(r.bindings)
+        return rows[0] if rows else None
+
     def get_concepts(self, uri: Optional[str] = None) -> list[dict]:
         r = self._graph.query(
             """
@@ -119,12 +200,14 @@ class GraphManager:
         uri: str,
         label: str,
         concept_type: URIRef,
+        concept_scheme: str,
         comment: Optional[str] = None,
         alt_labels: Optional[list[str]] = None,
     ):
         uri = URIRef(uri)
         self._graph.add((uri, RDF.type, concept_type))
         self._graph.add((uri, RDFS.label, Literal(label)))
+        self._graph.add((uri, SKOS.inScheme, URIRef(concept_scheme)))
         if comment:
             self._graph.add((uri, RDFS.comment, Literal(comment)))
         if alt_labels:
@@ -133,15 +216,16 @@ class GraphManager:
         logger.info(f"Inserting concept {label} iri: {uri}")
 
     def get_concept_detail(self, uri: str) -> Optional[dict]:
-        """Get detailed information about a single concept including label, comment, type, and alt labels."""
+        """Get detailed information about a single concept including label, comment, type, in_scheme, and alt labels."""
         r = self._graph.query(
             """
-            SELECT ?uri ?label ?comment ?type
+            SELECT ?uri ?label ?comment ?type ?in_scheme
             WHERE {
                 ?uri ?p ?o .
                 OPTIONAL { ?uri rdfs:label ?label }
                 OPTIONAL { ?uri rdfs:comment ?comment }
                 OPTIONAL { ?uri rdf:type ?type }
+                OPTIONAL { ?uri skos:inScheme ?in_scheme }
             }
         """,
             initBindings={"uri": URIRef(uri)},
@@ -431,14 +515,16 @@ class GraphManager:
         self,
         uri: str,
         name: str,
+        concept_scheme: str,
         domain: Optional[str] = None,
         range_: Optional[str] = None,
         alt_labels: Optional[list[str]] = None,
     ):
-        """Insert a new RDF property with optional domain, range, and alt labels."""
+        """Insert a new RDF property with concept_scheme, optional domain, range, and alt labels."""
         uri = URIRef(uri)
         self._graph.add((uri, RDF.type, RDF.Property))
         self._graph.add((uri, RDFS.label, Literal(name)))
+        self._graph.add((uri, SKOS.inScheme, URIRef(concept_scheme)))
         if domain:
             self._graph.add((uri, RDFS.domain, URIRef(domain)))
         if range_:
@@ -449,14 +535,15 @@ class GraphManager:
         logger.info(f"Inserting property {name} iri: {uri}")
 
     def get_property_detail(self, uri: str) -> Optional[dict]:
-        """Get detailed information about a single property including label, comment, domain, range, and alt labels."""
+        """Get detailed information about a single property including label, comment, domain, range, in_scheme, and alt labels."""
         r = self._graph.query(
             """
-            SELECT ?uri ?label ?comment ?domain ?domain_label ?range ?range_label
+            SELECT ?uri ?label ?comment ?domain ?domain_label ?range ?range_label ?in_scheme
             WHERE {
                 ?uri a rdf:Property .
                 OPTIONAL { ?uri rdfs:label ?label }
                 OPTIONAL { ?uri rdfs:comment ?comment }
+                OPTIONAL { ?uri skos:inScheme ?in_scheme }
                 OPTIONAL { 
                     ?uri rdfs:domain ?domain .
                     OPTIONAL { ?domain rdfs:label ?domain_label }

@@ -1,0 +1,284 @@
+/* Base styles from new_ui/styles4.css */
+* { box-sizing: border-box; }
+body { margin: 0; font-family: system-ui, sans-serif; }
+
+header {
+  padding: 0.25rem 1rem;
+  background: #eee;
+  border-bottom: 1px solid #ccc;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+nav[aria-label="Main"] {
+  display: flex;
+  gap: 1rem;
+}
+
+nav[aria-label="Main"] a {
+  text-decoration: none;
+  color: #333;
+  font-size: 0.95rem;
+}
+
+nav[aria-label="Main"] a[aria-current="page"] {
+  font-weight: bold;
+  text-decoration: underline;
+}
+
+main {
+  display: flex;
+  height: calc(100vh - 2.5rem);
+}
+
+/* Page content wrapper for non-split pages */
+.page-content {
+  flex: 1 1 auto;
+  overflow: auto;
+  padding: 1rem;
+}
+
+/* Resizable sidebar + handle + detail (concept schemes) */
+aside {
+  flex: 0 0 260px;
+  min-width: 160px;
+  max-width: 480px;
+  overflow: auto;
+  border-right: 1px solid #ccc;
+}
+
+.handle {
+  flex: 0 0 4px;
+  cursor: col-resize;
+  background: #eee;
+}
+
+section[aria-label="Resource details"],
+.resource-detail {
+  flex: 1 1 auto;
+  overflow: auto;
+  padding: 1rem;
+}
+
+/* Concept tree */
+ul.concept-tree {
+  list-style: none;
+  margin: 0;
+  padding: 0.5rem 0;
+}
+
+.concept-scheme,
+.concept-scheme-item {
+  padding: 0.25rem 0.75rem;
+}
+
+.scheme-toggle {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: 0;
+  padding: 0.25rem 0;
+  font: inherit;
+  cursor: pointer;
+}
+
+.concept-children {
+  list-style: none;
+  margin: 0.25rem 0 0 1rem;
+  padding: 0;
+  font-size: 0.9rem;
+}
+
+.concept-children li {
+  cursor: pointer;
+  padding: 0.15rem 0;
+}
+
+.concept-children li:hover {
+  text-decoration: underline;
+}
+
+/* Form and control styles (minimal, matching new_ui palette) */
+label {
+  display: block;
+  margin-top: 0.75rem;
+  margin-bottom: 0.25rem;
+  font-size: 0.9rem;
+}
+
+input[type="text"],
+input[type="search"],
+input[type="number"],
+select,
+textarea {
+  display: block;
+  width: 100%;
+  max-width: 24rem;
+  padding: 0.4rem 0.6rem;
+  font: inherit;
+  font-size: 0.95rem;
+  border: 1px solid #ccc;
+  border-radius: 2px;
+  background: #fff;
+}
+
+input[type="file"] {
+  font: inherit;
+  margin-top: 0.25rem;
+}
+
+input[type="radio"],
+input[type="checkbox"] {
+  display: inline;
+  width: auto;
+  max-width: none;
+  margin-right: 0.25rem;
+  margin-top: 0;
+}
+
+input[type="radio"] + label,
+input[type="checkbox"] + label {
+  display: inline;
+  margin-top: 0;
+  margin-bottom: 0;
+  margin-right: 1rem;
+}
+
+input:disabled,
+select:disabled,
+textarea:disabled {
+  background: #f5f5f5;
+  color: #666;
+  cursor: not-allowed;
+}
+
+button,
+input[type="submit"],
+input[type="button"],
+a[role="button"] {
+  display: inline-block;
+  padding: 0.4rem 0.8rem;
+  font: inherit;
+  font-size: 0.95rem;
+  border: 1px solid #ccc;
+  border-radius: 2px;
+  background: #eee;
+  color: #333;
+  cursor: pointer;
+  text-decoration: none;
+  margin-top: 0.5rem;
+  margin-right: 0.5rem;
+}
+
+button:hover:not(:disabled),
+input[type="submit"]:hover:not(:disabled),
+a[role="button"]:hover {
+  background: #e0e0e0;
+  border-color: #999;
+}
+
+button:disabled,
+input[type="submit"]:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Articles and sections */
+article {
+  margin: 1rem 0;
+}
+
+article p {
+  margin: 0.5rem 0;
+}
+
+/* Lists */
+ul:not(.concept-tree) {
+  list-style: disc;
+  margin: 0.5rem 0;
+  padding-left: 1.5rem;
+}
+
+ul:not(.concept-tree) li {
+  margin: 0.75rem 0;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #eee;
+}
+
+ul:not(.concept-tree) li:last-child {
+  border-bottom: none;
+}
+
+/* Tables */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+}
+
+th,
+td {
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid #ccc;
+}
+
+th {
+  background: #f5f5f5;
+  font-weight: 600;
+}
+
+/* Definition lists */
+dl {
+  margin: 0.5rem 0;
+}
+
+dt {
+  font-weight: 600;
+  margin-top: 0.5rem;
+}
+
+dd {
+  margin-left: 1rem;
+  margin-bottom: 0.5rem;
+  color: #555;
+}
+
+/* Headings */
+h1, h2, h3, h4 {
+  margin: 1rem 0 0.5rem 0;
+}
+
+h1 { font-size: 1.5rem; }
+h2 { font-size: 1.25rem; }
+h3 { font-size: 1.1rem; }
+
+/* Links */
+a {
+  color: #333;
+  text-decoration: underline;
+}
+
+a:hover {
+  color: #000;
+}
+
+/* Horizontal rule */
+hr {
+  border: 0;
+  border-top: 1px solid #ccc;
+  margin: 1.5rem 0;
+}
+
+/* Aside sections (e.g. New Concept Scheme form in sidebar) */
+aside section {
+  padding: 0.75rem;
+  border-bottom: 1px solid #eee;
+}
+
+aside section h3 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1rem;
+}

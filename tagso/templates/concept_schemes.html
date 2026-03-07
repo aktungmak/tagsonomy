@@ -1,0 +1,248 @@
+{% extends "base.html" %}
+
+{% block title %}Tagsonomy | Concept Schemes{% endblock %}
+
+{% block body_class %}concept-schemes{% endblock %}
+
+{% block main_inner %}
+<aside aria-label="SKOS Concept Schemes">
+  <section>
+    <h3>New Concept Scheme</h3>
+    <form id="new_scheme_form">
+      <label for="scheme_label">Label</label>
+      <input type="text" id="scheme_label" name="label" required placeholder="e.g. Products">
+      <label for="scheme_uri">URI (optional)</label>
+      <input type="text" id="scheme_uri" name="uri" placeholder="Leave blank to generate">
+      <button type="submit">Create</button>
+    </form>
+  </section>
+  <nav aria-label="SKOS Concept Scheme navigation">
+    <ul class="concept-tree" id="scheme_tree"></ul>
+  </nav>
+</aside>
+
+<div class="handle" aria-hidden="true"></div>
+
+<section class="resource-detail" aria-label="Resource details">
+  <article id="detail_pane">
+    <p id="detail_placeholder">Select a concept scheme or resource.</p>
+  </article>
+</section>
+
+<script>
+(function() {
+  const schemeTree = document.getElementById('scheme_tree');
+  const detailPane = document.getElementById('detail_pane');
+  const detailPlaceholder = document.getElementById('detail_placeholder');
+  const newSchemeForm = document.getElementById('new_scheme_form');
+  const handle = document.querySelector('.handle');
+  const sidebar = document.querySelector('aside');
+
+  let schemes = [];
+  const membersCache = {};
+
+  function typeLabel(type) {
+    if (!type) return 'Resource';
+    if (type.includes('Class')) return 'rdfs:Class';
+    if (type.includes('Concept')) return 'skos:Concept';
+    if (type.includes('Property')) return 'rdfs:Property';
+    return type;
+  }
+
+  function renderSchemeTree() {
+    schemeTree.innerHTML = schemes.map((s, i) => `
+      <li class="concept-scheme">
+        <button type="button" class="scheme-toggle" data-scheme-uri="${s.uri}" data-expanded="false" aria-expanded="false" aria-controls="scheme-subtree-${i}">
+          skos:ConceptScheme: ${s.label || s.uri}
+        </button>
+        <ul id="scheme-subtree-${i}" class="concept-children" hidden></ul>
+      </li>
+    `).join('');
+
+    schemeTree.querySelectorAll('.scheme-toggle').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const uri = btn.dataset.schemeUri;
+        const expanded = btn.getAttribute('aria-expanded') === 'true';
+        const subtreeId = btn.getAttribute('aria-controls');
+        const subtree = document.getElementById(subtreeId);
+
+        if (expanded) {
+          btn.setAttribute('aria-expanded', 'false');
+          subtree.hidden = true;
+          return;
+        }
+
+        if (!membersCache[uri]) {
+          const r = await fetch(`/concept_schemes/members?scheme_uri=${encodeURIComponent(uri)}`);
+          const data = await r.json();
+          membersCache[uri] = data.members || [];
+        }
+
+        subtree.innerHTML = membersCache[uri].map(m => `
+          <li data-uri="${m.uri}" data-type="resource">${typeLabel(m.type)}: ${m.label || m.uri}</li>
+        `).join('');
+
+        subtree.querySelectorAll('li').forEach(li => {
+          li.addEventListener('click', () => selectResource(li.dataset.uri));
+        });
+
+        btn.setAttribute('aria-expanded', 'true');
+        subtree.hidden = false;
+
+        selectScheme(uri);
+      });
+    });
+  }
+
+  async function selectScheme(uri) {
+    detailPlaceholder.hidden = true;
+    const r = await fetch(`/concept_schemes/scheme?uri=${encodeURIComponent(uri)}`);
+    const data = await r.json();
+    if (!r.ok) {
+      detailPane.innerHTML = `<p>Error: ${data.error || 'Failed to load'}</p>`;
+      return;
+    }
+
+    const { scheme, members, all_concepts, all_properties, member_uris } = data;
+    const memberOptions = [...all_concepts, ...all_properties]
+      .filter(c => !member_uris.includes(c.uri))
+      .map(c => `<option value="${c.uri}">${(c.label || c.name || c.uri)}</option>`)
+      .join('');
+
+    detailPane.innerHTML = `
+      <header>
+        <h2>skos:ConceptScheme: ${scheme.label || scheme.uri}</h2>
+      </header>
+      <section aria-label="Edit scheme">
+        <form id="scheme_edit_form">
+          <input type="hidden" name="uri" value="${scheme.uri}">
+          <label for="scheme_edit_label">Label</label>
+          <input type="text" id="scheme_edit_label" name="label" value="${scheme.label || ''}" required>
+          <label for="scheme_edit_comment">Description</label>
+          <textarea id="scheme_edit_comment" name="comment" rows="3">${scheme.comment || ''}</textarea>
+          <button type="submit">Save</button>
+        </form>
+      </section>
+      <section aria-label="Members">
+        <h3>Members</h3>
+        <ul>${members.map(m => `<li>${typeLabel(m.type)}: ${m.label || m.uri}</li>`).join('')}</ul>
+        <h4>Add members</h4>
+        <form id="add_members_form">
+          <input type="hidden" name="uri" value="${scheme.uri}">
+          <select name="resource_uris" multiple size="8">${memberOptions}</select>
+          <button type="submit">Add to scheme</button>
+        </form>
+      </section>
+    `;
+
+    detailPane.querySelector('#scheme_edit_form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const form = e.target;
+      const body = new FormData(form);
+      const r = await fetch('/concept_schemes/update', { method: 'POST', body });
+      if (r.ok) {
+        const idx = schemes.findIndex(s => s.uri === scheme.uri);
+        if (idx >= 0) schemes[idx].label = form.label.value;
+        renderSchemeTree();
+      }
+    });
+
+    detailPane.querySelector('#add_members_form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const form = e.target;
+      const uris = Array.from(form.resource_uris.selectedOptions).map(o => o.value);
+      if (!uris.length) return;
+      const r = await fetch('/concept_schemes/add_members', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ uri: scheme.uri, resource_uris: uris })
+      });
+      if (r.ok) {
+        delete membersCache[scheme.uri];
+        selectScheme(scheme.uri);
+      }
+    });
+  }
+
+  async function selectResource(uri) {
+    detailPlaceholder.hidden = true;
+    const r = await fetch(`/concept_schemes/resource?uri=${encodeURIComponent(uri)}`);
+    const data = await r.json();
+    if (!r.ok) {
+      detailPane.innerHTML = `<p>Error: ${data.error || 'Failed to load'}</p>`;
+      return;
+    }
+
+    const { resource, type, related_properties } = data;
+    const inScheme = resource.in_scheme ? `From skos:ConceptScheme: ${resource.in_scheme}` : '';
+
+    let propsHtml = '';
+    if (type === 'concept' && related_properties && related_properties.length) {
+      propsHtml = '<dl>' + related_properties.map(p =>
+        `<dt>rdfs:Property: ${p.name || p.uri}</dt><dd>${p.role || ''}</dd>`
+      ).join('') + '</dl>';
+    }
+
+    detailPane.innerHTML = `
+      <header>
+        <h2>${typeLabel(resource.type)}: ${resource.label || resource.name || resource.uri}</h2>
+        ${inScheme ? `<p>${inScheme}</p>` : ''}
+      </header>
+      <section aria-label="Description">
+        <h3>Description</h3>
+        <p>${resource.comment || 'No description.'}</p>
+      </section>
+      ${propsHtml ? `<section aria-label="Properties"><h3>Properties</h3>${propsHtml}</section>` : ''}
+    `;
+  }
+
+  async function loadSchemes() {
+    const r = await fetch('/concept_schemes/schemes');
+    const data = await r.json();
+    schemes = data.schemes || [];
+    renderSchemeTree();
+  }
+
+  newSchemeForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const form = e.target;
+    const body = new FormData(form);
+    const r = await fetch('/concept_schemes', { method: 'POST', body });
+    if (r.ok) {
+      await loadSchemes();
+      form.reset();
+    } else {
+      const err = await r.json();
+      alert(err.error || 'Failed to create scheme');
+    }
+  });
+
+  handle.addEventListener('mousedown', (e) => {
+    const startX = e.clientX;
+    const startWidth = sidebar.getBoundingClientRect().width;
+    function onMove(e) {
+      const dx = e.clientX - startX;
+      sidebar.style.flexBasis = Math.min(480, Math.max(160, startWidth + dx)) + 'px';
+    }
+    function onUp() {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    }
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+    e.preventDefault();
+  });
+
+  (async function init() {
+    await loadSchemes();
+    const initialUri = new URLSearchParams(location.search).get('uri');
+    if (initialUri) {
+      const isScheme = schemes.some(s => s.uri === initialUri);
+      if (isScheme) selectScheme(initialUri);
+      else selectResource(initialUri);
+    }
+  })();
+})();
+</script>
+{% endblock %}

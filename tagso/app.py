@@ -10,6 +10,7 @@ from routes import (
     columns_bp,
     concepts_bp,
     properties_bp,
+    concept_schemes_bp,
     assign_bp,
     import_export_bp,
     sync_bp,
@@ -31,6 +32,7 @@ def create_app():
     app.register_blueprint(columns_bp)
     app.register_blueprint(concepts_bp)
     app.register_blueprint(properties_bp)
+    app.register_blueprint(concept_schemes_bp)
     app.register_blueprint(assign_bp)
     app.register_blueprint(import_export_bp)
     app.register_blueprint(sync_bp)

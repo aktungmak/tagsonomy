@@ -14,17 +14,29 @@ def properties_get():
     property_uri = request.args.get("property_uri")
     properties = gm.get_properties_with_alt_labels()
     concepts = gm.get_concepts()
+    concept_schemes = gm.get_concept_schemes()
     return render_template(
         "properties.html",
         properties=properties,
         property_uri=property_uri or "",
         concepts=concepts,
+        concept_schemes=concept_schemes,
     )
 
 
 @properties_bp.post("/properties")
 def properties_post():
     name = request.form["name"]
+    concept_scheme = request.form.get("concept_scheme", "").strip()
+    if not concept_scheme:
+        return render_template(
+            "properties.html",
+            properties=gm.get_properties_with_alt_labels(),
+            property_uri="",
+            concepts=gm.get_concepts(),
+            concept_schemes=gm.get_concept_schemes(),
+            message="Concept Scheme is required.",
+        ), 400
 
     uri = request.form.get("uri", "")
     if not uri:
@@ -35,7 +47,7 @@ def properties_post():
 
     alt_labels = request.form.getlist("alt_labels")
 
-    gm.insert_property(uri, name, domain=domain, range_=range_, alt_labels=alt_labels)
+    gm.insert_property(uri, name, concept_scheme, domain=domain, range_=range_, alt_labels=alt_labels)
     return redirect(url_for("properties.properties_get", property_uri=uri))
 
 
