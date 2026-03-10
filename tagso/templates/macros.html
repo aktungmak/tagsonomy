@@ -5,9 +5,7 @@
     <a href="{{ url_for('import_export.import_export_get') }}" {% if request.endpoint and request.endpoint.startswith('import_export') %}aria-current="page"{% endif %}>Upload/Download</a>
     <a href="{{ url_for('assign.assign_get') }}" {% if request.endpoint and request.endpoint.startswith('assign') %}aria-current="page"{% endif %}>Semantic Assignment</a>
     <a href="{{ url_for('tables.tables_get') }}" {% if request.endpoint and request.endpoint.startswith('tables') %}aria-current="page"{% endif %}>Tables</a>
-    <a href="{{ url_for('concepts.concepts_get') }}" {% if request.endpoint and request.endpoint.startswith('concepts') %}aria-current="page"{% endif %}>Concepts</a>
     <a href="{{ url_for('columns.columns_get') }}" {% if request.endpoint and request.endpoint.startswith('columns') %}aria-current="page"{% endif %}>Columns</a>
-    <a href="{{ url_for('properties.properties_get') }}" {% if request.endpoint and request.endpoint.startswith('properties') %}aria-current="page"{% endif %}>Properties</a>
     <a href="{{ url_for('sync.sync_get') }}" {% if request.endpoint and request.endpoint.startswith('sync') %}aria-current="page"{% endif %}>Sync</a>
 </nav>
 {% endmacro %}

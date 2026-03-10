@@ -17,7 +17,7 @@
     <ul>
         {% for assignment in assigned_concepts %}
         <li>
-            <a href="{{ url_for('concepts.concept_edit_get', uri=assignment.concept_uri) }}">
+            <a href="{{ url_for('concept_schemes.concept_schemes_get') }}?uri={{ assignment.concept_uri | urlencode }}">
                 {{ assignment.concept_name | default(assignment.concept_uri, true) | safe }}
             </a>
         </li>

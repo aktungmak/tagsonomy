@@ -459,7 +459,7 @@
                 id: uri,
                 label: c.label || uriLabel(uri),
                 type: 'concept',
-                url: `/concepts?concept_uri=${encodeURIComponent(uri)}`
+                url: `/concept_schemes?uri=${encodeURIComponent(uri)}`
             });
             nodeIds.add(uri);
         }
@@ -484,7 +484,7 @@
                 id: uri,
                 label: p.name || uriLabel(uri),
                 type: 'property',
-                url: `/properties?property_uri=${encodeURIComponent(uri)}`
+                url: `/concept_schemes?uri=${encodeURIComponent(uri)}`
             });
             nodeIds.add(uri);
 
