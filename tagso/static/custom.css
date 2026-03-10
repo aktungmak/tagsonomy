@@ -1,6 +1,12 @@
 /* Base styles from new_ui/styles4.css */
-* { box-sizing: border-box; }
-body { margin: 0; font-family: system-ui, sans-serif; }
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+}
 
 header {
   padding: 0.25rem 1rem;
@@ -73,7 +79,9 @@ ul.concept-tree {
   padding: 0.25rem 0.75rem;
 }
 
-.scheme-toggle {
+.scheme-toggle,
+.catalog-toggle,
+.catalog-leaf {
   display: block;
   width: 100%;
   text-align: left;
@@ -138,8 +146,8 @@ input[type="checkbox"] {
   margin-top: 0;
 }
 
-input[type="radio"] + label,
-input[type="checkbox"] + label {
+input[type="radio"]+label,
+input[type="checkbox"]+label {
   display: inline;
   margin-top: 0;
   margin-bottom: 0;
@@ -247,13 +255,24 @@ dd {
 }
 
 /* Headings */
-h1, h2, h3, h4 {
+h1,
+h2,
+h3,
+h4 {
   margin: 1rem 0 0.5rem 0;
 }
 
-h1 { font-size: 1.5rem; }
-h2 { font-size: 1.25rem; }
-h3 { font-size: 1.1rem; }
+h1 {
+  font-size: 1.5rem;
+}
+
+h2 {
+  font-size: 1.25rem;
+}
+
+h3 {
+  font-size: 1.1rem;
+}
 
 /* Links */
 a {

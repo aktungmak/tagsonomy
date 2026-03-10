@@ -348,6 +348,20 @@ class GraphManager:
         self._graph.add((column_uri, UC.propertyAssignment, property_uri))
         logger.info(f"Assigned column {column_uri} to property {property_uri}")
 
+    def delete_concept_assignment(self, table_uri: str, concept_uri: str):
+        """Remove a concept assignment from a table."""
+        table_uri = URIRef(table_uri)
+        concept_uri = URIRef(concept_uri)
+        self._graph.remove((table_uri, UC.conceptAssignment, concept_uri))
+        logger.info(f"Removed concept assignment: {table_uri} -> {concept_uri}")
+
+    def delete_column_property_assignment(self, column_uri: str, property_uri: str):
+        """Remove a property assignment from a column."""
+        column_uri = URIRef(column_uri)
+        property_uri = URIRef(property_uri)
+        self._graph.remove((column_uri, UC.propertyAssignment, property_uri))
+        logger.info(f"Removed property assignment: {column_uri} -> {property_uri}")
+
     def concept_table_assignments(
         self,
         table_uri: Optional[str] = None,
@@ -420,6 +434,36 @@ class GraphManager:
             initBindings={"uri": URIRef(uri)} if uri else None,
         )
         return self._to_dicts(r.bindings)
+
+    def get_table_by_name(self, name: str) -> Optional[dict]:
+        """Look up a table by its uc:name (fully qualified catalog.schema.table)."""
+        r = self._graph.query(
+            """
+            SELECT ?uri ?name
+            WHERE {
+                ?uri rdf:type uc:Table .
+                ?uri uc:name ?name .
+            }
+            """,
+            initBindings={"name": Literal(name)},
+        )
+        rows = self._to_dicts(r.bindings)
+        return rows[0] if rows else None
+
+    def get_column_by_name(self, name: str) -> Optional[dict]:
+        """Look up a column by its uc:name (fully qualified catalog.schema.table.column)."""
+        r = self._graph.query(
+            """
+            SELECT ?uri ?name
+            WHERE {
+                ?uri rdf:type uc:Column .
+                ?uri uc:name ?name .
+            }
+            """,
+            initBindings={"name": Literal(name)},
+        )
+        rows = self._to_dicts(r.bindings)
+        return rows[0] if rows else None
 
     def insert_column(self, uri: str, name: str):
         uri = URIRef(uri)

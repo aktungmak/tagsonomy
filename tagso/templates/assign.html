@@ -6,7 +6,7 @@
 <h1>Assign Table to Concept</h1>
 <p>Select a table and a concept to create a concept assignment.</p>
 
-<form action="{{ url_for('assign.assign_post') }}" method="post">
+<form id="assign_concept_form">
     <label for="table_uri">Table:</label>
     <select name="table_uri" id="table_uri" required>
         <option value="">Select a table...</option>
@@ -31,7 +31,7 @@
 <h1>Assign Column to Property</h1>
 <p>Select a column and a property to create a property assignment.</p>
 
-<form action="{{ url_for('assign.assign_column_post') }}" method="post">
+<form id="assign_column_form">
     <label for="column_uri">Column:</label>
     <select name="column_uri" id="column_uri" required>
         <option value="">Select a column...</option>
@@ -50,4 +50,41 @@
 
     <input type="submit" value="Assign"/>
 </form>
+
+<script>
+(function() {
+  const conceptForm = document.getElementById('assign_concept_form');
+  const columnForm = document.getElementById('assign_column_form');
+
+  async function submitForm(url, body) {
+    const r = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    const data = await r.json().catch(() => ({}));
+    if (r.ok) {
+      location.href = data.redirect;
+    } else {
+      alert(data.error || 'Request failed');
+    }
+  }
+
+  conceptForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    submitForm('/assign', {
+      table_uri: conceptForm.table_uri.value,
+      concept_uri: conceptForm.concept_uri.value
+    });
+  });
+
+  columnForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    submitForm('/assign_column', {
+      column_uri: columnForm.column_uri.value,
+      property_uri: columnForm.property_uri.value
+    });
+  });
+})();
+</script>
 {% endblock %}

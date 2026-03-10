@@ -6,8 +6,7 @@ from databricks.sdk import WorkspaceClient
 from config import get_database_url
 from graph_manager import GraphManager
 from routes import (
-    tables_bp,
-    columns_bp,
+    catalog_bp,
     concept_schemes_bp,
     assign_bp,
     import_export_bp,
@@ -26,8 +25,7 @@ def create_app():
     app.workspace_client = WorkspaceClient()
 
     # Register blueprints
-    app.register_blueprint(tables_bp)
-    app.register_blueprint(columns_bp)
+    app.register_blueprint(catalog_bp)
     app.register_blueprint(concept_schemes_bp)
     app.register_blueprint(assign_bp)
     app.register_blueprint(import_export_bp)

@@ -1,0 +1,384 @@
+{% extends "base.html" %}
+
+{% block title %}Tagsonomy | Catalog{% endblock %}
+
+{% block body_class %}catalog{% endblock %}
+
+{% block main_inner %}
+<aside aria-label="Unity Catalog">
+  <nav aria-label="Catalog navigation">
+    <ul class="concept-tree" id="catalog_tree"></ul>
+  </nav>
+</aside>
+
+<div class="handle" aria-hidden="true"></div>
+
+<section class="resource-detail" aria-label="Resource details">
+  <article id="detail_pane">
+    <p id="detail_placeholder">Select a catalog, schema, table, or column.</p>
+  </article>
+</section>
+
+<script>
+  (function () {
+    const catalogTree = document.getElementById('catalog_tree');
+    const detailPane = document.getElementById('detail_pane');
+    const detailPlaceholder = document.getElementById('detail_placeholder');
+    const handle = document.querySelector('.handle');
+    const sidebar = document.querySelector('aside');
+
+    const childrenCache = {};
+
+    function esc(s) {
+      if (!s) return '';
+      return String(s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    async function loadChildren(path, type) {
+      const key = type === 'root' ? '' : path.join('|');
+      if (childrenCache[key] !== undefined) return childrenCache[key];
+      let items = [];
+      if (type === 'root') {
+        const r = await fetch('/catalog/catalogs');
+        const names = await r.json();
+        items = names.map(name => ({ type: 'catalog', name }));
+      } else if (type === 'catalog') {
+        const r = await fetch(`/catalog/schemas/${encodeURIComponent(path[0])}`);
+        const names = await r.json();
+        items = names.map(name => ({ type: 'schema', name, fullName: `${path[0]}.${name}` }));
+      } else if (type === 'schema') {
+        const r = await fetch(`/catalog/tables/${encodeURIComponent(path[0])}/${encodeURIComponent(path[1])}`);
+        const names = await r.json();
+        items = names.map(name => ({ type: 'table', name, fullName: `${path[0]}.${path[1]}.${name}` }));
+      } else if (type === 'table') {
+        const r = await fetch(`/catalog/columns/${encodeURIComponent(path[0])}/${encodeURIComponent(path[1])}/${encodeURIComponent(path[2])}`);
+        const names = await r.json();
+        items = names.map(name => ({ type: 'column', name, fullName: `${path[0]}.${path[1]}.${path[2]}.${name}` }));
+      }
+      childrenCache[key] = items;
+      return items;
+    }
+
+    function buildItemPath(path, type, name, item) {
+      if (type === 'root') return [item.name];
+      if (type === 'catalog') return [name, item.name];
+      if (type === 'schema') return path.concat([item.name]);
+      if (type === 'table') return path.concat([item.name]);
+      return path;
+    }
+
+    async function expandNode(btn) {
+      const path = btn.dataset.path ? btn.dataset.path.split('|').filter(Boolean) : [];
+      const type = btn.dataset.type;
+      const name = btn.dataset.name;
+      const expanded = btn.getAttribute('aria-expanded') === 'true';
+      const childrenId = btn.getAttribute('aria-controls');
+      const childrenEl = document.getElementById(childrenId);
+
+      if (expanded) {
+        btn.setAttribute('aria-expanded', 'false');
+        childrenEl.hidden = true;
+        return;
+      }
+
+      const loadPath = type === 'root' ? [] : (type === 'catalog' ? [name] : path);
+      const children = await loadChildren(loadPath, type);
+
+      childrenEl.innerHTML = children.map((item, i) => {
+        const itemId = childrenId + '-' + i;
+        const isExpandable = item.type !== 'column';
+        const fullName = item.fullName || item.name;
+        const itemPath = buildItemPath(path, type, name, item);
+        return `<li class="catalog-node" data-type="${item.type}" data-name="${esc(fullName)}">
+        ${isExpandable ? `
+          <button type="button" class="catalog-toggle" data-path="${esc(itemPath.join('|'))}" data-type="${item.type}" data-name="${esc(fullName)}" data-expanded="false" aria-expanded="false" aria-controls="${itemId}">
+            ${esc(item.name)}
+          </button>
+          <ul id="${itemId}" class="concept-children" hidden></ul>
+        ` : `
+          <button type="button" class="catalog-leaf" data-type="${item.type}" data-name="${esc(fullName)}">
+            ${esc(item.name)}
+          </button>
+        `}
+      </li>`;
+      }).join('');
+
+      childrenEl.querySelectorAll('.catalog-toggle').forEach(b => {
+        b.addEventListener('click', (e) => { e.stopPropagation(); expandNode(b); selectResource(b.dataset.type, b.dataset.name); });
+      });
+      childrenEl.querySelectorAll('.catalog-leaf').forEach(b => {
+        b.addEventListener('click', (e) => { e.stopPropagation(); selectResource(b.dataset.type, b.dataset.name); });
+      });
+
+      btn.setAttribute('aria-expanded', 'true');
+      childrenEl.hidden = false;
+
+      if (type !== 'root') selectResource(type, name);
+    }
+
+    async function selectResource(type, name) {
+      detailPlaceholder.hidden = true;
+      const r = await fetch(`/catalog/resource?type=${encodeURIComponent(type)}&name=${encodeURIComponent(name)}`);
+      const data = await r.json();
+      if (!r.ok) {
+        detailPane.innerHTML = `<p>Error: ${esc(data.error || 'Failed to load')}</p>`;
+        return;
+      }
+
+      if (type === 'catalog' || type === 'schema') {
+        detailPane.innerHTML = `
+        <header>
+          <h2>${type === 'catalog' ? 'Catalog' : 'Schema'}: ${esc(data.name)}</h2>
+        </header>
+        <section aria-label="Metadata">
+          <h3>Comment</h3>
+          <p>${esc(data.comment || 'No comment.')}</p>
+        </section>
+      `;
+        return;
+      }
+
+      if (type === 'table') {
+        const hasUri = !!data.uri;
+        const concepts = data.assigned_concepts || [];
+        const allConcepts = data.all_concepts || [];
+        const assignedUris = new Set(concepts.map(c => c.concept_uri));
+        const availableConcepts = allConcepts.filter(c => !assignedUris.has(c.uri));
+
+        let conceptsHtml = concepts.map(c => `
+        <li>
+          <a href="/concept_schemes?uri=${encodeURIComponent(c.concept_uri)}">${esc(c.concept_name || c.concept_uri)}</a>
+          <button type="button" class="unassign-btn" data-concept-uri="${esc(c.concept_uri)}">Remove</button>
+        </li>
+      `).join('');
+
+        let addFormHtml = '';
+        if (hasUri && availableConcepts.length) {
+          addFormHtml = `
+          <h4>Add concept</h4>
+          <form id="add_concept_form">
+            <select name="concept_uri">
+              ${availableConcepts.map(c => `<option value="${esc(c.uri)}">${esc(c.label || c.uri)}</option>`).join('')}
+            </select>
+            <button type="submit">Add</button>
+          </form>
+        `;
+        }
+
+        detailPane.innerHTML = `
+        <header>
+          <h2>Table: ${esc(data.name)}</h2>
+        </header>
+        <section aria-label="Metadata">
+          <h3>Comment</h3>
+          <p>${esc(data.comment || 'No comment.')}</p>
+        </section>
+        <section aria-label="Columns">
+          <h3>Columns</h3>
+          <dl>${(data.columns || []).map(c => `<dt>${esc(c.name)}</dt><dd>${esc(c.type_text)}${c.comment ? ' – ' + esc(c.comment) : ''}</dd>`).join('')}</dl>
+        </section>
+        <section aria-label="Assigned concepts">
+          <h3>Assigned Concepts</h3>
+          ${concepts.length ? `<ul id="assigned_concepts">${conceptsHtml}</ul>` : '<p>No concepts assigned.</p>'}
+          ${!hasUri ? `<p><button type="button" id="register_btn">Register</button> to assign concepts.</p>` : ''}
+          ${addFormHtml}
+          ${hasUri ? `<p><button type="button" id="deregister_btn">Deregister</button></p>` : ''}
+        </section>
+      `;
+
+        if (hasUri) {
+          detailPane.querySelectorAll('.unassign-btn').forEach(btn => {
+            btn.addEventListener('click', async () => {
+              const cr = await fetch('/catalog/assign_concept', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ table_uri: data.uri, concept_uri: btn.dataset.conceptUri })
+              });
+              if (cr.ok) await selectResource('table', name);
+            });
+          });
+          const addForm = detailPane.querySelector('#add_concept_form');
+          if (addForm) {
+            addForm.addEventListener('submit', async (e) => {
+              e.preventDefault();
+              const conceptUri = addForm.concept_uri.value;
+              const cr = await fetch('/catalog/assign_concept', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ table_uri: data.uri, concept_uri: conceptUri })
+              });
+              if (cr.ok) selectResource('table', name);
+            });
+          }
+          const deregisterBtn = detailPane.querySelector('#deregister_btn');
+          if (deregisterBtn) {
+            deregisterBtn.addEventListener('click', async () => {
+              if (!confirm('Deregister this table? This will remove it and all assignments from the database.')) return;
+              const dr = await fetch('/catalog/resource', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ uri: data.uri })
+              });
+              if (dr.ok) selectResource('table', name);
+            });
+          }
+        }
+        const registerBtn = detailPane.querySelector('#register_btn');
+        if (registerBtn) {
+          registerBtn.addEventListener('click', async () => {
+            const rr = await fetch('/catalog/register', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ type: 'table', name: name })
+            });
+            if (rr.ok) await selectResource('table', name);
+          });
+        }
+        return;
+      }
+
+      if (type === 'column') {
+        const hasUri = !!data.uri;
+        const props = data.assigned_properties || [];
+        const allProps = data.all_properties || [];
+        const assignedUris = new Set(props.map(p => p.property_uri));
+        const availableProps = allProps.filter(p => !assignedUris.has(p.uri));
+
+        let propsHtml = props.map(p => `
+        <li>
+          <a href="/concept_schemes?uri=${encodeURIComponent(p.property_uri)}">${esc(p.property_name || p.property_uri)}</a>
+          <button type="button" class="unassign-btn" data-property-uri="${esc(p.property_uri)}">Remove</button>
+        </li>
+      `).join('');
+
+        let addFormHtml = '';
+        if (hasUri && availableProps.length) {
+          addFormHtml = `
+          <h4>Add property</h4>
+          <form id="add_property_form">
+            <select name="property_uri">
+              ${availableProps.map(p => `<option value="${esc(p.uri)}">${esc(p.name || p.uri)}</option>`).join('')}
+            </select>
+            <button type="submit">Add</button>
+          </form>
+        `;
+        }
+
+        detailPane.innerHTML = `
+        <header>
+          <h2>Column: ${esc(data.name)}</h2>
+        </header>
+        <section aria-label="Metadata">
+          <h3>Type</h3>
+          <p>${esc(data.type_text || '')}</p>
+          <h3>Comment</h3>
+          <p>${esc(data.comment || 'No comment.')}</p>
+        </section>
+        <section aria-label="Assigned properties">
+          <h3>Assigned Properties</h3>
+          ${props.length ? `<ul id="assigned_properties">${propsHtml}</ul>` : '<p>No properties assigned.</p>'}
+          ${!hasUri ? `<p><button type="button" id="register_btn">Register</button> to assign properties.</p>` : ''}
+          ${addFormHtml}
+          ${hasUri ? `<p><button type="button" id="deregister_btn">Deregister</button></p>` : ''}
+        </section>
+      `;
+
+        if (hasUri) {
+          detailPane.querySelectorAll('.unassign-btn').forEach(btn => {
+            btn.addEventListener('click', async () => {
+              const cr = await fetch('/catalog/assign_property', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ column_uri: data.uri, property_uri: btn.dataset.propertyUri })
+              });
+              if (cr.ok) await selectResource('column', name);
+            });
+          });
+          const addForm = detailPane.querySelector('#add_property_form');
+          if (addForm) {
+            addForm.addEventListener('submit', async (e) => {
+              e.preventDefault();
+              const propertyUri = addForm.property_uri.value;
+              const cr = await fetch('/catalog/assign_property', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ column_uri: data.uri, property_uri: propertyUri })
+              });
+              if (cr.ok) selectResource('column', name);
+            });
+          }
+          const deregisterBtn = detailPane.querySelector('#deregister_btn');
+          if (deregisterBtn) {
+            deregisterBtn.addEventListener('click', async () => {
+              if (!confirm('Deregister this column? This will remove it and all assignments from the database.')) return;
+              const dr = await fetch('/catalog/resource', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ uri: data.uri })
+              });
+              if (dr.ok) selectResource('column', name);
+            });
+          }
+        }
+        const registerBtn = detailPane.querySelector('#register_btn');
+        if (registerBtn) {
+          registerBtn.addEventListener('click', async () => {
+            const rr = await fetch('/catalog/register', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ type: 'column', name: name })
+            });
+            if (rr.ok) await selectResource('column', name);
+          });
+        }
+        return;
+      }
+    }
+
+    function initTree() {
+      catalogTree.innerHTML = `<li class="catalog-node">
+      <button type="button" class="catalog-toggle" data-path="" data-type="root" data-name="" data-expanded="false" aria-expanded="false" aria-controls="catalog-root-children">
+        Catalogs
+      </button>
+      <ul id="catalog-root-children" class="concept-children" hidden></ul>
+    </li>`;
+      const root = catalogTree.querySelector('.catalog-toggle');
+      root.addEventListener('click', (e) => {
+        e.stopPropagation();
+        expandNode(root);
+      });
+    }
+
+    handle.addEventListener('mousedown', (e) => {
+      const startX = e.clientX;
+      const startWidth = sidebar.getBoundingClientRect().width;
+      function onMove(e) {
+        const dx = e.clientX - startX;
+        sidebar.style.flexBasis = Math.min(480, Math.max(160, startWidth + dx)) + 'px';
+      }
+      function onUp() {
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+      }
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+      e.preventDefault();
+    });
+
+    (async function init() {
+      initTree();
+
+      const params = new URLSearchParams(location.search);
+      const initType = params.get('type');
+      const initName = params.get('name');
+      if (initType && initName) {
+        selectResource(initType, initName);
+      }
+    })();
+  })();
+</script>
+{% endblock %}

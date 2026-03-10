@@ -139,8 +139,16 @@
     detailPane.querySelector('#scheme_edit_form').addEventListener('submit', async (e) => {
       e.preventDefault();
       const form = e.target;
-      const body = new FormData(form);
-      const r = await fetch('/concept_schemes/update', { method: 'POST', body });
+      const body = JSON.stringify({
+        uri: form.uri.value,
+        label: form.label.value.trim(),
+        comment: form.comment?.value.trim() || undefined
+      });
+      const r = await fetch('/concept_schemes/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body
+      });
       if (r.ok) {
         const idx = schemes.findIndex(s => s.uri === scheme.uri);
         if (idx >= 0) schemes[idx].label = form.label.value;
@@ -207,8 +215,15 @@
   newSchemeForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const form = e.target;
-    const body = new FormData(form);
-    const r = await fetch('/concept_schemes', { method: 'POST', body });
+    const body = JSON.stringify({
+      label: form.label.value.trim(),
+      uri: form.uri.value.trim() || undefined
+    });
+    const r = await fetch('/concept_schemes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body
+    });
     if (r.ok) {
       await loadSchemes();
       form.reset();
