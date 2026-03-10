@@ -44,6 +44,35 @@ def catalog_columns(catalog, schema, table):
     return [c.name for c in (table_info.columns or [])]
 
 
+@catalog_bp.get("/catalog/registered_tables")
+def catalog_registered_tables():
+    """JSON API: tables registered in the graph (for verification, tests)."""
+    return {"tables": gm.get_tables()}
+
+
+@catalog_bp.get("/catalog/registered_columns")
+def catalog_registered_columns():
+    """JSON API: columns registered in the graph (for verification, tests)."""
+    return {"columns": gm.get_columns()}
+
+
+@catalog_bp.get("/catalog/concept_assignments")
+def catalog_concept_assignments():
+    """JSON API: table-to-concept assignments (for verification, tests)."""
+    return {"assignments": gm.concept_table_assignments()}
+
+
+@catalog_bp.get("/catalog/property_assignments")
+def catalog_property_assignments():
+    """JSON API: column-to-property assignments (for verification, tests)."""
+    assignments = [
+        a
+        for col in gm.get_columns()
+        for a in gm.column_property_assignments(column_uri=col["uri"])
+    ]
+    return {"assignments": assignments}
+
+
 @catalog_bp.get("/catalog/resource")
 @require_params("type", "name", source="args")
 def catalog_resource(params):

@@ -122,6 +122,7 @@
           <label for="scheme_edit_comment">Description</label>
           <textarea id="scheme_edit_comment" name="comment" rows="3">${scheme.comment || ''}</textarea>
           <button type="submit">Save</button>
+          <button type="button" data-delete data-url="/concept_schemes" data-uri="${scheme.uri}" data-type="concept scheme">Delete</button>
         </form>
       </section>
       <section aria-label="Members">

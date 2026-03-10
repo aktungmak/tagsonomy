@@ -15,14 +15,23 @@ from routes import (
 )
 
 
-def create_app():
-    """Application factory for creating the Flask app."""
+def create_app(config_overrides=None):
+    """Application factory for creating the Flask app.
+
+    Args:
+        config_overrides: Optional dict with database_url and/or workspace_client
+            for testing. When database_url is set, it overrides get_database_url().
+            When workspace_client is set, it is used instead of WorkspaceClient().
+    """
+    config_overrides = config_overrides or {}
     app = Flask(__name__)
     app.logger.setLevel(logging.INFO)
 
-    # Initialize shared resources
-    app.gm = GraphManager(get_database_url())
-    app.workspace_client = WorkspaceClient()
+    db_url = config_overrides.get("database_url") or get_database_url()
+    app.gm = GraphManager(db_url)
+    app.workspace_client = config_overrides.get(
+        "workspace_client", WorkspaceClient()
+    )
 
     # Register blueprints
     app.register_blueprint(catalog_bp)

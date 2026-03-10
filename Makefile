@@ -1,4 +1,4 @@
-.PHONY: help install validate deploy destroy status dev clean
+.PHONY: help install validate deploy destroy status dev test clean
 
 help:
 	@echo "Tagsonomy Databricks App Deployment"
@@ -12,6 +12,7 @@ help:
 	@echo "  make destroy    - Destroy the deployed app"
 	@echo "  make status     - Check the status of the deployed app"
 	@echo "  make dev        - Run the app locally for development"
+	@echo "  make test       - Run end-to-end lifecycle tests"
 	@echo "  make clean      - Clean up local artifacts"
 	@echo ""
 	@echo "Prerequisites:"
@@ -41,6 +42,10 @@ dev:
 	@echo "Starting local development server..."
 	. venv/bin/activate && \
 	python tagso/app.py
+
+test:
+	. venv/bin/activate && \
+	python -m pytest tagso/tests -v
 
 clean:
 	@echo "Cleaning up local artifacts..."

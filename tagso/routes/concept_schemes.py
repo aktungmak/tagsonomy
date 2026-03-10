@@ -99,3 +99,11 @@ def concept_schemes_add_members(params):
     """Add selected Concepts/Properties to the scheme."""
     gm.add_members_to_scheme(params["uri"], params["resource_uris"])
     return {"success": True}, 200
+
+
+@concept_schemes_bp.delete("/concept_schemes")
+@require_params("uri", source="json")
+def concept_schemes_delete(params):
+    """Delete a concept scheme and all its triples."""
+    gm.delete_object(params["uri"])
+    return {"success": True}, 200

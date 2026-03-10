@@ -14,7 +14,12 @@ def get_database_url():
     """Get database URL from environment, using Lakebase PG* variables.
     
     For Databricks Apps with Lakebase, standard PG* environment variables are injected.
+    For tests, set TEST_DATABASE_URL to bypass Lakebase (e.g. sqlite:///:memory:).
     """
+    test_url = os.environ.get("TEST_DATABASE_URL")
+    if test_url:
+        return test_url
+
     workspace_client = WorkspaceClient()
     pg_host = os.environ.get('PGHOST')
     pg_database = os.environ.get('PGDATABASE')
