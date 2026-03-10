@@ -21,7 +21,7 @@
   </nav>
 </aside>
 
-<div class="handle" aria-hidden="true"></div>
+<div class="handle" data-resize-sidebar aria-hidden="true"></div>
 
 <section class="resource-detail" aria-label="Resource details">
   <article id="detail_pane">
@@ -35,8 +35,6 @@
   const detailPane = document.getElementById('detail_pane');
   const detailPlaceholder = document.getElementById('detail_placeholder');
   const newSchemeForm = document.getElementById('new_scheme_form');
-  const handle = document.querySelector('.handle');
-  const sidebar = document.querySelector('aside');
 
   let schemes = [];
   const membersCache = {};
@@ -232,22 +230,6 @@
       const err = await r.json();
       alert(err.error || 'Failed to create scheme');
     }
-  });
-
-  handle.addEventListener('mousedown', (e) => {
-    const startX = e.clientX;
-    const startWidth = sidebar.getBoundingClientRect().width;
-    function onMove(e) {
-      const dx = e.clientX - startX;
-      sidebar.style.flexBasis = Math.min(480, Math.max(160, startWidth + dx)) + 'px';
-    }
-    function onUp() {
-      document.removeEventListener('mousemove', onMove);
-      document.removeEventListener('mouseup', onUp);
-    }
-    document.addEventListener('mousemove', onMove);
-    document.addEventListener('mouseup', onUp);
-    e.preventDefault();
   });
 
   (async function init() {

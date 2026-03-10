@@ -43,7 +43,7 @@ class GraphManager:
             for row in bindings
         ]
 
-    def get_tables(self, uri: Optional[str] = None) -> list[dict]:
+    def get_tables(self) -> list[dict]:
         r = self._graph.query(
             """
             SELECT ?uri ?name
@@ -51,8 +51,7 @@ class GraphManager:
                 ?uri rdf:type uc:Table .
                 OPTIONAL { ?uri uc:name ?name }
             }
-        """,
-            initBindings={"uri": URIRef(uri)} if uri else None,
+        """
         )
         return self._to_dicts(r.bindings)
 
@@ -144,7 +143,7 @@ class GraphManager:
         rows = self._to_dicts(r.bindings)
         return rows[0] if rows else None
 
-    def get_concepts(self, uri: Optional[str] = None) -> list[dict]:
+    def get_concepts(self) -> list[dict]:
         r = self._graph.query(
             """
             SELECT DISTINCT ?uri ?label
@@ -156,64 +155,9 @@ class GraphManager:
                 { ?uri a skos:Concept . }
                 OPTIONAL { ?uri rdfs:label ?label }
             }
-        """,
-            initBindings={"uri": URIRef(uri)} if uri else None,
+        """
         )
         return self._to_dicts(r.bindings)
-
-    def get_concepts_with_alt_labels(self) -> list[dict]:
-        """Get all concepts with their alt labels in a single query.
-
-        Returns list of dicts with uri, label, and alt_labels (as a list).
-        """
-        r = self._graph.query(
-            """
-            SELECT DISTINCT ?uri ?label (GROUP_CONCAT(?alt; separator="||") AS ?alt_labels_concat)
-            WHERE {
-                { ?uri a rdfs:Class . }
-                UNION
-                { ?uri rdfs:subClassOf ?other . }
-                UNION
-                { ?uri a skos:Concept . }
-                OPTIONAL { ?uri rdfs:label ?label }
-                OPTIONAL { ?uri skos:altLabel ?alt }
-            }
-            GROUP BY ?uri ?label
-        """
-        )
-        results = []
-        for row in r.bindings:
-            concept = {
-                "uri": row["uri"].toPython() if row.get("uri") else None,
-                "label": row["label"].toPython() if row.get("label") else None,
-            }
-            alt_concat = row.get("alt_labels_concat")
-            if alt_concat and str(alt_concat):
-                concept["alt_labels"] = str(alt_concat).split("||")
-            else:
-                concept["alt_labels"] = []
-            results.append(concept)
-        return results
-
-    def insert_concept(
-        self,
-        uri: str,
-        label: str,
-        concept_type: URIRef,
-        concept_scheme: str,
-        comment: Optional[str] = None,
-        alt_labels: Optional[list[str]] = None,
-    ):
-        uri = URIRef(uri)
-        self._graph.add((uri, RDF.type, concept_type))
-        self._graph.add((uri, RDFS.label, Literal(label)))
-        self._graph.add((uri, SKOS.inScheme, URIRef(concept_scheme)))
-        if comment:
-            self._graph.add((uri, RDFS.comment, Literal(comment)))
-        if alt_labels:
-            for alt_label in alt_labels:
-                self._graph.add((uri, SKOS.altLabel, Literal(alt_label)))
-        logger.info(f"Inserting concept {label} iri: {uri}")
 
     def get_concept_detail(self, uri: str) -> Optional[dict]:
         """Get detailed information about a single concept including label, comment, type, in_scheme, and alt labels."""
@@ -269,70 +213,10 @@ class GraphManager:
             )
         return results
 
-    def update_concept(
-        self,
-        uri: str,
-        label: str,
-        comment: Optional[str] = None,
-        alt_labels: Optional[list[str]] = None,
-    ):
-        """Update the label, comment, and alt labels of an existing concept."""
-        uri_ref = URIRef(uri)
-
-        # Remove existing label and comment
-        for old_label in self._graph.objects(uri_ref, RDFS.label):
-            self._graph.remove((uri_ref, RDFS.label, old_label))
-        self._graph.add((uri_ref, RDFS.label, Literal(label)))
-
-        if comment:
-            for old_comment in self._graph.objects(uri_ref, RDFS.comment):
-                self._graph.remove((uri_ref, RDFS.comment, old_comment))
-            self._graph.add((uri_ref, RDFS.comment, Literal(comment)))
-
-        # Update alt labels if provided (replace all existing ones)
-        # TODO I think we should only add new alt labels, not replace existing ones - a different endpoint is for deleting
-        if alt_labels is not None:
-            for old_alt in self._graph.objects(uri_ref, SKOS.altLabel):
-                self._graph.remove((uri_ref, SKOS.altLabel, old_alt))
-            for alt_label in alt_labels:
-                self._graph.add((uri_ref, SKOS.altLabel, Literal(alt_label)))
-
-        logger.info(f"Updated concept {uri} with label: {label}")
-
     def get_alt_labels(self, uri: str) -> list[str]:
         """Get all skos:altLabel values for a resource."""
         uri_ref = URIRef(uri)
         return [alt.toPython() for alt in self._graph.objects(uri_ref, SKOS.altLabel)]
-
-    def add_concept_relationship(
-        self, subject_uri: str, predicate_type: str, object_uri: str
-    ):
-        """Add a relationship between concepts.
-
-        Args:
-            subject_uri: The source concept URI
-            predicate_type: One of 'rdfs:subClassOf', 'skos:broader', 'skos:narrower'
-            object_uri: The target concept URI
-        """
-        subject = URIRef(subject_uri)
-        obj = URIRef(object_uri)
-        predicate = self._graph.namespace_manager.expand_curie(predicate_type)
-
-        self._graph.add((subject, predicate, obj))
-        logger.info(f"Added relationship: {subject_uri} {predicate_type} {object_uri}")
-
-    def delete_concept_relationship(
-        self, subject_uri: str, predicate_type: str, object_uri: str
-    ):
-        """Delete a relationship between concepts."""
-        subject = URIRef(subject_uri)
-        obj = URIRef(object_uri)
-        predicate = self._graph.namespace_manager.expand_curie(predicate_type)
-
-        self._graph.remove((subject, predicate, obj))
-        logger.info(
-            f"Deleted relationship: {subject_uri} {predicate_type} {object_uri}"
-        )
 
     def insert_concept_assignment(self, table_uri: str, concept_uri: str):
         """Insert a concept assignment from a table to a concept."""
@@ -422,7 +306,7 @@ class GraphManager:
         )
         return self._to_dicts(r.bindings)
 
-    def get_columns(self, uri: Optional[str] = None) -> list[dict]:
+    def get_columns(self) -> list[dict]:
         r = self._graph.query(
             """
             SELECT ?uri ?name
@@ -430,8 +314,7 @@ class GraphManager:
                 ?uri rdf:type uc:Column .
                 OPTIONAL { ?uri uc:name ?name }
             }
-        """,
-            initBindings={"uri": URIRef(uri)} if uri else None,
+        """
         )
         return self._to_dicts(r.bindings)
 
@@ -472,7 +355,7 @@ class GraphManager:
             self._graph.add((uri, UC.name, Literal(name)))
         logger.info(f"Inserting column {name} iri: {uri}")
 
-    def get_properties(self, uri: Optional[str] = None) -> list[dict]:
+    def get_properties(self) -> list[dict]:
         """Get all RDF properties with their domain and range."""
         r = self._graph.query(
             """
@@ -489,8 +372,7 @@ class GraphManager:
                     ?range rdfs:label ?range_label
                 }
             }
-        """,
-            initBindings={"uri": URIRef(uri)} if uri else None,
+        """
         )
         return self._to_dicts(r.bindings)
 
@@ -555,29 +437,6 @@ class GraphManager:
 
         return self._to_dicts(result.bindings)
 
-    def insert_property(
-        self,
-        uri: str,
-        name: str,
-        concept_scheme: str,
-        domain: Optional[str] = None,
-        range_: Optional[str] = None,
-        alt_labels: Optional[list[str]] = None,
-    ):
-        """Insert a new RDF property with concept_scheme, optional domain, range, and alt labels."""
-        uri = URIRef(uri)
-        self._graph.add((uri, RDF.type, RDF.Property))
-        self._graph.add((uri, RDFS.label, Literal(name)))
-        self._graph.add((uri, SKOS.inScheme, URIRef(concept_scheme)))
-        if domain:
-            self._graph.add((uri, RDFS.domain, URIRef(domain)))
-        if range_:
-            self._graph.add((uri, RDFS.range, URIRef(range_)))
-        if alt_labels:
-            for alt_label in alt_labels:
-                self._graph.add((uri, SKOS.altLabel, Literal(alt_label)))
-        logger.info(f"Inserting property {name} iri: {uri}")
-
     def get_property_detail(self, uri: str) -> Optional[dict]:
         """Get detailed information about a single property including label, comment, domain, range, in_scheme, and alt labels."""
         r = self._graph.query(
@@ -614,51 +473,6 @@ class GraphManager:
         result["alt_labels"] = self.get_alt_labels(uri)
         return result
 
-    def update_property(
-        self,
-        uri: str,
-        label: str,
-        comment: Optional[str] = None,
-        domain: Optional[str] = None,
-        range_: Optional[str] = None,
-        alt_labels: Optional[list[str]] = None,
-    ):
-        """Update the label, comment, domain, range, and alt labels of an existing property."""
-        # TODO split this into a delete and an insert rather than replacing all the existing items
-        uri_ref = URIRef(uri)
-
-        # Update label
-        for old_label in self._graph.objects(uri_ref, RDFS.label):
-            self._graph.remove((uri_ref, RDFS.label, old_label))
-        self._graph.add((uri_ref, RDFS.label, Literal(label)))
-
-        # Update comment
-        for old_comment in self._graph.objects(uri_ref, RDFS.comment):
-            self._graph.remove((uri_ref, RDFS.comment, old_comment))
-        if comment:
-            self._graph.add((uri_ref, RDFS.comment, Literal(comment)))
-
-        # Update domain
-        for old_domain in self._graph.objects(uri_ref, RDFS.domain):
-            self._graph.remove((uri_ref, RDFS.domain, old_domain))
-        if domain:
-            self._graph.add((uri_ref, RDFS.domain, URIRef(domain)))
-
-        # Update range
-        for old_range in self._graph.objects(uri_ref, RDFS.range):
-            self._graph.remove((uri_ref, RDFS.range, old_range))
-        if range_:
-            self._graph.add((uri_ref, RDFS.range, URIRef(range_)))
-
-        # Update alt labels if provided (replace all existing ones)
-        if alt_labels is not None:
-            for old_alt in self._graph.objects(uri_ref, SKOS.altLabel):
-                self._graph.remove((uri_ref, SKOS.altLabel, old_alt))
-            for alt_label in alt_labels:
-                self._graph.add((uri_ref, SKOS.altLabel, Literal(alt_label)))
-
-        logger.info(f"Updated property {uri} with label: {label}")
-
     def delete_object(self, uri: str):
         uri = URIRef(uri)
         for pred, obj in self._graph.predicate_objects(subject=uri):
@@ -672,10 +486,6 @@ class GraphManager:
         literal_statements = self._graph.store.tables["literal_statements"]
 
         conditions = [literal_statements.c.object.op("%")(query)]
-        # TODO implement this
-        # if kind is not None:
-        #     conditions.append(literal_statements.c.type == kind)
-
         stmt = (
             select(
                 literal_statements.c.subject.label("uri"),
@@ -686,6 +496,3 @@ class GraphManager:
         )
         with self._engine.connect() as conn:
             return [row._asdict() for row in conn.execute(stmt).fetchall()]
-
-    def close(self):
-        self._graph.close()

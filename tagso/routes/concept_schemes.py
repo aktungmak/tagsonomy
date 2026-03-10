@@ -1,4 +1,4 @@
-from flask import Blueprint, request, render_template, current_app
+from flask import Blueprint, render_template, current_app
 from werkzeug.local import LocalProxy
 
 from config import generate_scheme_uri

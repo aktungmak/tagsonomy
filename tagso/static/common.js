@@ -1,48 +1,16 @@
 /**
  * Tagsonomy Common JavaScript
- * 
+ *
  * Uses data attributes for configuration, minimizing JavaScript and following DRY.
  * Convention: use snake_case for data attributes (e.g., data-subject_uri) to match Python API.
- * 
+ *
  * Data attributes:
- *   [data-filter-for="list_id"] - Search input that filters a list
- *   [data-delete]               - Delete button (reads data-url, data-uri, data-type, data-* for body)
- *   [data-uri-from="input_ids"] - URI input auto-generated from other inputs (comma-separated IDs)
- *   [data-user-ns]              - User namespace for URI generation
- *   [data-cascade]              - Cascade select (reads data-resets, data-enables)
- *   [data-add-alt-label="id"]   - Button to add alt label field to container
- *   [data-remove-field]         - Button to remove its parent .alt-label-field
+ *   [data-delete] - Delete button (reads data-url, data-uri, data-type, data-* for body)
+ *   [data-resize-sidebar] - Handle element for resizing adjacent aside (expects aside + handle + section layout)
  */
 
 (() => {
     'use strict';
-
-    // =========================================================================
-    // List Filtering
-    // =========================================================================
-
-    function initFiltering() {
-        document.querySelectorAll('[data-filter-for]').forEach(input => {
-            const listId = input.dataset.filterFor;
-            const list = document.getElementById(listId);
-            if (!list) return;
-
-            const filter = () => {
-                const query = input.value.toUpperCase();
-                Array.from(list.children).forEach(item => {
-                    const searchable = item.querySelector('[data-searchable]') 
-                        ? Array.from(item.querySelectorAll('[data-searchable]'))
-                        : Array.from(item.querySelectorAll('span'));
-                    const text = searchable.map(el => el.textContent).join(' ').toUpperCase();
-                    item.hidden = !text.includes(query);
-                });
-            };
-
-            input.addEventListener('input', filter);
-            // Apply initial filter if input has a value
-            if (input.value) filter();
-        });
-    }
 
     // =========================================================================
     // Delete Operations
@@ -78,112 +46,28 @@
     }
 
     // =========================================================================
-    // URI Generation
+    // Resizable Sidebar
     // =========================================================================
 
-    function initUriGeneration() {
-        document.querySelectorAll('[data-uri-from]').forEach(uriInput => {
-            const sourceIds = uriInput.dataset.uriFrom.split(',').map(s => s.trim());
-            const nsElement = document.querySelector('[data-user-ns]');
-            const userNs = nsElement?.dataset.userNs || '';
-            const separator = uriInput.dataset.uriSeparator || '.';
+    function initResizableSidebar() {
+        document.querySelectorAll('[data-resize-sidebar]').forEach(handle => {
+            const sidebar = handle.previousElementSibling;
+            if (!sidebar || sidebar.tagName !== 'ASIDE') return;
 
-            const updateUri = () => {
-                const parts = sourceIds
-                    .map(id => document.getElementById(id)?.value)
-                    .filter(Boolean);
-                
-                if (parts.length === sourceIds.length && parts.every(Boolean)) {
-                    uriInput.value = userNs + encodeURIComponent(parts.join(separator));
-                }
-            };
-
-            sourceIds.forEach(id => {
-                const el = document.getElementById(id);
-                if (el) el.addEventListener('input', updateUri);
-            });
-        });
-    }
-
-    // =========================================================================
-    // Alternative Labels (Dynamic Fields)
-    // =========================================================================
-
-    function createAltLabelField() {
-        const div = document.createElement('div');
-        div.className = 'alt-label-field';
-        div.innerHTML = `
-            <input type="text" name="alt_labels" placeholder="Alternative label" required>
-            <button type="button" data-remove-field>Remove</button>
-        `;
-        return div;
-    }
-
-    function initAltLabels() {
-        // Add button handling
-        document.addEventListener('click', e => {
-            const addBtn = e.target.closest('[data-add-alt-label]');
-            if (addBtn) {
-                const containerId = addBtn.dataset.addAltLabel;
-                const container = document.getElementById(containerId);
-                if (container) container.appendChild(createAltLabelField());
-                return;
-            }
-
-            // Remove button handling
-            const removeBtn = e.target.closest('[data-remove-field]');
-            if (removeBtn) {
-                removeBtn.closest('.alt-label-field')?.remove();
-            }
-        });
-    }
-
-    // =========================================================================
-    // Cascade Selects (for Tables/Columns)
-    // =========================================================================
-
-    function initCascadeSelects() {
-        document.querySelectorAll('[data-cascade]').forEach(select => {
-            select.addEventListener('change', async () => {
-                const apiPath = select.dataset.cascade;
-                const resets = (select.dataset.resets || '').split(',').filter(Boolean);
-                const enables = select.dataset.enables;
-                const targetSelect = enables ? document.getElementById(enables) : null;
-
-                // Reset dependent selects
-                resets.forEach(id => {
-                    const el = document.getElementById(id);
-                    if (el) {
-                        el.innerHTML = `<option value="">Select ${id}...</option>`;
-                        el.disabled = true;
-                    }
-                });
-
-                // Update URI if applicable
-                document.querySelectorAll('[data-uri-from]').forEach(el => el.dispatchEvent(new Event('recalculate')));
-
-                if (!select.value || !targetSelect) return;
-
-                // Build API URL from path segments
-                const pathParts = apiPath.split('/').map(part => {
-                    if (part.startsWith(':')) {
-                        const id = part.slice(1);
-                        return document.getElementById(id)?.value || '';
-                    }
-                    return part;
-                });
-                const url = pathParts.join('/');
-
-                targetSelect.innerHTML = '<option value="">Loading...</option>';
-                
-                try {
-                    const items = await fetch(url).then(r => r.json());
-                    targetSelect.innerHTML = `<option value="">Select ${enables}...</option>` +
-                        items.map(item => `<option value="${item}">${item}</option>`).join('');
-                    targetSelect.disabled = false;
-                } catch {
-                    targetSelect.innerHTML = '<option value="">Error loading</option>';
-                }
+            handle.addEventListener('mousedown', (e) => {
+                const startX = e.clientX;
+                const startWidth = sidebar.getBoundingClientRect().width;
+                const onMove = (ev) => {
+                    const dx = ev.clientX - startX;
+                    sidebar.style.flexBasis = Math.min(480, Math.max(160, startWidth + dx)) + 'px';
+                };
+                const onUp = () => {
+                    document.removeEventListener('mousemove', onMove);
+                    document.removeEventListener('mouseup', onUp);
+                };
+                document.addEventListener('mousemove', onMove);
+                document.addEventListener('mouseup', onUp);
+                e.preventDefault();
             });
         });
     }
@@ -193,10 +77,7 @@
     // =========================================================================
 
     document.addEventListener('DOMContentLoaded', () => {
-        initFiltering();
         initDeleteButtons();
-        initUriGeneration();
-        initAltLabels();
-        initCascadeSelects();
+        initResizableSidebar();
     });
 })();

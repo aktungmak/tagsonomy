@@ -11,7 +11,7 @@
   </nav>
 </aside>
 
-<div class="handle" aria-hidden="true"></div>
+<div class="handle" data-resize-sidebar aria-hidden="true"></div>
 
 <section class="resource-detail" aria-label="Resource details">
   <article id="detail_pane">
@@ -24,8 +24,6 @@
     const catalogTree = document.getElementById('catalog_tree');
     const detailPane = document.getElementById('detail_pane');
     const detailPlaceholder = document.getElementById('detail_placeholder');
-    const handle = document.querySelector('.handle');
-    const sidebar = document.querySelector('aside');
 
     const childrenCache = {};
 
@@ -36,6 +34,66 @@
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;');
+    }
+
+    const assignConfig = {
+      table: {
+        endpoint: '/catalog/assign_concept',
+        uriKey: 'table_uri',
+        assigneeKey: 'concept_uri',
+        datasetKey: 'conceptUri',
+        addFormId: 'add_concept_form',
+        selectName: 'concept_uri',
+        deregisterConfirm: 'Deregister this table? This will remove it and all assignments from the database.'
+      },
+      column: {
+        endpoint: '/catalog/assign_property',
+        uriKey: 'column_uri',
+        assigneeKey: 'property_uri',
+        datasetKey: 'propertyUri',
+        addFormId: 'add_property_form',
+        selectName: 'property_uri',
+        deregisterConfirm: 'Deregister this column? This will remove it and all assignments from the database.'
+      }
+    };
+
+    function attachAssignmentHandlers(type, name, data) {
+      const cfg = assignConfig[type];
+      const hasUri = !!data.uri;
+
+      if (hasUri) {
+        detailPane.querySelectorAll('.unassign-btn').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            const body = { [cfg.uriKey]: data.uri, [cfg.assigneeKey]: btn.dataset[cfg.datasetKey] };
+            const r = await fetch(cfg.endpoint, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+            if (r.ok) await selectResource(type, name);
+          });
+        });
+        const addForm = detailPane.querySelector('#' + cfg.addFormId);
+        if (addForm) {
+          addForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const body = { [cfg.uriKey]: data.uri, [cfg.assigneeKey]: addForm[cfg.selectName].value };
+            const r = await fetch(cfg.endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+            if (r.ok) await selectResource(type, name);
+          });
+        }
+        const deregisterBtn = detailPane.querySelector('#deregister_btn');
+        if (deregisterBtn) {
+          deregisterBtn.addEventListener('click', async () => {
+            if (!confirm(cfg.deregisterConfirm)) return;
+            const r = await fetch('/catalog/resource', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ uri: data.uri }) });
+            if (r.ok) await selectResource(type, name);
+          });
+        }
+      }
+      const registerBtn = detailPane.querySelector('#register_btn');
+      if (registerBtn) {
+        registerBtn.addEventListener('click', async () => {
+          const r = await fetch('/catalog/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type, name }) });
+          if (r.ok) await selectResource(type, name);
+        });
+      }
     }
 
     async function loadChildren(path, type) {
@@ -190,54 +248,7 @@
         </section>
       `;
 
-        if (hasUri) {
-          detailPane.querySelectorAll('.unassign-btn').forEach(btn => {
-            btn.addEventListener('click', async () => {
-              const cr = await fetch('/catalog/assign_concept', {
-                method: 'DELETE',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ table_uri: data.uri, concept_uri: btn.dataset.conceptUri })
-              });
-              if (cr.ok) await selectResource('table', name);
-            });
-          });
-          const addForm = detailPane.querySelector('#add_concept_form');
-          if (addForm) {
-            addForm.addEventListener('submit', async (e) => {
-              e.preventDefault();
-              const conceptUri = addForm.concept_uri.value;
-              const cr = await fetch('/catalog/assign_concept', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ table_uri: data.uri, concept_uri: conceptUri })
-              });
-              if (cr.ok) selectResource('table', name);
-            });
-          }
-          const deregisterBtn = detailPane.querySelector('#deregister_btn');
-          if (deregisterBtn) {
-            deregisterBtn.addEventListener('click', async () => {
-              if (!confirm('Deregister this table? This will remove it and all assignments from the database.')) return;
-              const dr = await fetch('/catalog/resource', {
-                method: 'DELETE',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ uri: data.uri })
-              });
-              if (dr.ok) selectResource('table', name);
-            });
-          }
-        }
-        const registerBtn = detailPane.querySelector('#register_btn');
-        if (registerBtn) {
-          registerBtn.addEventListener('click', async () => {
-            const rr = await fetch('/catalog/register', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ type: 'table', name: name })
-            });
-            if (rr.ok) await selectResource('table', name);
-          });
-        }
+        attachAssignmentHandlers('table', name, data);
         return;
       }
 
@@ -287,54 +298,7 @@
         </section>
       `;
 
-        if (hasUri) {
-          detailPane.querySelectorAll('.unassign-btn').forEach(btn => {
-            btn.addEventListener('click', async () => {
-              const cr = await fetch('/catalog/assign_property', {
-                method: 'DELETE',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ column_uri: data.uri, property_uri: btn.dataset.propertyUri })
-              });
-              if (cr.ok) await selectResource('column', name);
-            });
-          });
-          const addForm = detailPane.querySelector('#add_property_form');
-          if (addForm) {
-            addForm.addEventListener('submit', async (e) => {
-              e.preventDefault();
-              const propertyUri = addForm.property_uri.value;
-              const cr = await fetch('/catalog/assign_property', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ column_uri: data.uri, property_uri: propertyUri })
-              });
-              if (cr.ok) selectResource('column', name);
-            });
-          }
-          const deregisterBtn = detailPane.querySelector('#deregister_btn');
-          if (deregisterBtn) {
-            deregisterBtn.addEventListener('click', async () => {
-              if (!confirm('Deregister this column? This will remove it and all assignments from the database.')) return;
-              const dr = await fetch('/catalog/resource', {
-                method: 'DELETE',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ uri: data.uri })
-              });
-              if (dr.ok) selectResource('column', name);
-            });
-          }
-        }
-        const registerBtn = detailPane.querySelector('#register_btn');
-        if (registerBtn) {
-          registerBtn.addEventListener('click', async () => {
-            const rr = await fetch('/catalog/register', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ type: 'column', name: name })
-            });
-            if (rr.ok) await selectResource('column', name);
-          });
-        }
+        attachAssignmentHandlers('column', name, data);
         return;
       }
     }
@@ -352,22 +316,6 @@
         expandNode(root);
       });
     }
-
-    handle.addEventListener('mousedown', (e) => {
-      const startX = e.clientX;
-      const startWidth = sidebar.getBoundingClientRect().width;
-      function onMove(e) {
-        const dx = e.clientX - startX;
-        sidebar.style.flexBasis = Math.min(480, Math.max(160, startWidth + dx)) + 'px';
-      }
-      function onUp() {
-        document.removeEventListener('mousemove', onMove);
-        document.removeEventListener('mouseup', onUp);
-      }
-      document.addEventListener('mousemove', onMove);
-      document.addEventListener('mouseup', onUp);
-      e.preventDefault();
-    });
 
     (async function init() {
       initTree();

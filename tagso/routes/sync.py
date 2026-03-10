@@ -1,6 +1,5 @@
 from os import environ
 
-from config import get_database_url
 from databricks.sdk import WorkspaceClient
 from flask import Blueprint, current_app, render_template, request, url_for
 from werkzeug.local import LocalProxy

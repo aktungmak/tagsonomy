@@ -1,6 +1,6 @@
 from flask import Blueprint, request, render_template, current_app, Response
 from werkzeug.local import LocalProxy
-from rdflib import Graph, RDF, RDFS, SKOS, URIRef
+from rdflib import Graph, SKOS, URIRef
 
 import_export_bp = Blueprint("import_export", __name__)
 
