@@ -1,82 +1,167 @@
-/* Base styles from new_ui/styles4.css */
+/**
+ * Tagsonomy — Databricks DuBois design system
+ *
+ * DuBois primitive tokens as CSS variables. Use semantic variables for styling.
+ * Reference: @databricks/design-system
+ */
+
+/* ─── DuBois design tokens ─────────────────────────────────────────────────── */
+:root {
+  /* Surfaces */
+  --dubois-bg-primary: #FFFFFF;
+  --dubois-bg-secondary: #F6F7F9;
+  --dubois-border: #E8ECF0;
+  --dubois-border-input: #BDCDD9;
+
+  /* Text */
+  --dubois-text-primary: #11171C;
+  --dubois-text-secondary: #5F7281;
+
+  /* Primary action (blue600) */
+  --dubois-primary: #2272B4;
+  --dubois-primary-hover: #0E538B;
+  --dubois-primary-press: #04355D;
+
+  /* Destructive */
+  --dubois-danger: #C82D4C;
+
+  /* Success / Warning */
+  --dubois-success: #277C43;
+  --dubois-warning: #BE501E;
+
+  /* Focus ring */
+  --dubois-focus: #2272B4;
+
+  /* Radius (borderRadiusSm) */
+  --dubois-radius: 4px;
+
+  /* Spacing (base 8px) */
+  --dubois-space-xs: 4px;
+  --dubois-space-sm: 8px;
+  --dubois-space-md: 16px;
+  --dubois-space-lg: 24px;
+
+  /* Shadows */
+  --dubois-shadow-xs: 0px 1px 0px 0px rgba(0, 0, 0, 0.05);
+  --dubois-shadow-sm: 0px 2px 3px -1px rgba(0, 0, 0, 0.05), 0px 1px 0px 0px rgba(0, 0, 0, 0.02);
+  --dubois-shadow-md: 0px 3px 6px 0px rgba(0, 0, 0, 0.05);
+}
+
+/* ─── Base ─────────────────────────────────────────────────────────────────── */
 * {
   box-sizing: border-box;
 }
 
-body {
-  margin: 0;
-  font-family: system-ui, sans-serif;
+html {
+  font-size: 13px;
 }
 
+body {
+  margin: 0;
+  font-family: "Helvetica Neue", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 400;
+  color: var(--dubois-text-primary);
+  background: var(--dubois-bg-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+b, strong {
+  font-weight: 600;
+}
+
+:focus-visible {
+  outline: 2px solid var(--dubois-focus);
+  outline-offset: 2px;
+}
+
+/* ─── Header ────────────────────────────────────────────────────────────────── */
 header {
-  padding: 0.25rem 1rem;
-  background: #eee;
-  border-bottom: 1px solid #ccc;
+  padding: var(--dubois-space-sm) var(--dubois-space-md);
+  background: var(--dubois-bg-secondary);
+  border-bottom: 1px solid var(--dubois-border);
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
+header h1 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
 nav[aria-label="Main"] {
   display: flex;
-  gap: 1rem;
+  gap: var(--dubois-space-md);
 }
 
 nav[aria-label="Main"] a {
   text-decoration: none;
-  color: #333;
-  font-size: 0.95rem;
+  color: var(--dubois-text-primary);
+  font-size: 13px;
+}
+
+nav[aria-label="Main"] a:hover {
+  color: var(--dubois-primary);
 }
 
 nav[aria-label="Main"] a[aria-current="page"] {
-  font-weight: bold;
+  font-weight: 600;
+  color: var(--dubois-primary);
   text-decoration: underline;
 }
 
+/* ─── Layout ────────────────────────────────────────────────────────────────── */
 main {
   display: flex;
   height: calc(100vh - 2.5rem);
 }
 
-/* Page content wrapper for non-split pages */
 .page-content {
   flex: 1 1 auto;
   overflow: auto;
-  padding: 1rem;
+  padding: var(--dubois-space-md);
 }
 
-/* Resizable sidebar + handle + detail (concept schemes) */
 aside {
   flex: 0 0 260px;
   min-width: 160px;
   max-width: 480px;
   overflow: auto;
-  border-right: 1px solid #ccc;
+  border-right: 1px solid var(--dubois-border);
+  background: var(--dubois-bg-primary);
 }
 
 .handle {
   flex: 0 0 4px;
   cursor: col-resize;
-  background: #eee;
+  background: var(--dubois-bg-secondary);
+}
+
+.handle:hover {
+  background: var(--dubois-border);
 }
 
 section[aria-label="Resource details"],
 .resource-detail {
   flex: 1 1 auto;
   overflow: auto;
-  padding: 1rem;
+  padding: var(--dubois-space-md);
 }
 
-/* Tree view */
+/* ─── Tree view ─────────────────────────────────────────────────────────────── */
 ul.tree-root {
   list-style: none;
   margin: 0;
-  padding: 0.5rem 0;
+  padding: var(--dubois-space-sm) 0;
 }
 
 ul.tree-root > li,
 .tree-children li {
-  padding: 0.15rem 0;
+  padding: var(--dubois-space-xs) 0;
 }
 
 .tree-toggle {
@@ -88,29 +173,38 @@ ul.tree-root > li,
   padding: 0;
   font: inherit;
   cursor: pointer;
+  color: var(--dubois-text-primary);
+}
+
+.tree-toggle:hover {
+  color: var(--dubois-primary);
 }
 
 .tree-children {
   list-style: none;
-  margin: 0.25rem 0 0 1rem;
+  margin: var(--dubois-space-xs) 0 0 var(--dubois-space-md);
   padding: 0;
-  font-size: 0.9rem;
+  font-size: 12px;
 }
 
 .tree-children li {
   cursor: pointer;
+  color: var(--dubois-text-secondary);
 }
 
 .tree-children li:hover {
+  color: var(--dubois-text-primary);
   text-decoration: underline;
 }
 
-/* Form and control styles (minimal, matching new_ui palette) */
+/* ─── Forms ─────────────────────────────────────────────────────────────────── */
 label {
   display: block;
-  margin-top: 0.75rem;
-  margin-bottom: 0.25rem;
-  font-size: 0.9rem;
+  margin-top: var(--dubois-space-sm);
+  margin-bottom: var(--dubois-space-xs);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--dubois-text-primary);
 }
 
 input[type="text"],
@@ -121,17 +215,40 @@ textarea {
   display: block;
   width: 100%;
   max-width: 24rem;
-  padding: 0.4rem 0.6rem;
+  padding: 5px 12px;
   font: inherit;
-  font-size: 0.95rem;
-  border: 1px solid #ccc;
-  border-radius: 2px;
-  background: #fff;
+  font-size: 13px;
+  border: 1px solid var(--dubois-border-input);
+  border-radius: var(--dubois-radius);
+  background: var(--dubois-bg-primary);
+  color: var(--dubois-text-primary);
+}
+
+input[type="text"],
+input[type="search"],
+input[type="number"],
+select:not([multiple]) {
+  height: 40px;
+}
+
+input[type="text"]:focus,
+input[type="search"]:focus,
+input[type="number"]:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--dubois-focus);
+  outline: none;
+}
+
+textarea {
+  height: auto;
+  min-height: 80px;
+  padding: var(--dubois-space-sm) 12px;
 }
 
 input[type="file"] {
   font: inherit;
-  margin-top: 0.25rem;
+  margin-top: var(--dubois-space-xs);
 }
 
 input[type="radio"],
@@ -139,49 +256,91 @@ input[type="checkbox"] {
   display: inline;
   width: auto;
   max-width: none;
-  margin-right: 0.25rem;
+  margin-right: var(--dubois-space-xs);
   margin-top: 0;
 }
 
-input[type="radio"]+label,
-input[type="checkbox"]+label {
+input[type="radio"] + label,
+input[type="checkbox"] + label {
   display: inline;
   margin-top: 0;
   margin-bottom: 0;
-  margin-right: 1rem;
+  margin-right: var(--dubois-space-md);
 }
 
 input:disabled,
 select:disabled,
 textarea:disabled {
-  background: #f5f5f5;
-  color: #666;
+  background: var(--dubois-bg-secondary);
+  color: var(--dubois-text-secondary);
   cursor: not-allowed;
 }
 
+/* ─── Buttons ────────────────────────────────────────────────────────────────── */
 button,
 input[type="submit"],
 input[type="button"],
 a[role="button"] {
   display: inline-block;
-  padding: 0.4rem 0.8rem;
+  padding: 5px var(--dubois-space-md);
+  height: 40px;
   font: inherit;
-  font-size: 0.95rem;
-  border: 1px solid #ccc;
-  border-radius: 2px;
-  background: #eee;
-  color: #333;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid var(--dubois-border);
+  border-radius: var(--dubois-radius);
+  background: var(--dubois-bg-secondary);
+  color: var(--dubois-text-primary);
   cursor: pointer;
   text-decoration: none;
-  margin-top: 0.5rem;
-  margin-right: 0.5rem;
+  margin-top: var(--dubois-space-sm);
+  margin-right: var(--dubois-space-sm);
+  line-height: 1.4;
 }
 
 button:hover:not(:disabled),
 input[type="submit"]:hover:not(:disabled),
 a[role="button"]:hover {
-  background: #e0e0e0;
-  border-color: #999;
+  background: var(--dubois-border);
+  border-color: var(--dubois-text-secondary);
+}
+
+/* Primary button variant */
+button.primary,
+input[type="submit"].primary,
+a[role="button"].primary {
+  background: var(--dubois-primary);
+  border-color: var(--dubois-primary);
+  color: white;
+}
+
+button.primary:hover:not(:disabled),
+input[type="submit"].primary:hover:not(:disabled),
+a[role="button"].primary:hover {
+  background: var(--dubois-primary-hover);
+  border-color: var(--dubois-primary-hover);
+  color: white;
+}
+
+button.primary:active:not(:disabled),
+input[type="submit"].primary:active:not(:disabled),
+a[role="button"].primary:active {
+  background: var(--dubois-primary-press);
+  border-color: var(--dubois-primary-press);
+}
+
+/* Destructive button variant */
+button[data-delete],
+button.danger {
+  color: var(--dubois-danger);
+  border-color: var(--dubois-danger);
+}
+
+button[data-delete]:hover,
+button.danger:hover:not(:disabled) {
+  background: var(--dubois-danger);
+  color: white;
+  border-color: var(--dubois-danger);
 }
 
 button:disabled,
@@ -190,94 +349,108 @@ input[type="submit"]:disabled {
   cursor: not-allowed;
 }
 
-/* Articles and sections */
+/* ─── Articles and sections ──────────────────────────────────────────────────── */
 article {
-  margin: 1rem 0;
+  margin: var(--dubois-space-md) 0;
 }
 
 article p {
-  margin: 0.5rem 0;
+  margin: var(--dubois-space-sm) 0;
 }
 
-/* Tables */
+/* ─── Tables ─────────────────────────────────────────────────────────────────── */
 table {
   width: 100%;
   border-collapse: collapse;
-  margin: 1rem 0;
+  margin: var(--dubois-space-md) 0;
+  font-size: 13px;
 }
 
 th,
 td {
-  padding: 0.5rem 0.75rem;
+  padding: var(--dubois-space-sm) var(--dubois-space-md);
   text-align: left;
-  border-bottom: 1px solid #ccc;
+  border-bottom: 1px solid var(--dubois-border);
 }
 
 th {
-  background: #f5f5f5;
+  background: var(--dubois-bg-secondary);
   font-weight: 600;
+  color: var(--dubois-text-primary);
 }
 
-/* Definition lists */
+tbody tr:hover {
+  background: rgba(68, 83, 95, 0.04);
+}
+
+/* ─── Definition lists ───────────────────────────────────────────────────────────────── */
 dl {
-  margin: 0.5rem 0;
+  margin: var(--dubois-space-sm) 0;
 }
 
 dt {
   font-weight: 600;
-  margin-top: 0.5rem;
+  margin-top: var(--dubois-space-sm);
+  color: var(--dubois-text-primary);
 }
 
 dd {
-  margin-left: 1rem;
-  margin-bottom: 0.5rem;
-  color: #555;
+  margin-left: var(--dubois-space-md);
+  margin-bottom: var(--dubois-space-sm);
+  color: var(--dubois-text-secondary);
 }
 
-/* Headings */
-h1,
-h2,
-h3,
-h4 {
-  margin: 1rem 0 0.5rem 0;
+/* ─── Headings ───────────────────────────────────────────────────────────────── */
+h1, h2, h3, h4 {
+  margin: var(--dubois-space-md) 0 var(--dubois-space-sm) 0;
+  font-weight: 600;
+  color: var(--dubois-text-primary);
 }
 
 h1 {
   font-size: 1.5rem;
+  line-height: 1.4;
 }
 
 h2 {
   font-size: 1.25rem;
+  line-height: 1.4;
 }
 
 h3 {
   font-size: 1.1rem;
+  line-height: 1.4;
 }
 
-/* Links */
+h4 {
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+/* ─── Links ─────────────────────────────────────────────────────────────────── */
 a {
-  color: #333;
+  color: var(--dubois-primary);
   text-decoration: underline;
 }
 
 a:hover {
-  color: #000;
+  color: var(--dubois-primary-hover);
 }
 
-/* Horizontal rule */
+/* ─── Horizontal rule ───────────────────────────────────────────────────────── */
 hr {
   border: 0;
-  border-top: 1px solid #ccc;
-  margin: 1.5rem 0;
+  border-top: 1px solid var(--dubois-border);
+  margin: var(--dubois-space-lg) 0;
 }
 
-/* Aside sections (e.g. New Concept Scheme form in sidebar) */
+/* ─── Aside sections ───────────────────────────────────────────────────────────── */
 aside section {
-  padding: 0.75rem;
-  border-bottom: 1px solid #eee;
+  padding: var(--dubois-space-sm);
+  border-bottom: 1px solid var(--dubois-border);
 }
 
 aside section h3 {
-  margin: 0 0 0.5rem 0;
-  font-size: 1rem;
+  margin: 0 0 var(--dubois-space-sm) 0;
+  font-size: 13px;
 }

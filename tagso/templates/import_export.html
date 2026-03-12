@@ -27,7 +27,7 @@
             {% endfor %}
         </select>
 
-        <button type="submit" {% if not concept_schemes %}disabled{% endif %}>Import</button>
+        <button type="submit" class="primary" {% if not concept_schemes %}disabled{% endif %}>Import</button>
     </form>
 
     {% if message %}
@@ -43,7 +43,7 @@
     <h2>Export</h2>
     <p>Download the current graph as a Turtle (.ttl) file.</p>
     
-    <a href="{{ url_for('import_export.export_get') }}" role="button">Download</a>
+    <a href="{{ url_for('import_export.export_get') }}" role="button" class="primary">Download</a>
 </section>
 {% endblock %}
 
