@@ -1,3 +1,14 @@
+{% macro tree_sidebar(aria_label, section_content, tree_id, nav_aria_label) %}
+<aside aria-label="{{ aria_label }}">
+  <section>
+    {{ section_content | safe }}
+  </section>
+  <nav aria-label="{{ nav_aria_label }}">
+    <ul class="tree-root" id="{{ tree_id }}"></ul>
+  </nav>
+</aside>
+{% endmacro %}
+
 {% macro navbar() %}
 <nav aria-label="Main">
     <a href="{{ url_for('index') }}" {% if request.endpoint=='index' %}aria-current="page" {% endif %}>Graph view</a>

@@ -1,25 +1,24 @@
 {% extends "base.html" %}
+{% import "macros.html" as macros %}
 
 {% block title %}Tagsonomy | Concept Schemes{% endblock %}
 
 {% block body_class %}concept-schemes{% endblock %}
 
 {% block main_inner %}
-<aside aria-label="SKOS Concept Schemes">
-  <section>
-    <h3>New Concept Scheme</h3>
+{{ macros.tree_sidebar(
+  "SKOS Concept Schemes",
+  '<h3>New Concept Scheme</h3>
     <form id="new_scheme_form">
       <label for="scheme_label">Label</label>
       <input type="text" id="scheme_label" name="label" required placeholder="e.g. Products">
       <label for="scheme_uri">URI (optional)</label>
       <input type="text" id="scheme_uri" name="uri" placeholder="Leave blank to generate">
       <button type="submit">Create</button>
-    </form>
-  </section>
-  <nav aria-label="SKOS Concept Scheme navigation">
-    <ul class="concept-tree" id="scheme_tree"></ul>
-  </nav>
-</aside>
+    </form>',
+  "scheme_tree",
+  "SKOS Concept Scheme navigation"
+) }}
 
 <div class="handle" data-resize-sidebar aria-hidden="true"></div>
 
@@ -48,16 +47,11 @@
   }
 
   function renderSchemeTree() {
-    schemeTree.innerHTML = schemes.map((s, i) => `
-      <li class="concept-scheme">
-        <button type="button" class="scheme-toggle" data-scheme-uri="${s.uri}" data-expanded="false" aria-expanded="false" aria-controls="scheme-subtree-${i}">
-          skos:ConceptScheme: ${s.label || s.uri}
-        </button>
-        <ul id="scheme-subtree-${i}" class="concept-children" hidden></ul>
-      </li>
-    `).join('');
+    schemeTree.innerHTML = schemes.map((s, i) =>
+      TreeView.renderExpandable(`scheme-subtree-${i}`, `skos:ConceptScheme: ${s.label || s.uri}`, { scheme_uri: s.uri })
+    ).join('');
 
-    schemeTree.querySelectorAll('.scheme-toggle').forEach(btn => {
+    schemeTree.querySelectorAll('.tree-toggle').forEach(btn => {
       btn.addEventListener('click', async (e) => {
         e.stopPropagation();
         const uri = btn.dataset.schemeUri;
@@ -77,9 +71,9 @@
           membersCache[uri] = data.members || [];
         }
 
-        subtree.innerHTML = membersCache[uri].map(m => `
-          <li data-uri="${m.uri}" data-type="resource">${typeLabel(m.type)}: ${m.label || m.uri}</li>
-        `).join('');
+        subtree.innerHTML = membersCache[uri].map(m =>
+          TreeView.renderLeaf(`${typeLabel(m.type)}: ${m.label || m.uri}`, { uri: m.uri, type: 'resource' })
+        ).join('');
 
         subtree.querySelectorAll('li').forEach(li => {
           li.addEventListener('click', () => selectResource(li.dataset.uri));

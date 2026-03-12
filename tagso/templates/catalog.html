@@ -1,15 +1,12 @@
 {% extends "base.html" %}
+{% import "macros.html" as macros %}
 
 {% block title %}Tagsonomy | Catalog{% endblock %}
 
 {% block body_class %}catalog{% endblock %}
 
 {% block main_inner %}
-<aside aria-label="Unity Catalog">
-  <nav aria-label="Catalog navigation">
-    <ul class="concept-tree" id="catalog_tree"></ul>
-  </nav>
-</aside>
+{{ macros.tree_sidebar("Unity Catalog", "<h3>Catalogs</h3>", "catalog_tree", "Catalog navigation") }}
 
 <div class="handle" data-resize-sidebar aria-hidden="true"></div>
 
@@ -24,17 +21,9 @@
     const catalogTree = document.getElementById('catalog_tree');
     const detailPane = document.getElementById('detail_pane');
     const detailPlaceholder = document.getElementById('detail_placeholder');
+    const esc = TreeView.esc;
 
     const childrenCache = {};
-
-    function esc(s) {
-      if (!s) return '';
-      return String(s)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;');
-    }
 
     const assignConfig = {
       table: {
@@ -97,14 +86,10 @@
     }
 
     async function loadChildren(path, type) {
-      const key = type === 'root' ? '' : path.join('|');
+      const key = path.join('|');
       if (childrenCache[key] !== undefined) return childrenCache[key];
       let items = [];
-      if (type === 'root') {
-        const r = await fetch('/catalog/catalogs');
-        const names = await r.json();
-        items = names.map(name => ({ type: 'catalog', name }));
-      } else if (type === 'catalog') {
+      if (type === 'catalog') {
         const r = await fetch(`/catalog/schemas/${encodeURIComponent(path[0])}`);
         const names = await r.json();
         items = names.map(name => ({ type: 'schema', name, fullName: `${path[0]}.${name}` }));
@@ -122,7 +107,6 @@
     }
 
     function buildItemPath(path, type, name, item) {
-      if (type === 'root') return [item.name];
       if (type === 'catalog') return [name, item.name];
       if (type === 'schema') return path.concat([item.name]);
       if (type === 'table') return path.concat([item.name]);
@@ -143,7 +127,7 @@
         return;
       }
 
-      const loadPath = type === 'root' ? [] : (type === 'catalog' ? [name] : path);
+      const loadPath = type === 'catalog' ? [name] : path;
       const children = await loadChildren(loadPath, type);
 
       childrenEl.innerHTML = children.map((item, i) => {
@@ -151,31 +135,22 @@
         const isExpandable = item.type !== 'column';
         const fullName = item.fullName || item.name;
         const itemPath = buildItemPath(path, type, name, item);
-        return `<li class="catalog-node" data-type="${item.type}" data-name="${esc(fullName)}">
-        ${isExpandable ? `
-          <button type="button" class="catalog-toggle" data-path="${esc(itemPath.join('|'))}" data-type="${item.type}" data-name="${esc(fullName)}" data-expanded="false" aria-expanded="false" aria-controls="${itemId}">
-            ${esc(item.name)}
-          </button>
-          <ul id="${itemId}" class="concept-children" hidden></ul>
-        ` : `
-          <button type="button" class="catalog-leaf" data-type="${item.type}" data-name="${esc(fullName)}">
-            ${esc(item.name)}
-          </button>
-        `}
-      </li>`;
+        return isExpandable
+          ? TreeView.renderExpandable(itemId, item.name, { path: itemPath.join('|'), type: item.type, name: fullName })
+          : TreeView.renderLeaf(item.name, { type: item.type, name: fullName });
       }).join('');
 
-      childrenEl.querySelectorAll('.catalog-toggle').forEach(b => {
+      childrenEl.querySelectorAll('.tree-toggle').forEach(b => {
         b.addEventListener('click', (e) => { e.stopPropagation(); expandNode(b); selectResource(b.dataset.type, b.dataset.name); });
       });
-      childrenEl.querySelectorAll('.catalog-leaf').forEach(b => {
-        b.addEventListener('click', (e) => { e.stopPropagation(); selectResource(b.dataset.type, b.dataset.name); });
+      childrenEl.querySelectorAll('li:not(.tree-node)').forEach(li => {
+        li.addEventListener('click', () => selectResource(li.dataset.type, li.dataset.name));
       });
 
       btn.setAttribute('aria-expanded', 'true');
       childrenEl.hidden = false;
 
-      if (type !== 'root') selectResource(type, name);
+      selectResource(type, name);
     }
 
     async function selectResource(type, name) {
@@ -303,22 +278,23 @@
       }
     }
 
-    function initTree() {
-      catalogTree.innerHTML = `<li class="catalog-node">
-      <button type="button" class="catalog-toggle" data-path="" data-type="root" data-name="" data-expanded="false" aria-expanded="false" aria-controls="catalog-root-children">
-        Catalogs
-      </button>
-      <ul id="catalog-root-children" class="concept-children" hidden></ul>
-    </li>`;
-      const root = catalogTree.querySelector('.catalog-toggle');
-      root.addEventListener('click', (e) => {
-        e.stopPropagation();
-        expandNode(root);
+    function renderCatalogTree(catalogs) {
+      catalogTree.innerHTML = catalogs.map((c, i) =>
+        TreeView.renderExpandable(`catalog-subtree-${i}`, c, { path: '', type: 'catalog', name: c })
+      ).join('');
+
+      catalogTree.querySelectorAll('.tree-toggle').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          expandNode(btn);
+        });
       });
     }
 
     (async function init() {
-      initTree();
+      const r = await fetch('/catalog/catalogs');
+      const catalogs = await r.json();
+      renderCatalogTree(catalogs);
 
       const params = new URLSearchParams(location.search);
       const initType = params.get('type');
