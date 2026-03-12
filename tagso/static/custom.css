@@ -68,7 +68,8 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-b, strong {
+b,
+strong {
   font-weight: 600;
 }
 
@@ -152,47 +153,53 @@ section[aria-label="Resource details"],
   padding: var(--dubois-space-md);
 }
 
-/* ─── Tree view ─────────────────────────────────────────────────────────────── */
-ul.tree-root {
-  list-style: none;
+/* ─── Tree view -------------------------------------------------─────────────── */
+ul.tree-root,
+ul.nested {
+  list-style-type: none;
   margin: 0;
-  padding: var(--dubois-space-sm) 0;
-}
-
-ul.tree-root > li,
-.tree-children li {
-  padding: var(--dubois-space-xs) 0;
-}
-
-.tree-toggle {
-  display: block;
-  width: 100%;
-  text-align: left;
-  background: none;
-  border: 0;
   padding: 0;
-  font: inherit;
+}
+
+
+.caret {
   cursor: pointer;
+  user-select: none;
   color: var(--dubois-text-primary);
 }
 
-.tree-toggle:hover {
+.caret::before {
+  content: "\25B6";
+  color: var(--dubois-text-secondary);
+  display: inline-block;
+  margin-right: 6px;
+}
+
+.caret:hover,
+.caret:hover::before {
   color: var(--dubois-primary);
 }
 
-.tree-children {
-  list-style: none;
-  margin: var(--dubois-space-xs) 0 0 var(--dubois-space-md);
-  padding: 0;
+.caret-down::before {
+  transform: rotate(90deg);
+}
+
+ul.nested {
+  display: none;
+  padding-left: var(--dubois-space-md);
+}
+
+ul.nested.active {
+  display: block;
+}
+
+ul.nested>li {
   font-size: 12px;
-}
-
-.tree-children li {
+  color: var(--dubois-text-primary);
   cursor: pointer;
-  color: var(--dubois-text-secondary);
 }
 
-.tree-children li:hover {
+ul.nested>li:hover {
   color: var(--dubois-text-primary);
   text-decoration: underline;
 }
@@ -260,8 +267,8 @@ input[type="checkbox"] {
   margin-top: 0;
 }
 
-input[type="radio"] + label,
-input[type="checkbox"] + label {
+input[type="radio"]+label,
+input[type="checkbox"]+label {
   display: inline;
   margin-top: 0;
   margin-bottom: 0;
@@ -401,7 +408,10 @@ dd {
 }
 
 /* ─── Headings ───────────────────────────────────────────────────────────────── */
-h1, h2, h3, h4 {
+h1,
+h2,
+h3,
+h4 {
   margin: var(--dubois-space-md) 0 var(--dubois-space-sm) 0;
   font-weight: 600;
   color: var(--dubois-text-primary);

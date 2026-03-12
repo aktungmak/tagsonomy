@@ -1,6 +1,7 @@
 {% import "macros.html" as macros %}
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -11,17 +12,19 @@
     <script src="{{ url_for('static', filename='tree-view.js') }}"></script>
     {% block scripts %}{% endblock %}
 </head>
+
 <body class="{% block body_class %}{% endblock %}">
-<header>
-    <h1>Tagsonomy</h1>
-    {{ macros.navbar() }}
-</header>
-<main>
-{% block main_inner %}
-<section class="page-content" aria-label="Content">
-{% block content %}{% endblock %}
-</section>
-{% endblock %}
-</main>
+    <header>
+        <h1>Tagsonomy</h1>
+        {{ macros.navbar() }}
+    </header>
+    <main>
+        {% block main_inner %}
+        <section class="page-content" aria-label="Content">
+            {% block content %}{% endblock %}
+        </section>
+        {% endblock %}
+    </main>
 </body>
+
 </html>

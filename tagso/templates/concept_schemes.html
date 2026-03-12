@@ -7,17 +7,17 @@
 
 {% block main_inner %}
 {{ macros.tree_sidebar(
-  "SKOS Concept Schemes",
-  '<h3>New Concept Scheme</h3>
-    <form id="new_scheme_form">
-      <label for="scheme_label">Label</label>
-      <input type="text" id="scheme_label" name="label" required placeholder="e.g. Products">
-      <label for="scheme_uri">URI (optional)</label>
-      <input type="text" id="scheme_uri" name="uri" placeholder="Leave blank to generate">
-      <button type="submit" class="primary">Create</button>
-    </form>',
-  "scheme_tree",
-  "SKOS Concept Scheme navigation"
+"SKOS Concept Schemes",
+'<h3>New Concept Scheme</h3>
+<form id="new_scheme_form">
+  <label for="scheme_label">Label</label>
+  <input type="text" id="scheme_label" name="label" required placeholder="e.g. Products">
+  <label for="scheme_uri">URI (optional)</label>
+  <input type="text" id="scheme_uri" name="uri" placeholder="Leave blank to generate">
+  <button type="submit" class="primary">Create</button>
+</form>',
+"scheme_tree",
+"SKOS Concept Scheme navigation"
 ) }}
 
 <div class="handle" data-resize-sidebar aria-hidden="true"></div>
@@ -29,80 +29,76 @@
 </section>
 
 <script>
-(function() {
-  const schemeTree = document.getElementById('scheme_tree');
-  const detailPane = document.getElementById('detail_pane');
-  const detailPlaceholder = document.getElementById('detail_placeholder');
-  const newSchemeForm = document.getElementById('new_scheme_form');
+  (function () {
+    const schemeTree = document.getElementById('scheme_tree');
+    const detailPane = document.getElementById('detail_pane');
+    const detailPlaceholder = document.getElementById('detail_placeholder');
+    const newSchemeForm = document.getElementById('new_scheme_form');
 
-  let schemes = [];
-  const membersCache = {};
+    let schemes = [];
+    const membersCache = {};
 
-  function typeLabel(type) {
-    if (!type) return 'Resource';
-    if (type.includes('Class')) return 'rdfs:Class';
-    if (type.includes('Concept')) return 'skos:Concept';
-    if (type.includes('Property')) return 'rdfs:Property';
-    return type;
-  }
-
-  function renderSchemeTree() {
-    schemeTree.innerHTML = schemes.map((s, i) =>
-      TreeView.renderExpandable(`scheme-subtree-${i}`, `skos:ConceptScheme: ${s.label || s.uri}`, { scheme_uri: s.uri })
-    ).join('');
-
-    schemeTree.querySelectorAll('.tree-toggle').forEach(btn => {
-      btn.addEventListener('click', async (e) => {
-        e.stopPropagation();
-        const uri = btn.dataset.schemeUri;
-        const expanded = btn.getAttribute('aria-expanded') === 'true';
-        const subtreeId = btn.getAttribute('aria-controls');
-        const subtree = document.getElementById(subtreeId);
-
-        if (expanded) {
-          btn.setAttribute('aria-expanded', 'false');
-          subtree.hidden = true;
-          return;
-        }
-
-        if (!membersCache[uri]) {
-          const r = await fetch(`/concept_schemes/members?scheme_uri=${encodeURIComponent(uri)}`);
-          const data = await r.json();
-          membersCache[uri] = data.members || [];
-        }
-
-        subtree.innerHTML = membersCache[uri].map(m =>
-          TreeView.renderLeaf(`${typeLabel(m.type)}: ${m.label || m.uri}`, { uri: m.uri, type: 'resource' })
-        ).join('');
-
-        subtree.querySelectorAll('li').forEach(li => {
-          li.addEventListener('click', () => selectResource(li.dataset.uri));
-        });
-
-        btn.setAttribute('aria-expanded', 'true');
-        subtree.hidden = false;
-
-        selectScheme(uri);
-      });
-    });
-  }
-
-  async function selectScheme(uri) {
-    detailPlaceholder.hidden = true;
-    const r = await fetch(`/concept_schemes/scheme?uri=${encodeURIComponent(uri)}`);
-    const data = await r.json();
-    if (!r.ok) {
-      detailPane.innerHTML = `<p>Error: ${data.error || 'Failed to load'}</p>`;
-      return;
+    function typeLabel(type) {
+      if (!type) return 'Resource';
+      if (type.includes('Class')) return 'rdfs:Class';
+      if (type.includes('Concept')) return 'skos:Concept';
+      if (type.includes('Property')) return 'rdfs:Property';
+      return type;
     }
 
-    const { scheme, members, all_concepts, all_properties, member_uris } = data;
-    const memberOptions = [...all_concepts, ...all_properties]
-      .filter(c => !member_uris.includes(c.uri))
-      .map(c => `<option value="${c.uri}">${(c.label || c.name || c.uri)}</option>`)
-      .join('');
+    function renderSchemeTree() {
+      schemeTree.innerHTML = schemes.map((s, i) =>
+        TreeView.renderExpandable(`scheme-subtree-${i}`, `skos:ConceptScheme: ${s.label || s.uri}`, { scheme_uri: s.uri })
+      ).join('');
 
-    detailPane.innerHTML = `
+      schemeTree.querySelectorAll('.caret').forEach(c => {
+        c.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          const uri = c.dataset.schemeUri;
+          const subtreeId = c.getAttribute('data-controls');
+          const subtree = document.getElementById(subtreeId);
+
+          if (TreeView.isExpanded(c)) {
+            TreeView.toggle(c);
+            return;
+          }
+
+          if (!membersCache[uri]) {
+            const r = await fetch(`/concept_schemes/members?scheme_uri=${encodeURIComponent(uri)}`);
+            const data = await r.json();
+            membersCache[uri] = data.members || [];
+          }
+
+          subtree.innerHTML = membersCache[uri].map(m =>
+            TreeView.renderLeaf(`${typeLabel(m.type)}: ${m.label || m.uri}`, { uri: m.uri, type: 'resource' })
+          ).join('');
+
+          subtree.querySelectorAll('li.tree-leaf').forEach(li => {
+            li.addEventListener('click', () => selectResource(li.dataset.uri));
+          });
+
+          TreeView.toggle(c);
+          selectScheme(uri);
+        });
+      });
+    }
+
+    async function selectScheme(uri) {
+      detailPlaceholder.hidden = true;
+      const r = await fetch(`/concept_schemes/scheme?uri=${encodeURIComponent(uri)}`);
+      const data = await r.json();
+      if (!r.ok) {
+        detailPane.innerHTML = `<p>Error: ${data.error || 'Failed to load'}</p>`;
+        return;
+      }
+
+      const { scheme, members, all_concepts, all_properties, member_uris } = data;
+      const memberOptions = [...all_concepts, ...all_properties]
+        .filter(c => !member_uris.includes(c.uri))
+        .map(c => `<option value="${c.uri}">${(c.label || c.name || c.uri)}</option>`)
+        .join('');
+
+      detailPane.innerHTML = `
       <header>
         <h2>skos:ConceptScheme: ${scheme.label || scheme.uri}</h2>
       </header>
@@ -129,63 +125,63 @@
       </section>
     `;
 
-    detailPane.querySelector('#scheme_edit_form').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const form = e.target;
-      const body = JSON.stringify({
-        uri: form.uri.value,
-        label: form.label.value.trim(),
-        comment: form.comment?.value.trim() || undefined
+      detailPane.querySelector('#scheme_edit_form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const form = e.target;
+        const body = JSON.stringify({
+          uri: form.uri.value,
+          label: form.label.value.trim(),
+          comment: form.comment?.value.trim() || undefined
+        });
+        const r = await fetch('/concept_schemes/update', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body
+        });
+        if (r.ok) {
+          const idx = schemes.findIndex(s => s.uri === scheme.uri);
+          if (idx >= 0) schemes[idx].label = form.label.value;
+          renderSchemeTree();
+        }
       });
-      const r = await fetch('/concept_schemes/update', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body
-      });
-      if (r.ok) {
-        const idx = schemes.findIndex(s => s.uri === scheme.uri);
-        if (idx >= 0) schemes[idx].label = form.label.value;
-        renderSchemeTree();
-      }
-    });
 
-    detailPane.querySelector('#add_members_form').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const form = e.target;
-      const uris = Array.from(form.resource_uris.selectedOptions).map(o => o.value);
-      if (!uris.length) return;
-      const r = await fetch('/concept_schemes/add_members', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ uri: scheme.uri, resource_uris: uris })
+      detailPane.querySelector('#add_members_form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const form = e.target;
+        const uris = Array.from(form.resource_uris.selectedOptions).map(o => o.value);
+        if (!uris.length) return;
+        const r = await fetch('/concept_schemes/add_members', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ uri: scheme.uri, resource_uris: uris })
+        });
+        if (r.ok) {
+          delete membersCache[scheme.uri];
+          selectScheme(scheme.uri);
+        }
       });
-      if (r.ok) {
-        delete membersCache[scheme.uri];
-        selectScheme(scheme.uri);
-      }
-    });
-  }
-
-  async function selectResource(uri) {
-    detailPlaceholder.hidden = true;
-    const r = await fetch(`/concept_schemes/resource?uri=${encodeURIComponent(uri)}`);
-    const data = await r.json();
-    if (!r.ok) {
-      detailPane.innerHTML = `<p>Error: ${data.error || 'Failed to load'}</p>`;
-      return;
     }
 
-    const { resource, type, related_properties } = data;
-    const inScheme = resource.in_scheme ? `From skos:ConceptScheme: ${resource.in_scheme}` : '';
+    async function selectResource(uri) {
+      detailPlaceholder.hidden = true;
+      const r = await fetch(`/concept_schemes/resource?uri=${encodeURIComponent(uri)}`);
+      const data = await r.json();
+      if (!r.ok) {
+        detailPane.innerHTML = `<p>Error: ${data.error || 'Failed to load'}</p>`;
+        return;
+      }
 
-    let propsHtml = '';
-    if (type === 'concept' && related_properties && related_properties.length) {
-      propsHtml = '<dl>' + related_properties.map(p =>
-        `<dt>rdfs:Property: ${p.name || p.uri}</dt><dd>${p.role || ''}</dd>`
-      ).join('') + '</dl>';
-    }
+      const { resource, type, related_properties } = data;
+      const inScheme = resource.in_scheme ? `From skos:ConceptScheme: ${resource.in_scheme}` : '';
 
-    detailPane.innerHTML = `
+      let propsHtml = '';
+      if (type === 'concept' && related_properties && related_properties.length) {
+        propsHtml = '<dl>' + related_properties.map(p =>
+          `<dt>rdfs:Property: ${p.name || p.uri}</dt><dd>${p.role || ''}</dd>`
+        ).join('') + '</dl>';
+      }
+
+      detailPane.innerHTML = `
       <header>
         <h2>${typeLabel(resource.type)}: ${resource.label || resource.name || resource.uri}</h2>
         ${inScheme ? `<p>${inScheme}</p>` : ''}
@@ -196,45 +192,45 @@
       </section>
       ${propsHtml ? `<section aria-label="Properties"><h3>Properties</h3>${propsHtml}</section>` : ''}
     `;
-  }
+    }
 
-  async function loadSchemes() {
-    const r = await fetch('/concept_schemes/schemes');
-    const data = await r.json();
-    schemes = data.schemes || [];
-    renderSchemeTree();
-  }
+    async function loadSchemes() {
+      const r = await fetch('/concept_schemes/schemes');
+      const data = await r.json();
+      schemes = data.schemes || [];
+      renderSchemeTree();
+    }
 
-  newSchemeForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const form = e.target;
-    const body = JSON.stringify({
-      label: form.label.value.trim(),
-      uri: form.uri.value.trim() || undefined
+    newSchemeForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const form = e.target;
+      const body = JSON.stringify({
+        label: form.label.value.trim(),
+        uri: form.uri.value.trim() || undefined
+      });
+      const r = await fetch('/concept_schemes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body
+      });
+      if (r.ok) {
+        await loadSchemes();
+        form.reset();
+      } else {
+        const err = await r.json();
+        alert(err.error || 'Failed to create scheme');
+      }
     });
-    const r = await fetch('/concept_schemes', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body
-    });
-    if (r.ok) {
+
+    (async function init() {
       await loadSchemes();
-      form.reset();
-    } else {
-      const err = await r.json();
-      alert(err.error || 'Failed to create scheme');
-    }
-  });
-
-  (async function init() {
-    await loadSchemes();
-    const initialUri = new URLSearchParams(location.search).get('uri');
-    if (initialUri) {
-      const isScheme = schemes.some(s => s.uri === initialUri);
-      if (isScheme) selectScheme(initialUri);
-      else selectResource(initialUri);
-    }
+      const initialUri = new URLSearchParams(location.search).get('uri');
+      if (initialUri) {
+        const isScheme = schemes.some(s => s.uri === initialUri);
+        if (isScheme) selectScheme(initialUri);
+        else selectResource(initialUri);
+      }
+    })();
   })();
-})();
 </script>
 {% endblock %}

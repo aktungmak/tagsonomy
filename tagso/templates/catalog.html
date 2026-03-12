@@ -113,17 +113,15 @@
       return path;
     }
 
-    async function expandNode(btn) {
-      const path = btn.dataset.path ? btn.dataset.path.split('|').filter(Boolean) : [];
-      const type = btn.dataset.type;
-      const name = btn.dataset.name;
-      const expanded = btn.getAttribute('aria-expanded') === 'true';
-      const childrenId = btn.getAttribute('aria-controls');
+    async function expandNode(caret) {
+      const path = caret.dataset.path ? caret.dataset.path.split('|').filter(Boolean) : [];
+      const type = caret.dataset.type;
+      const name = caret.dataset.name;
+      const childrenId = caret.getAttribute('data-controls');
       const childrenEl = document.getElementById(childrenId);
 
-      if (expanded) {
-        btn.setAttribute('aria-expanded', 'false');
-        childrenEl.hidden = true;
+      if (TreeView.isExpanded(caret)) {
+        TreeView.toggle(caret);
         return;
       }
 
@@ -140,16 +138,14 @@
           : TreeView.renderLeaf(item.name, { type: item.type, name: fullName });
       }).join('');
 
-      childrenEl.querySelectorAll('.tree-toggle').forEach(b => {
-        b.addEventListener('click', (e) => { e.stopPropagation(); expandNode(b); selectResource(b.dataset.type, b.dataset.name); });
+      childrenEl.querySelectorAll('.caret').forEach(c => {
+        c.addEventListener('click', (e) => { e.stopPropagation(); expandNode(c); selectResource(c.dataset.type, c.dataset.name); });
       });
-      childrenEl.querySelectorAll('li:not(.tree-node)').forEach(li => {
+      childrenEl.querySelectorAll('li.tree-leaf').forEach(li => {
         li.addEventListener('click', () => selectResource(li.dataset.type, li.dataset.name));
       });
 
-      btn.setAttribute('aria-expanded', 'true');
-      childrenEl.hidden = false;
-
+      TreeView.toggle(caret);
       selectResource(type, name);
     }
 
@@ -283,10 +279,10 @@
         TreeView.renderExpandable(`catalog-subtree-${i}`, c, { path: '', type: 'catalog', name: c })
       ).join('');
 
-      catalogTree.querySelectorAll('.tree-toggle').forEach(btn => {
-        btn.addEventListener('click', async (e) => {
+      catalogTree.querySelectorAll('.caret').forEach(c => {
+        c.addEventListener('click', (e) => {
           e.stopPropagation();
-          expandNode(btn);
+          expandNode(c);
         });
       });
     }
