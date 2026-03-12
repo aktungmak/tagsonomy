@@ -46,41 +46,29 @@
       return type;
     }
 
+    const schemeTreeConfig = {
+      loadChildren: async (caret) => {
+        const uri = caret.dataset.schemeUri;
+        if (!membersCache[uri]) {
+          const r = await fetch(`/concept_schemes/members?scheme_uri=${encodeURIComponent(uri)}`);
+          const data = await r.json();
+          membersCache[uri] = data.members || [];
+        }
+        return membersCache[uri];
+      },
+      renderChildren: (members) =>
+        members.map((m) =>
+          TreeView.renderLeaf(`${typeLabel(m.type)}: ${m.label || m.uri}`, { uri: m.uri, type: 'resource' })
+        ).join(''),
+      afterExpand: (caret) => selectScheme(caret.dataset.schemeUri),
+      onLeafSelect: (li) => selectResource(li.dataset.uri)
+    };
+
     function renderSchemeTree() {
       schemeTree.innerHTML = schemes.map((s, i) =>
         TreeView.renderExpandable(`scheme-subtree-${i}`, `skos:ConceptScheme: ${s.label || s.uri}`, { scheme_uri: s.uri })
       ).join('');
-
-      schemeTree.querySelectorAll('.caret').forEach(c => {
-        c.addEventListener('click', async (e) => {
-          e.stopPropagation();
-          const uri = c.dataset.schemeUri;
-          const subtreeId = c.getAttribute('data-controls');
-          const subtree = document.getElementById(subtreeId);
-
-          if (TreeView.isExpanded(c)) {
-            TreeView.toggle(c);
-            return;
-          }
-
-          if (!membersCache[uri]) {
-            const r = await fetch(`/concept_schemes/members?scheme_uri=${encodeURIComponent(uri)}`);
-            const data = await r.json();
-            membersCache[uri] = data.members || [];
-          }
-
-          subtree.innerHTML = membersCache[uri].map(m =>
-            TreeView.renderLeaf(`${typeLabel(m.type)}: ${m.label || m.uri}`, { uri: m.uri, type: 'resource' })
-          ).join('');
-
-          subtree.querySelectorAll('li.tree-leaf').forEach(li => {
-            li.addEventListener('click', () => selectResource(li.dataset.uri));
-          });
-
-          TreeView.toggle(c);
-          selectScheme(uri);
-        });
-      });
+      schemeTree.querySelectorAll('.caret').forEach((c) => TreeView.setupCaret(c, schemeTreeConfig));
     }
 
     async function selectScheme(uri) {

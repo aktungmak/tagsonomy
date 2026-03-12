@@ -61,5 +61,55 @@ const TreeView = (function () {
     return caret.classList.contains('caret-down');
   }
 
-  return { esc, renderExpandable, renderLeaf, toggle, isExpanded };
+  /**
+   * Expands a caret node, loads children, renders them, and attaches handlers.
+   * @param {Element} caret - The caret span element
+   * @param {Object} config - Configuration object
+   * @param {function(Element): Promise<Array>} config.loadChildren - Async loader returning child items
+   * @param {function(Array, string, Element): string} config.renderChildren - Renders children HTML; receives (children, subtreeId, parentCaret)
+   * @param {function(Element): void} [config.afterExpand] - Called after expand (e.g. select parent)
+   * @param {function(Element): void} [config.onLeafSelect] - Called when a leaf is clicked
+   */
+  async function expandAndAttach(caret, config) {
+    const subtreeId = caret.getAttribute('data-controls');
+    const subtree = subtreeId ? document.getElementById(subtreeId) : null;
+    if (!subtree) return;
+
+    if (isExpanded(caret)) {
+      toggle(caret);
+      return;
+    }
+
+    const children = await config.loadChildren(caret);
+    subtree.innerHTML = config.renderChildren(children, subtreeId, caret);
+
+    subtree.querySelectorAll('.caret').forEach((c) => {
+      c.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        await expandAndAttach(c, config);
+        if (config.afterExpand) config.afterExpand(c);
+      });
+    });
+    subtree.querySelectorAll('li.tree-leaf').forEach((li) => {
+      li.addEventListener('click', () => {
+        if (config.onLeafSelect) config.onLeafSelect(li);
+      });
+    });
+
+    toggle(caret);
+    if (config.afterExpand) config.afterExpand(caret);
+  }
+
+  /**
+   * Attaches click handler to a caret that expands and loads children.
+   * Use for root-level carets; child carets are attached inside expandAndAttach.
+   */
+  function setupCaret(caret, config) {
+    caret.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      await expandAndAttach(caret, config);
+    });
+  }
+
+  return { esc, renderExpandable, renderLeaf, toggle, isExpanded, expandAndAttach, setupCaret };
 })();

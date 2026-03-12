@@ -113,41 +113,31 @@
       return path;
     }
 
-    async function expandNode(caret) {
-      const path = caret.dataset.path ? caret.dataset.path.split('|').filter(Boolean) : [];
-      const type = caret.dataset.type;
-      const name = caret.dataset.name;
-      const childrenId = caret.getAttribute('data-controls');
-      const childrenEl = document.getElementById(childrenId);
-
-      if (TreeView.isExpanded(caret)) {
-        TreeView.toggle(caret);
-        return;
-      }
-
-      const loadPath = type === 'catalog' ? [name] : path;
-      const children = await loadChildren(loadPath, type);
-
-      childrenEl.innerHTML = children.map((item, i) => {
-        const itemId = childrenId + '-' + i;
-        const isExpandable = item.type !== 'column';
-        const fullName = item.fullName || item.name;
-        const itemPath = buildItemPath(path, type, name, item);
-        return isExpandable
-          ? TreeView.renderExpandable(itemId, item.name, { path: itemPath.join('|'), type: item.type, name: fullName })
-          : TreeView.renderLeaf(item.name, { type: item.type, name: fullName });
-      }).join('');
-
-      childrenEl.querySelectorAll('.caret').forEach(c => {
-        c.addEventListener('click', (e) => { e.stopPropagation(); expandNode(c); selectResource(c.dataset.type, c.dataset.name); });
-      });
-      childrenEl.querySelectorAll('li.tree-leaf').forEach(li => {
-        li.addEventListener('click', () => selectResource(li.dataset.type, li.dataset.name));
-      });
-
-      TreeView.toggle(caret);
-      selectResource(type, name);
-    }
+    const catalogTreeConfig = {
+      loadChildren: async (caret) => {
+        const path = caret.dataset.path ? caret.dataset.path.split('|').filter(Boolean) : [];
+        const type = caret.dataset.type;
+        const name = caret.dataset.name;
+        const loadPath = type === 'catalog' ? [name] : path;
+        return loadChildren(loadPath, type);
+      },
+      renderChildren: (children, subtreeId, parentCaret) => {
+        const path = parentCaret.dataset.path ? parentCaret.dataset.path.split('|').filter(Boolean) : [];
+        const type = parentCaret.dataset.type;
+        const name = parentCaret.dataset.name;
+        return children.map((item, i) => {
+          const itemId = subtreeId + '-' + i;
+          const isExpandable = item.type !== 'column';
+          const fullName = item.fullName || item.name;
+          const itemPath = buildItemPath(path, type, name, item);
+          return isExpandable
+            ? TreeView.renderExpandable(itemId, item.name, { path: itemPath.join('|'), type: item.type, name: fullName })
+            : TreeView.renderLeaf(item.name, { type: item.type, name: fullName });
+        }).join('');
+      },
+      afterExpand: (caret) => selectResource(caret.dataset.type, caret.dataset.name),
+      onLeafSelect: (li) => selectResource(li.dataset.type, li.dataset.name)
+    };
 
     async function selectResource(type, name) {
       detailPlaceholder.hidden = true;
@@ -278,13 +268,7 @@
       catalogTree.innerHTML = catalogs.map((c, i) =>
         TreeView.renderExpandable(`catalog-subtree-${i}`, c, { path: '', type: 'catalog', name: c })
       ).join('');
-
-      catalogTree.querySelectorAll('.caret').forEach(c => {
-        c.addEventListener('click', (e) => {
-          e.stopPropagation();
-          expandNode(c);
-        });
-      });
+      catalogTree.querySelectorAll('.caret').forEach((c) => TreeView.setupCaret(c, catalogTreeConfig));
     }
 
     (async function init() {
