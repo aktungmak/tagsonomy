@@ -130,9 +130,10 @@
           const isExpandable = item.type !== 'column';
           const fullName = item.fullName || item.name;
           const itemPath = buildItemPath(path, type, name, item);
+          const icon = item.type;
           return isExpandable
-            ? TreeView.renderExpandable(itemId, item.name, { path: itemPath.join('|'), type: item.type, name: fullName })
-            : TreeView.renderLeaf(item.name, { type: item.type, name: fullName });
+            ? TreeView.renderExpandable(itemId, item.name, { path: itemPath.join('|'), type: item.type, name: fullName }, icon)
+            : TreeView.renderLeaf(item.name, { type: item.type, name: fullName }, icon);
         }).join('');
       },
       afterExpand: (caret) => selectResource(caret.dataset.type, caret.dataset.name),
@@ -266,7 +267,7 @@
 
     function renderCatalogTree(catalogs) {
       catalogTree.innerHTML = catalogs.map((c, i) =>
-        TreeView.renderExpandable(`catalog-subtree-${i}`, c, { path: '', type: 'catalog', name: c })
+        TreeView.renderExpandable(`catalog-subtree-${i}`, c, { path: '', type: 'catalog', name: c }, 'catalog')
       ).join('');
       catalogTree.querySelectorAll('.caret').forEach((c) => TreeView.setupCaret(c, catalogTreeConfig));
     }

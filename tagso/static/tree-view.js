@@ -19,30 +19,46 @@ const TreeView = (function () {
   }
 
   /**
+   * Renders icon markup if DuboisIcons is available and icon name is given.
+   * @param {string} [iconName] - Name from DuboisIcons (catalog, schema, table, column, book, group, lightbulb, link)
+   */
+  function renderIcon(iconName) {
+    if (!iconName || typeof DuboisIcons === 'undefined') return '';
+    const svg = DuboisIcons.get(iconName);
+    return svg ? `<span class="tree-icon">${svg}</span>` : '';
+  }
+
+  /**
    * Renders an expandable tree item (caret + nested ul).
    * @param {string} id - Unique id for the nested ul
    * @param {string} label - Display text
    * @param {Record<string, string>} dataAttrs - Data attributes for the caret span
+   * @param {string} [icon] - DuBois icon name (catalog, schema, table, book, etc.)
    */
-  function renderExpandable(id, label, dataAttrs) {
+  function renderExpandable(id, label, dataAttrs, icon) {
     const attrs = Object.entries(dataAttrs || {})
       .map(([k, v]) => `${toDataAttr(k)}="${esc(v)}"`)
       .join(' ');
+    const iconHtml = renderIcon(icon);
     return `<li>
-  <span class="caret" data-controls="${esc(id)}" ${attrs}>${esc(label)}</span>
+  <span class="caret" data-controls="${esc(id)}" ${attrs}>${iconHtml}${esc(label)}</span>
   <ul class="nested" id="${esc(id)}"></ul>
 </li>`;
   }
 
   /**
    * Renders a leaf tree item.
+   * @param {string} label - Display text
+   * @param {Record<string, string>} dataAttrs - Data attributes for the li
+   * @param {string} [icon] - DuBois icon name
    */
-  function renderLeaf(label, dataAttrs) {
+  function renderLeaf(label, dataAttrs, icon) {
     const attrs = Object.entries(dataAttrs || {})
       .map(([k, v]) => `${toDataAttr(k)}="${esc(v)}"`)
       .join(' ');
     const extra = attrs ? ` ${attrs}` : '';
-    return `<li class="tree-leaf"${extra}>${esc(label)}</li>`;
+    const iconHtml = renderIcon(icon);
+    return `<li class="tree-leaf"${extra}><span class="tree-leaf-content">${iconHtml}${esc(label)}</span></li>`;
   }
 
   /**

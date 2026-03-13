@@ -46,6 +46,14 @@
       return type;
     }
 
+    function typeIcon(type) {
+      if (!type) return '';
+      if (type.includes('Class')) return 'group';
+      if (type.includes('Concept')) return 'lightbulb';
+      if (type.includes('Property')) return 'link';
+      return '';
+    }
+
     const schemeTreeConfig = {
       loadChildren: async (caret) => {
         const uri = caret.dataset.schemeUri;
@@ -58,7 +66,7 @@
       },
       renderChildren: (members) =>
         members.map((m) =>
-          TreeView.renderLeaf(`${typeLabel(m.type)}: ${m.label || m.uri}`, { uri: m.uri, type: 'resource' })
+          TreeView.renderLeaf(`${typeLabel(m.type)}: ${m.label || m.uri}`, { uri: m.uri, type: 'resource' }, typeIcon(m.type))
         ).join(''),
       afterExpand: (caret) => selectScheme(caret.dataset.schemeUri),
       onLeafSelect: (li) => selectResource(li.dataset.uri)
@@ -66,7 +74,7 @@
 
     function renderSchemeTree() {
       schemeTree.innerHTML = schemes.map((s, i) =>
-        TreeView.renderExpandable(`scheme-subtree-${i}`, `skos:ConceptScheme: ${s.label || s.uri}`, { scheme_uri: s.uri })
+        TreeView.renderExpandable(`scheme-subtree-${i}`, `skos:ConceptScheme: ${s.label || s.uri}`, { scheme_uri: s.uri }, 'book')
       ).join('');
       schemeTree.querySelectorAll('.caret').forEach((c) => TreeView.setupCaret(c, schemeTreeConfig));
     }

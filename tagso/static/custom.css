@@ -161,8 +161,9 @@ ul.nested {
   padding: 0;
 }
 
-
 .caret {
+  display: inline-flex;
+  align-items: center;
   cursor: pointer;
   user-select: none;
   color: var(--dubois-text-primary);
@@ -173,6 +174,30 @@ ul.nested {
   color: var(--dubois-text-secondary);
   display: inline-block;
   margin-right: 6px;
+  flex-shrink: 0;
+}
+
+.tree-icon {
+  display: inline-flex;
+  align-items: center;
+  margin-right: var(--dubois-space-sm);
+  flex-shrink: 0;
+}
+
+.tree-icon-svg {
+  width: 16px;
+  height: 16px;
+  display: block;
+  color: var(--dubois-text-secondary);
+}
+
+.tree-leaf .tree-icon-svg {
+  color: var(--dubois-text-secondary);
+}
+
+.tree-leaf-content {
+  display: inline-flex;
+  align-items: center;
 }
 
 .caret:hover,
@@ -193,10 +218,15 @@ ul.nested.active {
   display: block;
 }
 
-ul.nested>li {
+ul.nested > li {
   font-size: 12px;
   color: var(--dubois-text-primary);
   cursor: pointer;
+}
+
+ul.nested > li.tree-leaf {
+  display: flex;
+  align-items: center;
 }
 
 ul.nested>li:hover {
