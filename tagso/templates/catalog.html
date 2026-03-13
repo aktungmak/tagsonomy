@@ -6,6 +6,20 @@
 {% block body_class %}catalog{% endblock %}
 
 {% block main_inner %}
+<script type="application/json" id="catalog-urls">
+{
+  "conceptSchemes": "{{ url_for('concept_schemes.concept_schemes_get') }}",
+  "catalogBase": "{{ url_for('catalog.catalog_get') }}",
+  "catalogCatalogs": "{{ url_for('catalog.catalog_catalogs') }}",
+  "catalogResource": "{{ url_for('catalog.catalog_resource') }}",
+  "catalogRegister": "{{ url_for('catalog.catalog_register') }}",
+  "catalogDeregister": "{{ url_for('catalog.catalog_deregister') }}",
+  "catalogAssignConcept": "{{ url_for('catalog.catalog_assign_concept') }}",
+  "catalogUnassignConcept": "{{ url_for('catalog.catalog_unassign_concept') }}",
+  "catalogAssignProperty": "{{ url_for('catalog.catalog_assign_property') }}",
+  "catalogUnassignProperty": "{{ url_for('catalog.catalog_unassign_property') }}"
+}
+</script>
 {{ macros.tree_sidebar("Unity Catalog", "<h3>Catalogs</h3>", "catalog_tree", "Catalog navigation") }}
 
 <div class="handle" data-resize-sidebar aria-hidden="true"></div>
@@ -16,18 +30,130 @@
   </article>
 </section>
 
+<template id="error-detail">
+  <p data-slot="message"></p>
+</template>
+
+<template id="catalog-schema-detail">
+  <header>
+    <h2 data-slot="title"></h2>
+  </header>
+  <section aria-label="Metadata">
+    <h3>Comment</h3>
+    <p data-slot="comment"></p>
+  </section>
+</template>
+
+<template id="table-detail">
+  <header>
+    <h2 data-slot="title"></h2>
+  </header>
+  <section aria-label="Metadata">
+    <h3>Comment</h3>
+    <p data-slot="comment"></p>
+  </section>
+  <section aria-label="Columns">
+    <h3>Columns</h3>
+    <dl data-slot="columns"></dl>
+  </section>
+  <section aria-label="Assigned concepts">
+    <h3>Assigned Concepts</h3>
+    <div data-slot-optional="concepts-section">
+      <ul id="assigned_concepts" data-slot="concepts-list"></ul>
+    </div>
+    <div data-slot-optional="no-concepts">
+      <p>No concepts assigned.</p>
+    </div>
+    <div data-slot-optional="register-prompt">
+      <p><button type="button" id="register_btn">Register</button> to assign concepts.</p>
+    </div>
+    <div data-slot-optional="add-form-section"><div data-slot="add-form-content"></div></div>
+    <div data-slot-optional="deregister-section">
+      <p><button type="button" id="deregister_btn">Deregister</button></p>
+    </div>
+  </section>
+</template>
+
+<template id="concept-list-item">
+  <li>
+    <a data-slot="link-href" data-slot-attr="href"><span data-slot="link-text"></span></a>
+    <button type="button" class="unassign-btn" data-slot="btn-uri" data-slot-attr="data-concept-uri">Remove</button>
+  </li>
+</template>
+
+<template id="property-list-item">
+  <li>
+    <a data-slot="link-href" data-slot-attr="href"><span data-slot="link-text"></span></a>
+    <button type="button" class="unassign-btn" data-slot="btn-uri" data-slot-attr="data-property-uri">Remove</button>
+  </li>
+</template>
+
+<template id="column-row">
+  <dt data-slot="name"></dt>
+  <dd data-slot="description"></dd>
+</template>
+
+<template id="add-concept-form">
+  <h4>Add concept</h4>
+  <form id="add_concept_form">
+    <select name="concept_uri"></select>
+    <button type="submit">Add</button>
+  </form>
+</template>
+
+<template id="add-property-form">
+  <h4>Add property</h4>
+  <form id="add_property_form">
+    <select name="property_uri"></select>
+    <button type="submit">Add</button>
+  </form>
+</template>
+
+<template id="option">
+  <option data-slot="option"></option>
+</template>
+
+<template id="column-detail">
+  <header>
+    <h2 data-slot="title"></h2>
+  </header>
+  <section aria-label="Metadata">
+    <h3>Type</h3>
+    <p data-slot="type"></p>
+    <h3>Comment</h3>
+    <p data-slot="comment"></p>
+  </section>
+  <section aria-label="Assigned properties">
+    <h3>Assigned Properties</h3>
+    <div data-slot-optional="props-section">
+      <ul id="assigned_properties" data-slot="props-list"></ul>
+    </div>
+    <div data-slot-optional="no-props">
+      <p>No properties assigned.</p>
+    </div>
+    <div data-slot-optional="register-prompt">
+      <p><button type="button" id="register_btn">Register</button> to assign properties.</p>
+    </div>
+    <div data-slot-optional="add-form-section"><div data-slot="add-form-content"></div></div>
+    <div data-slot-optional="deregister-section">
+      <p><button type="button" id="deregister_btn">Deregister</button></p>
+    </div>
+  </section>
+</template>
+
 <script>
   (function () {
     const catalogTree = document.getElementById('catalog_tree');
     const detailPane = document.getElementById('detail_pane');
     const detailPlaceholder = document.getElementById('detail_placeholder');
-    const esc = TreeView.esc;
+    const urls = JSON.parse(document.getElementById('catalog-urls').textContent);
 
     const childrenCache = {};
 
     const assignConfig = {
       table: {
-        endpoint: '/catalog/assign_concept',
+        endpoint: urls.catalogAssignConcept,
+        unassignEndpoint: urls.catalogUnassignConcept,
         uriKey: 'table_uri',
         assigneeKey: 'concept_uri',
         datasetKey: 'conceptUri',
@@ -36,7 +162,8 @@
         deregisterConfirm: 'Deregister this table? This will remove it and all assignments from the database.'
       },
       column: {
-        endpoint: '/catalog/assign_property',
+        endpoint: urls.catalogAssignProperty,
+        unassignEndpoint: urls.catalogUnassignProperty,
         uriKey: 'column_uri',
         assigneeKey: 'property_uri',
         datasetKey: 'propertyUri',
@@ -54,7 +181,7 @@
         detailPane.querySelectorAll('.unassign-btn').forEach(btn => {
           btn.addEventListener('click', async () => {
             const body = { [cfg.uriKey]: data.uri, [cfg.assigneeKey]: btn.dataset[cfg.datasetKey] };
-            const r = await fetch(cfg.endpoint, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+            const r = await fetch(cfg.unassignEndpoint, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
             if (r.ok) await selectResource(type, name);
           });
         });
@@ -71,7 +198,7 @@
         if (deregisterBtn) {
           deregisterBtn.addEventListener('click', async () => {
             if (!confirm(cfg.deregisterConfirm)) return;
-            const r = await fetch('/catalog/resource', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ uri: data.uri }) });
+            const r = await fetch(urls.catalogDeregister, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ uri: data.uri }) });
             if (r.ok) await selectResource(type, name);
           });
         }
@@ -79,7 +206,7 @@
       const registerBtn = detailPane.querySelector('#register_btn');
       if (registerBtn) {
         registerBtn.addEventListener('click', async () => {
-          const r = await fetch('/catalog/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type, name }) });
+          const r = await fetch(urls.catalogRegister, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type, name }) });
           if (r.ok) await selectResource(type, name);
         });
       }
@@ -90,15 +217,15 @@
       if (childrenCache[key] !== undefined) return childrenCache[key];
       let items = [];
       if (type === 'catalog') {
-        const r = await fetch(`/catalog/schemas/${encodeURIComponent(path[0])}`);
+        const r = await fetch(`${urls.catalogBase}/schemas/${encodeURIComponent(path[0])}`);
         const names = await r.json();
         items = names.map(name => ({ type: 'schema', name, fullName: `${path[0]}.${name}` }));
       } else if (type === 'schema') {
-        const r = await fetch(`/catalog/tables/${encodeURIComponent(path[0])}/${encodeURIComponent(path[1])}`);
+        const r = await fetch(`${urls.catalogBase}/tables/${encodeURIComponent(path[0])}/${encodeURIComponent(path[1])}`);
         const names = await r.json();
         items = names.map(name => ({ type: 'table', name, fullName: `${path[0]}.${path[1]}.${name}` }));
       } else if (type === 'table') {
-        const r = await fetch(`/catalog/columns/${encodeURIComponent(path[0])}/${encodeURIComponent(path[1])}/${encodeURIComponent(path[2])}`);
+        const r = await fetch(`${urls.catalogBase}/columns/${encodeURIComponent(path[0])}/${encodeURIComponent(path[1])}/${encodeURIComponent(path[2])}`);
         const names = await r.json();
         items = names.map(name => ({ type: 'column', name, fullName: `${path[0]}.${path[1]}.${path[2]}.${name}` }));
       }
@@ -142,23 +269,20 @@
 
     async function selectResource(type, name) {
       detailPlaceholder.hidden = true;
-      const r = await fetch(`/catalog/resource?type=${encodeURIComponent(type)}&name=${encodeURIComponent(name)}`);
+      const r = await fetch(`${urls.catalogResource}?type=${encodeURIComponent(type)}&name=${encodeURIComponent(name)}`);
       const data = await r.json();
       if (!r.ok) {
-        detailPane.innerHTML = `<p>Error: ${esc(data.error || 'Failed to load')}</p>`;
+        const frag = fillTemplate('error-detail', { message: `Error: ${data.error || 'Failed to load'}` });
+        detailPane.replaceChildren(frag);
         return;
       }
 
       if (type === 'catalog' || type === 'schema') {
-        detailPane.innerHTML = `
-        <header>
-          <h2>${type === 'catalog' ? 'Catalog' : 'Schema'}: ${esc(data.name)}</h2>
-        </header>
-        <section aria-label="Metadata">
-          <h3>Comment</h3>
-          <p>${esc(data.comment || 'No comment.')}</p>
-        </section>
-      `;
+        const frag = fillTemplate('catalog-schema-detail', {
+          title: `${type === 'catalog' ? 'Catalog' : 'Schema'}: ${data.name}`,
+          comment: data.comment || 'No comment.'
+        });
+        detailPane.replaceChildren(frag);
         return;
       }
 
@@ -169,47 +293,41 @@
         const assignedUris = new Set(concepts.map(c => c.concept_uri));
         const availableConcepts = allConcepts.filter(c => !assignedUris.has(c.uri));
 
-        let conceptsHtml = concepts.map(c => `
-        <li>
-          <a href="/concept_schemes?uri=${encodeURIComponent(c.concept_uri)}">${esc(c.concept_name || c.concept_uri)}</a>
-          <button type="button" class="unassign-btn" data-concept-uri="${esc(c.concept_uri)}">Remove</button>
-        </li>
-      `).join('');
+        const conceptsFrag = renderList('concept-list-item', concepts, (c) => ({
+          'link-href': `${urls.conceptSchemes}?uri=${encodeURIComponent(c.concept_uri)}`,
+          'link-text': c.concept_name || c.concept_uri,
+          'btn-uri': c.concept_uri
+        }));
 
-        let addFormHtml = '';
+        let addFormContent = null;
         if (hasUri && availableConcepts.length) {
-          addFormHtml = `
-          <h4>Add concept</h4>
-          <form id="add_concept_form">
-            <select name="concept_uri">
-              ${availableConcepts.map(c => `<option value="${esc(c.uri)}">${esc(c.label || c.uri)}</option>`).join('')}
-            </select>
-            <button type="submit">Add</button>
-          </form>
-        `;
+          const addFormFrag = fillTemplate('add-concept-form', {});
+          addFormFrag.querySelector('select').appendChild(
+            renderList('option', availableConcepts, (c) => ({
+              option: { __value: c.uri, __label: c.label || c.uri }
+            }))
+          );
+          addFormContent = html.fragment(addFormFrag);
         }
 
-        detailPane.innerHTML = `
-        <header>
-          <h2>Table: ${esc(data.name)}</h2>
-        </header>
-        <section aria-label="Metadata">
-          <h3>Comment</h3>
-          <p>${esc(data.comment || 'No comment.')}</p>
-        </section>
-        <section aria-label="Columns">
-          <h3>Columns</h3>
-          <dl>${(data.columns || []).map(c => `<dt>${esc(c.name)}</dt><dd>${esc(c.type_text)}${c.comment ? ' – ' + esc(c.comment) : ''}</dd>`).join('')}</dl>
-        </section>
-        <section aria-label="Assigned concepts">
-          <h3>Assigned Concepts</h3>
-          ${concepts.length ? `<ul id="assigned_concepts">${conceptsHtml}</ul>` : '<p>No concepts assigned.</p>'}
-          ${!hasUri ? `<p><button type="button" id="register_btn">Register</button> to assign concepts.</p>` : ''}
-          ${addFormHtml}
-          ${hasUri ? `<p><button type="button" id="deregister_btn">Deregister</button></p>` : ''}
-        </section>
-      `;
+        const columnsFrag = renderList('column-row', data.columns || [], (c) => ({
+          name: c.name,
+          description: `${c.type_text}${c.comment ? ' – ' + c.comment : ''}`
+        }));
 
+        const frag = fillTemplate('table-detail', {
+          title: `Table: ${data.name}`,
+          comment: data.comment || 'No comment.',
+          columns: html.fragment(columnsFrag),
+          'concepts-section': concepts.length ? html.keep() : null,
+          'concepts-list': concepts.length ? html.fragment(conceptsFrag) : null,
+          'no-concepts': !concepts.length ? html.keep() : null,
+          'register-prompt': !hasUri ? html.keep() : null,
+          'add-form-section': addFormContent ? html.keep() : null,
+          'add-form-content': addFormContent,
+          'deregister-section': hasUri ? html.keep() : null
+        });
+        detailPane.replaceChildren(frag);
         attachAssignmentHandlers('table', name, data);
         return;
       }
@@ -221,45 +339,36 @@
         const assignedUris = new Set(props.map(p => p.property_uri));
         const availableProps = allProps.filter(p => !assignedUris.has(p.uri));
 
-        let propsHtml = props.map(p => `
-        <li>
-          <a href="/concept_schemes?uri=${encodeURIComponent(p.property_uri)}">${esc(p.property_name || p.property_uri)}</a>
-          <button type="button" class="unassign-btn" data-property-uri="${esc(p.property_uri)}">Remove</button>
-        </li>
-      `).join('');
+        const propsFrag = renderList('property-list-item', props, (p) => ({
+          'link-href': `${urls.conceptSchemes}?uri=${encodeURIComponent(p.property_uri)}`,
+          'link-text': p.property_name || p.property_uri,
+          'btn-uri': p.property_uri
+        }));
 
-        let addFormHtml = '';
+        let addFormContent = null;
         if (hasUri && availableProps.length) {
-          addFormHtml = `
-          <h4>Add property</h4>
-          <form id="add_property_form">
-            <select name="property_uri">
-              ${availableProps.map(p => `<option value="${esc(p.uri)}">${esc(p.name || p.uri)}</option>`).join('')}
-            </select>
-            <button type="submit">Add</button>
-          </form>
-        `;
+          const addFormFrag = fillTemplate('add-property-form', {});
+          addFormFrag.querySelector('select').appendChild(
+            renderList('option', availableProps, (p) => ({
+              option: { __value: p.uri, __label: p.name || p.uri }
+            }))
+          );
+          addFormContent = html.fragment(addFormFrag);
         }
 
-        detailPane.innerHTML = `
-        <header>
-          <h2>Column: ${esc(data.name)}</h2>
-        </header>
-        <section aria-label="Metadata">
-          <h3>Type</h3>
-          <p>${esc(data.type_text || '')}</p>
-          <h3>Comment</h3>
-          <p>${esc(data.comment || 'No comment.')}</p>
-        </section>
-        <section aria-label="Assigned properties">
-          <h3>Assigned Properties</h3>
-          ${props.length ? `<ul id="assigned_properties">${propsHtml}</ul>` : '<p>No properties assigned.</p>'}
-          ${!hasUri ? `<p><button type="button" id="register_btn">Register</button> to assign properties.</p>` : ''}
-          ${addFormHtml}
-          ${hasUri ? `<p><button type="button" id="deregister_btn">Deregister</button></p>` : ''}
-        </section>
-      `;
-
+        const frag = fillTemplate('column-detail', {
+          title: `Column: ${data.name}`,
+          type: data.type_text || '',
+          comment: data.comment || 'No comment.',
+          'props-section': props.length ? html.keep() : null,
+          'props-list': props.length ? html.fragment(propsFrag) : null,
+          'no-props': !props.length ? html.keep() : null,
+          'register-prompt': !hasUri ? html.keep() : null,
+          'add-form-section': addFormContent ? html.keep() : null,
+          'add-form-content': addFormContent,
+          'deregister-section': hasUri ? html.keep() : null
+        });
+        detailPane.replaceChildren(frag);
         attachAssignmentHandlers('column', name, data);
         return;
       }
@@ -273,7 +382,7 @@
     }
 
     (async function init() {
-      const r = await fetch('/catalog/catalogs');
+      const r = await fetch(urls.catalogCatalogs);
       const catalogs = await r.json();
       renderCatalogTree(catalogs);
 

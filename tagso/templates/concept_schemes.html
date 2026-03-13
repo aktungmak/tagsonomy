@@ -6,6 +6,19 @@
 {% block body_class %}concept-schemes{% endblock %}
 
 {% block main_inner %}
+<script type="application/json" id="concept-schemes-urls">
+{
+  "conceptSchemes": "{{ url_for('concept_schemes.concept_schemes_get') }}",
+  "schemes": "{{ url_for('concept_schemes.concept_schemes_list') }}",
+  "scheme": "{{ url_for('concept_schemes.concept_schemes_scheme_detail') }}",
+  "resource": "{{ url_for('concept_schemes.concept_schemes_resource') }}",
+  "members": "{{ url_for('concept_schemes.concept_schemes_members') }}",
+  "update": "{{ url_for('concept_schemes.concept_schemes_update') }}",
+  "addMembers": "{{ url_for('concept_schemes.concept_schemes_add_members') }}",
+  "create": "{{ url_for('concept_schemes.concept_schemes_post') }}",
+  "delete": "{{ url_for('concept_schemes.concept_schemes_delete') }}"
+}
+</script>
 {{ macros.tree_sidebar(
 "SKOS Concept Schemes",
 '<h3>New Concept Scheme</h3>
@@ -28,12 +41,68 @@
   </article>
 </section>
 
+<template id="error-detail">
+  <p data-slot="message"></p>
+</template>
+
+<template id="scheme-detail">
+  <header>
+    <h2 data-slot="title"></h2>
+  </header>
+  <section aria-label="Edit scheme">
+    <form id="scheme_edit_form">
+      <input type="hidden" name="uri" data-slot="uri">
+      <label for="scheme_edit_label">Label</label>
+      <input type="text" id="scheme_edit_label" name="label" data-slot="label" required>
+      <label for="scheme_edit_comment">Description</label>
+      <textarea id="scheme_edit_comment" name="comment" data-slot="comment" rows="3"></textarea>
+      <button type="submit">Save</button>
+      <button type="button" data-delete data-slot="delete-attrs" data-type="concept scheme">Delete</button>
+    </form>
+  </section>
+  <section aria-label="Members">
+    <h3>Members</h3>
+    <ul data-slot="members-list"></ul>
+    <h4>Add members</h4>
+    <form id="add_members_form">
+      <input type="hidden" name="uri" data-slot="add-uri">
+      <select name="resource_uris" multiple size="8" data-slot="member-options"></select>
+      <button type="submit">Add to scheme</button>
+    </form>
+  </section>
+</template>
+
+<template id="member-list-item">
+  <li data-slot="label"></li>
+</template>
+
+<template id="property-row">
+  <dt data-slot="name"></dt>
+  <dd data-slot="role"></dd>
+</template>
+
+<template id="resource-detail">
+  <header>
+    <h2 data-slot="title"></h2>
+    <p data-slot-optional="in-scheme"></p>
+  </header>
+  <section aria-label="Description">
+    <h3>Description</h3>
+    <p data-slot="comment"></p>
+  </section>
+  <section data-slot-optional="properties-section" aria-label="Properties">
+    <h3>Properties</h3>
+    <dl data-slot="properties-list"></dl>
+  </section>
+</template>
+
 <script>
   (function () {
     const schemeTree = document.getElementById('scheme_tree');
     const detailPane = document.getElementById('detail_pane');
     const detailPlaceholder = document.getElementById('detail_placeholder');
     const newSchemeForm = document.getElementById('new_scheme_form');
+    const urls = JSON.parse(document.getElementById('concept-schemes-urls').textContent);
 
     let schemes = [];
     const membersCache = {};
@@ -58,7 +127,7 @@
       loadChildren: async (caret) => {
         const uri = caret.dataset.schemeUri;
         if (!membersCache[uri]) {
-          const r = await fetch(`/concept_schemes/members?scheme_uri=${encodeURIComponent(uri)}`);
+          const r = await fetch(`${urls.members}?scheme_uri=${encodeURIComponent(uri)}`);
           const data = await r.json();
           membersCache[uri] = data.members || [];
         }
@@ -81,45 +150,34 @@
 
     async function selectScheme(uri) {
       detailPlaceholder.hidden = true;
-      const r = await fetch(`/concept_schemes/scheme?uri=${encodeURIComponent(uri)}`);
+      const r = await fetch(`${urls.scheme}?uri=${encodeURIComponent(uri)}`);
       const data = await r.json();
       if (!r.ok) {
-        detailPane.innerHTML = `<p>Error: ${data.error || 'Failed to load'}</p>`;
+        const frag = fillTemplate('error-detail', { message: `Error: ${data.error || 'Failed to load'}` });
+        detailPane.replaceChildren(frag);
         return;
       }
 
       const { scheme, members, all_concepts, all_properties, member_uris } = data;
-      const memberOptions = [...all_concepts, ...all_properties]
-        .filter(c => !member_uris.includes(c.uri))
-        .map(c => `<option value="${c.uri}">${(c.label || c.name || c.uri)}</option>`)
-        .join('');
+      const memberOptions = [...all_concepts, ...all_properties].filter(c => !member_uris.includes(c.uri));
+      const membersFrag = renderList('member-list-item', members, (m) => ({
+        label: `${typeLabel(m.type)}: ${m.label || m.uri}`
+      }));
+      const optionsFrag = renderList('option', memberOptions, (c) => ({
+        option: { __value: c.uri, __label: c.label || c.name || c.uri }
+      }));
 
-      detailPane.innerHTML = `
-      <header>
-        <h2>skos:ConceptScheme: ${scheme.label || scheme.uri}</h2>
-      </header>
-      <section aria-label="Edit scheme">
-        <form id="scheme_edit_form">
-          <input type="hidden" name="uri" value="${scheme.uri}">
-          <label for="scheme_edit_label">Label</label>
-          <input type="text" id="scheme_edit_label" name="label" value="${scheme.label || ''}" required>
-          <label for="scheme_edit_comment">Description</label>
-          <textarea id="scheme_edit_comment" name="comment" rows="3">${scheme.comment || ''}</textarea>
-          <button type="submit">Save</button>
-          <button type="button" data-delete data-url="/concept_schemes" data-uri="${scheme.uri}" data-type="concept scheme">Delete</button>
-        </form>
-      </section>
-      <section aria-label="Members">
-        <h3>Members</h3>
-        <ul>${members.map(m => `<li>${typeLabel(m.type)}: ${m.label || m.uri}</li>`).join('')}</ul>
-        <h4>Add members</h4>
-        <form id="add_members_form">
-          <input type="hidden" name="uri" value="${scheme.uri}">
-          <select name="resource_uris" multiple size="8">${memberOptions}</select>
-          <button type="submit">Add to scheme</button>
-        </form>
-      </section>
-    `;
+      const schemeFrag = fillTemplate('scheme-detail', {
+        title: `skos:ConceptScheme: ${scheme.label || scheme.uri}`,
+        uri: scheme.uri,
+        label: scheme.label || '',
+        comment: scheme.comment || '',
+        'delete-attrs': { 'data-uri': scheme.uri, 'data-url': urls.delete },
+        'members-list': html.fragment(membersFrag),
+        'add-uri': scheme.uri,
+        'member-options': html.fragment(optionsFrag)
+      });
+      detailPane.replaceChildren(schemeFrag);
 
       detailPane.querySelector('#scheme_edit_form').addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -129,7 +187,7 @@
           label: form.label.value.trim(),
           comment: form.comment?.value.trim() || undefined
         });
-        const r = await fetch('/concept_schemes/update', {
+        const r = await fetch(urls.update, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body
@@ -146,7 +204,7 @@
         const form = e.target;
         const uris = Array.from(form.resource_uris.selectedOptions).map(o => o.value);
         if (!uris.length) return;
-        const r = await fetch('/concept_schemes/add_members', {
+        const r = await fetch(urls.addMembers, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ uri: scheme.uri, resource_uris: uris })
@@ -160,38 +218,36 @@
 
     async function selectResource(uri) {
       detailPlaceholder.hidden = true;
-      const r = await fetch(`/concept_schemes/resource?uri=${encodeURIComponent(uri)}`);
+      const r = await fetch(`${urls.resource}?uri=${encodeURIComponent(uri)}`);
       const data = await r.json();
       if (!r.ok) {
-        detailPane.innerHTML = `<p>Error: ${data.error || 'Failed to load'}</p>`;
+        const frag = fillTemplate('error-detail', { message: `Error: ${data.error || 'Failed to load'}` });
+        detailPane.replaceChildren(frag);
         return;
       }
 
       const { resource, type, related_properties } = data;
       const inScheme = resource.in_scheme ? `From skos:ConceptScheme: ${resource.in_scheme}` : '';
 
-      let propsHtml = '';
-      if (type === 'concept' && related_properties && related_properties.length) {
-        propsHtml = '<dl>' + related_properties.map(p =>
-          `<dt>rdfs:Property: ${p.name || p.uri}</dt><dd>${p.role || ''}</dd>`
-        ).join('') + '</dl>';
-      }
+      const propsFrag = (type === 'concept' && related_properties && related_properties.length)
+        ? renderList('property-row', related_properties, (p) => ({
+            name: `rdfs:Property: ${p.name || p.uri}`,
+            role: p.role || ''
+          }))
+        : null;
 
-      detailPane.innerHTML = `
-      <header>
-        <h2>${typeLabel(resource.type)}: ${resource.label || resource.name || resource.uri}</h2>
-        ${inScheme ? `<p>${inScheme}</p>` : ''}
-      </header>
-      <section aria-label="Description">
-        <h3>Description</h3>
-        <p>${resource.comment || 'No description.'}</p>
-      </section>
-      ${propsHtml ? `<section aria-label="Properties"><h3>Properties</h3>${propsHtml}</section>` : ''}
-    `;
+      const resourceFrag = fillTemplate('resource-detail', {
+        title: `${typeLabel(resource.type)}: ${resource.label || resource.name || resource.uri}`,
+        'in-scheme': inScheme || null,
+        comment: resource.comment || 'No description.',
+        'properties-section': propsFrag ? html.keep() : null,
+        'properties-list': propsFrag ? html.fragment(propsFrag) : null
+      });
+      detailPane.replaceChildren(resourceFrag);
     }
 
     async function loadSchemes() {
-      const r = await fetch('/concept_schemes/schemes');
+      const r = await fetch(urls.schemes);
       const data = await r.json();
       schemes = data.schemes || [];
       renderSchemeTree();
@@ -204,7 +260,7 @@
         label: form.label.value.trim(),
         uri: form.uri.value.trim() || undefined
       });
-      const r = await fetch('/concept_schemes', {
+      const r = await fetch(urls.create, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body
