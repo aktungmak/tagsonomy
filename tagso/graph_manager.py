@@ -218,6 +218,289 @@ class GraphManager:
         uri_ref = URIRef(uri)
         return [alt.toPython() for alt in self._graph.objects(uri_ref, SKOS.altLabel)]
 
+    def get_concept_detail_full(self, uri: str) -> Optional[dict]:
+        """Get all concept detail data in one query: type, in_scheme, labels, comments,
+        alt_labels, superclasses, subclasses, assigned_tables.
+        """
+        uri_ref = URIRef(uri)
+        r = self._graph.query(
+            """
+            SELECT ?row_kind ?type_val ?in_scheme ?label_val ?rel_uri ?rel_label ?table_uri ?table_name
+            WHERE {
+                {
+                    BIND("type" AS ?row_kind) .
+                    ?uri rdf:type ?type_val .
+                    FILTER(?type_val IN (rdfs:Class, skos:Concept)) .
+                    OPTIONAL { ?uri skos:inScheme ?in_scheme }
+                }
+                UNION
+                {
+                    BIND("label" AS ?row_kind) .
+                    ?uri rdfs:label ?label_val .
+                }
+                UNION
+                {
+                    BIND("comment" AS ?row_kind) .
+                    ?uri rdfs:comment ?label_val .
+                }
+                UNION
+                {
+                    BIND("altLabel" AS ?row_kind) .
+                    ?uri skos:altLabel ?label_val .
+                }
+                UNION
+                {
+                    BIND("super" AS ?row_kind) .
+                    ?uri rdfs:subClassOf ?rel_uri .
+                    OPTIONAL { ?rel_uri rdfs:label ?rel_label }
+                }
+                UNION
+                {
+                    BIND("sub" AS ?row_kind) .
+                    ?rel_uri rdfs:subClassOf ?uri .
+                    OPTIONAL { ?rel_uri rdfs:label ?rel_label }
+                }
+                UNION
+                {
+                    BIND("broader" AS ?row_kind) .
+                    ?uri skos:broader ?rel_uri .
+                    OPTIONAL { ?rel_uri rdfs:label ?rel_label }
+                }
+                UNION
+                {
+                    BIND("narrower" AS ?row_kind) .
+                    ?uri skos:narrower ?rel_uri .
+                    OPTIONAL { ?rel_uri rdfs:label ?rel_label }
+                }
+                UNION
+                {
+                    BIND("table" AS ?row_kind) .
+                    ?table_uri uc:conceptAssignment ?uri .
+                    OPTIONAL { ?table_uri uc:name ?table_name }
+                }
+            }
+            """,
+            initBindings={"uri": uri_ref},
+        )
+        rows = self._to_dicts(r.bindings)
+        if not rows:
+            return None
+
+        result = {
+            "uri": uri,
+            "type": None,
+            "in_scheme": None,
+            "labels": [],
+            "comments": [],
+            "alt_labels": [],
+            "superclasses": [],
+            "subclasses": [],
+            "assigned_tables": [],
+        }
+        seen_super = set()
+        seen_sub = set()
+        seen_tables = set()
+
+        def qname(val):
+            if val is None:
+                return None
+            try:
+                return self._graph.namespace_manager.qname(URIRef(val))
+            except Exception:
+                return str(val)
+
+        for row in rows:
+            kind = row.get("row_kind")
+            if kind == "type":
+                if result["type"] is None:
+                    result["type"] = qname(row.get("type_val"))
+                if result["in_scheme"] is None and row.get("in_scheme"):
+                    result["in_scheme"] = qname(row.get("in_scheme"))
+            elif kind == "label" and row.get("label_val"):
+                result["labels"].append(row["label_val"].toPython() if hasattr(row["label_val"], "toPython") else str(row["label_val"]))
+            elif kind == "comment" and row.get("label_val"):
+                result["comments"].append(row["label_val"].toPython() if hasattr(row["label_val"], "toPython") else str(row["label_val"]))
+            elif kind == "altLabel" and row.get("label_val"):
+                result["alt_labels"].append(row["label_val"].toPython() if hasattr(row["label_val"], "toPython") else str(row["label_val"]))
+            elif kind == "super" and row.get("rel_uri"):
+                rel_uri = row["rel_uri"].toPython() if hasattr(row["rel_uri"], "toPython") else str(row["rel_uri"])
+                if rel_uri not in seen_super:
+                    seen_super.add(rel_uri)
+                    result["superclasses"].append({
+                        "uri": rel_uri,
+                        "label": row.get("rel_label") and (row["rel_label"].toPython() if hasattr(row["rel_label"], "toPython") else str(row["rel_label"])),
+                    })
+            elif kind == "sub" and row.get("rel_uri"):
+                rel_uri = row["rel_uri"].toPython() if hasattr(row["rel_uri"], "toPython") else str(row["rel_uri"])
+                if rel_uri not in seen_sub:
+                    seen_sub.add(rel_uri)
+                    result["subclasses"].append({
+                        "uri": rel_uri,
+                        "label": row.get("rel_label") and (row["rel_label"].toPython() if hasattr(row["rel_label"], "toPython") else str(row["rel_label"])),
+                    })
+            elif kind == "broader" and row.get("rel_uri"):
+                rel_uri = row["rel_uri"].toPython() if hasattr(row["rel_uri"], "toPython") else str(row["rel_uri"])
+                if rel_uri not in seen_super:
+                    seen_super.add(rel_uri)
+                    result["superclasses"].append({
+                        "uri": rel_uri,
+                        "label": row.get("rel_label") and (row["rel_label"].toPython() if hasattr(row["rel_label"], "toPython") else str(row["rel_label"])),
+                    })
+            elif kind == "narrower" and row.get("rel_uri"):
+                rel_uri = row["rel_uri"].toPython() if hasattr(row["rel_uri"], "toPython") else str(row["rel_uri"])
+                if rel_uri not in seen_sub:
+                    seen_sub.add(rel_uri)
+                    result["subclasses"].append({
+                        "uri": rel_uri,
+                        "label": row.get("rel_label") and (row["rel_label"].toPython() if hasattr(row["rel_label"], "toPython") else str(row["rel_label"])),
+                    })
+            elif kind == "table" and row.get("table_uri"):
+                t_uri = row["table_uri"].toPython() if hasattr(row["table_uri"], "toPython") else str(row["table_uri"])
+                if t_uri not in seen_tables:
+                    seen_tables.add(t_uri)
+                    result["assigned_tables"].append({
+                        "table_uri": t_uri,
+                        "table_name": row.get("table_name") and (row["table_name"].toPython() if hasattr(row["table_name"], "toPython") else str(row["table_name"])),
+                    })
+
+        return result
+
+    def get_property_detail_full(self, uri: str) -> Optional[dict]:
+        """Get all property detail data in one query: type, in_scheme, domain, range,
+        labels, comments, alt_labels, superproperties, subproperties, assigned_columns.
+        """
+        uri_ref = URIRef(uri)
+        r = self._graph.query(
+            """
+            SELECT ?row_kind ?type_val ?in_scheme ?label_val ?rel_uri ?rel_label
+                   ?domain ?domain_label ?range ?range_label ?column_uri ?column_name
+            WHERE {
+                {
+                    BIND("type" AS ?row_kind) .
+                    ?uri a rdf:Property .
+                    OPTIONAL { ?uri skos:inScheme ?in_scheme }
+                    OPTIONAL { ?uri rdfs:domain ?domain }
+                    OPTIONAL { ?domain rdfs:label ?domain_label }
+                    OPTIONAL { ?uri rdfs:range ?range }
+                    OPTIONAL { ?range rdfs:label ?range_label }
+                }
+                UNION
+                {
+                    BIND("label" AS ?row_kind) .
+                    ?uri rdfs:label ?label_val .
+                }
+                UNION
+                {
+                    BIND("comment" AS ?row_kind) .
+                    ?uri rdfs:comment ?label_val .
+                }
+                UNION
+                {
+                    BIND("altLabel" AS ?row_kind) .
+                    ?uri skos:altLabel ?label_val .
+                }
+                UNION
+                {
+                    BIND("superprop" AS ?row_kind) .
+                    ?uri rdfs:subPropertyOf ?rel_uri .
+                    OPTIONAL { ?rel_uri rdfs:label ?rel_label }
+                }
+                UNION
+                {
+                    BIND("subprop" AS ?row_kind) .
+                    ?rel_uri rdfs:subPropertyOf ?uri .
+                    OPTIONAL { ?rel_uri rdfs:label ?rel_label }
+                }
+                UNION
+                {
+                    BIND("column" AS ?row_kind) .
+                    ?column_uri uc:propertyAssignment ?uri .
+                    OPTIONAL { ?column_uri uc:name ?column_name }
+                }
+            }
+            """,
+            initBindings={"uri": uri_ref},
+        )
+        rows = self._to_dicts(r.bindings)
+        if not rows:
+            return None
+
+        result = {
+            "uri": uri,
+            "type": "rdf:Property",
+            "in_scheme": None,
+            "domain": None,
+            "domain_label": None,
+            "range": None,
+            "range_label": None,
+            "labels": [],
+            "comments": [],
+            "alt_labels": [],
+            "superproperties": [],
+            "subproperties": [],
+            "assigned_columns": [],
+        }
+        seen_super = set()
+        seen_sub = set()
+        seen_columns = set()
+
+        def qname(val):
+            if val is None:
+                return None
+            try:
+                return self._graph.namespace_manager.qname(URIRef(val))
+            except Exception:
+                return str(val)
+
+        def to_py(obj):
+            return obj.toPython() if obj is not None and hasattr(obj, "toPython") else (str(obj) if obj is not None else None)
+
+        for row in rows:
+            kind = row.get("row_kind")
+            if kind == "type":
+                if result["in_scheme"] is None and row.get("in_scheme"):
+                    result["in_scheme"] = qname(row.get("in_scheme"))
+                if result["domain"] is None and row.get("domain"):
+                    result["domain"] = row["domain"].toPython() if hasattr(row["domain"], "toPython") else str(row["domain"])
+                if result["domain_label"] is None and row.get("domain_label"):
+                    result["domain_label"] = to_py(row["domain_label"])
+                if result["range"] is None and row.get("range"):
+                    result["range"] = row["range"].toPython() if hasattr(row["range"], "toPython") else str(row["range"])
+                if result["range_label"] is None and row.get("range_label"):
+                    result["range_label"] = to_py(row["range_label"])
+            elif kind == "label" and row.get("label_val"):
+                result["labels"].append(to_py(row["label_val"]))
+            elif kind == "comment" and row.get("label_val"):
+                result["comments"].append(to_py(row["label_val"]))
+            elif kind == "altLabel" and row.get("label_val"):
+                result["alt_labels"].append(to_py(row["label_val"]))
+            elif kind == "superprop" and row.get("rel_uri"):
+                rel_uri = to_py(row["rel_uri"])
+                if rel_uri not in seen_super:
+                    seen_super.add(rel_uri)
+                    result["superproperties"].append({
+                        "uri": rel_uri,
+                        "label": to_py(row.get("rel_label")),
+                    })
+            elif kind == "subprop" and row.get("rel_uri"):
+                rel_uri = to_py(row["rel_uri"])
+                if rel_uri not in seen_sub:
+                    seen_sub.add(rel_uri)
+                    result["subproperties"].append({
+                        "uri": rel_uri,
+                        "label": to_py(row.get("rel_label")),
+                    })
+            elif kind == "column" and row.get("column_uri"):
+                c_uri = to_py(row["column_uri"])
+                if c_uri not in seen_columns:
+                    seen_columns.add(c_uri)
+                    result["assigned_columns"].append({
+                        "column_uri": c_uri,
+                        "column_name": to_py(row.get("column_name")),
+                    })
+
+        return result
+
     def insert_concept_assignment(self, table_uri: str, concept_uri: str):
         """Insert a concept assignment from a table to a concept."""
         table_uri = URIRef(table_uri)

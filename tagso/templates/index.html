@@ -405,8 +405,17 @@
   <div class="label" data-slot="label"></div>
 </template>
 
+<script type="application/json" id="graph-urls">
+{
+  "conceptSchemeConceptPage": "{{ url_for('concept_schemes.concept_schemes_get') }}/concept",
+  "conceptSchemePropertyPage": "{{ url_for('concept_schemes.concept_schemes_get') }}/property",
+  "catalogBase": "{{ url_for('catalog.catalog_get') }}"
+}
+</script>
+
 <script>
     (function () {
+        const urls = JSON.parse(document.getElementById('graph-urls').textContent);
         const container = document.getElementById('graph');
         const tooltip = document.getElementById('tooltip');
         const width = container.clientWidth;
@@ -498,7 +507,7 @@
                     id: uri,
                     label: c.label || uriLabel(uri),
                     type: 'concept',
-                    url: `/concept_schemes?uri=${encodeURIComponent(uri)}`
+                    url: `${urls.conceptSchemeConceptPage}?uri=${encodeURIComponent(uri)}`
                 });
                 nodeIds.add(uri);
             }
@@ -523,7 +532,7 @@
                     id: uri,
                     label: p.name || uriLabel(uri),
                     type: 'property',
-                    url: `/concept_schemes?uri=${encodeURIComponent(uri)}`
+                    url: `${urls.conceptSchemePropertyPage}?uri=${encodeURIComponent(uri)}`
                 });
                 nodeIds.add(uri);
 
@@ -542,7 +551,7 @@
                     id: uri,
                     label: t.name || uriLabel(uri),
                     type: 'table',
-                    url: t.name ? `/catalog?type=table&name=${encodeURIComponent(t.name)}` : `/catalog`
+                    url: t.name ? `${urls.catalogBase}?type=table&name=${encodeURIComponent(t.name)}` : urls.catalogBase
                 });
                 nodeIds.add(uri);
             }
@@ -562,7 +571,7 @@
                     id: uri,
                     label: colName,
                     type: 'column',
-                    url: col.name ? `/catalog?type=column&name=${encodeURIComponent(col.name)}` : `/catalog`
+                    url: col.name ? `${urls.catalogBase}?type=column&name=${encodeURIComponent(col.name)}` : urls.catalogBase
                 });
                 nodeIds.add(uri);
 

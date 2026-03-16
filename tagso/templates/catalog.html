@@ -294,7 +294,7 @@
         const availableConcepts = allConcepts.filter(c => !assignedUris.has(c.uri));
 
         const conceptsFrag = renderList('concept-list-item', concepts, (c) => ({
-          'link-href': `${urls.conceptSchemes}?uri=${encodeURIComponent(c.concept_uri)}`,
+          'link-href': `${urls.conceptSchemes}/concept?uri=${encodeURIComponent(c.concept_uri)}`,
           'link-text': c.concept_name || c.concept_uri,
           'btn-uri': c.concept_uri
         }));
@@ -340,7 +340,7 @@
         const availableProps = allProps.filter(p => !assignedUris.has(p.uri));
 
         const propsFrag = renderList('property-list-item', props, (p) => ({
-          'link-href': `${urls.conceptSchemes}?uri=${encodeURIComponent(p.property_uri)}`,
+          'link-href': `${urls.conceptSchemes}/property?uri=${encodeURIComponent(p.property_uri)}`,
           'link-text': p.property_name || p.property_uri,
           'btn-uri': p.property_uri
         }));

@@ -11,7 +11,9 @@
   "conceptSchemes": "{{ url_for('concept_schemes.concept_schemes_get') }}",
   "schemes": "{{ url_for('concept_schemes.concept_schemes_list') }}",
   "scheme": "{{ url_for('concept_schemes.concept_schemes_scheme_detail') }}",
-  "resource": "{{ url_for('concept_schemes.concept_schemes_resource') }}",
+  "resourceConcept": "{{ url_for('concept_schemes.concept_schemes_resource', kind='concept') }}",
+  "resourceProperty": "{{ url_for('concept_schemes.concept_schemes_resource', kind='property') }}",
+  "catalogBase": "{{ url_for('catalog.catalog_get') }}",
   "members": "{{ url_for('concept_schemes.concept_schemes_members') }}",
   "update": "{{ url_for('concept_schemes.concept_schemes_update') }}",
   "addMembers": "{{ url_for('concept_schemes.concept_schemes_add_members') }}",
@@ -81,18 +83,52 @@
   <dd data-slot="role"></dd>
 </template>
 
+<template id="link-list-item">
+  <li><a data-slot="link-href" data-slot-attr="href"><span data-slot="link-text"></span></a></li>
+</template>
+
+<template id="simple-list-item">
+  <li data-slot="text"></li>
+</template>
+
+<template id="domain-range-row">
+  <dt data-slot="term"></dt>
+  <dd><a data-slot="link-href" data-slot-attr="href"><span data-slot="link-text"></span></a></dd>
+</template>
+
 <template id="resource-detail">
   <header>
+    <p data-slot="type-badge"></p>
     <h2 data-slot="title"></h2>
     <p data-slot-optional="in-scheme"></p>
   </header>
-  <section aria-label="Description">
-    <h3>Description</h3>
-    <p data-slot="comment"></p>
+  <section data-slot-optional="labels-section" aria-label="Labels">
+    <h3>Labels</h3>
+    <ul data-slot="labels-list"></ul>
   </section>
-  <section data-slot-optional="properties-section" aria-label="Properties">
-    <h3>Properties</h3>
-    <dl data-slot="properties-list"></dl>
+  <section data-slot-optional="comments-section" aria-label="Comments">
+    <h3>Comments</h3>
+    <ul data-slot="comments-list"></ul>
+  </section>
+  <section data-slot-optional="alt-labels-section" aria-label="Alternative labels">
+    <h3>Alternative labels</h3>
+    <ul data-slot="alt-labels-list"></ul>
+  </section>
+  <section data-slot-optional="super-section" aria-label="Superclasses or superproperties">
+    <h3 data-slot="super-title"></h3>
+    <ul data-slot="super-list"></ul>
+  </section>
+  <section data-slot-optional="sub-section" aria-label="Subclasses or subproperties">
+    <h3 data-slot="sub-title"></h3>
+    <ul data-slot="sub-list"></ul>
+  </section>
+  <section data-slot-optional="domain-range-section" aria-label="Domain and range">
+    <h3>Domain and range</h3>
+    <dl data-slot="domain-range-list"></dl>
+  </section>
+  <section data-slot-optional="catalog-section" aria-label="Linked Unity Catalog objects">
+    <h3 data-slot="catalog-title"></h3>
+    <ul data-slot="catalog-list"></ul>
   </section>
 </template>
 
@@ -123,6 +159,11 @@
       return '';
     }
 
+    function resourceKind(type) {
+      if (!type) return 'concept';
+      return type.includes('Property') ? 'property' : 'concept';
+    }
+
     const schemeTreeConfig = {
       loadChildren: async (caret) => {
         const uri = caret.dataset.schemeUri;
@@ -135,10 +176,10 @@
       },
       renderChildren: (members) =>
         members.map((m) =>
-          TreeView.renderLeaf(`${typeLabel(m.type)}: ${m.label || m.uri}`, { uri: m.uri, type: 'resource' }, typeIcon(m.type))
+          TreeView.renderLeaf(`${typeLabel(m.type)}: ${m.label || m.uri}`, { uri: m.uri, type: 'resource', resource_type: m.type }, typeIcon(m.type))
         ).join(''),
       afterExpand: (caret) => selectScheme(caret.dataset.schemeUri),
-      onLeafSelect: (li) => selectResource(li.dataset.uri)
+      onLeafSelect: (li) => selectResource(li.dataset.uri, li.dataset.resourceType)
     };
 
     function renderSchemeTree() {
@@ -216,9 +257,19 @@
       });
     }
 
-    async function selectResource(uri) {
+    function conceptPageUrl(uri) {
+      return `${urls.conceptSchemes}/concept?uri=${encodeURIComponent(uri)}`;
+    }
+
+    function propertyPageUrl(uri) {
+      return `${urls.conceptSchemes}/property?uri=${encodeURIComponent(uri)}`;
+    }
+
+    async function selectResource(uri, resourceType) {
       detailPlaceholder.hidden = true;
-      const r = await fetch(`${urls.resource}?uri=${encodeURIComponent(uri)}`);
+      const kind = resourceKind(resourceType);
+      const resourceUrl = kind === 'property' ? urls.resourceProperty : urls.resourceConcept;
+      const r = await fetch(`${resourceUrl}?uri=${encodeURIComponent(uri)}`);
       const data = await r.json();
       if (!r.ok) {
         const frag = fillTemplate('error-detail', { message: `Error: ${data.error || 'Failed to load'}` });
@@ -226,22 +277,89 @@
         return;
       }
 
-      const { resource, type, related_properties } = data;
-      const inScheme = resource.in_scheme ? `From skos:ConceptScheme: ${resource.in_scheme}` : '';
+      const { resource, type } = data;
+      const displayLabel = (resource.labels && resource.labels[0]) || resource.label || resource.name || resource.uri;
+      const inScheme = resource.in_scheme ? `From skos:ConceptScheme: ${resource.in_scheme}` : null;
 
-      const propsFrag = (type === 'concept' && related_properties && related_properties.length)
-        ? renderList('property-row', related_properties, (p) => ({
-            name: `rdfs:Property: ${p.name || p.uri}`,
-            role: p.role || ''
+      const labelsFrag = (resource.labels && resource.labels.length)
+        ? renderList('simple-list-item', resource.labels, (t) => ({ text: t }))
+        : null;
+      const commentsFrag = (resource.comments && resource.comments.length)
+        ? renderList('simple-list-item', resource.comments, (t) => ({ text: t }))
+        : null;
+      const altLabelsFrag = (resource.alt_labels && resource.alt_labels.length)
+        ? renderList('simple-list-item', resource.alt_labels, (t) => ({ text: t }))
+        : null;
+
+      const superItems = type === 'concept' ? (resource.superclasses || []) : (resource.superproperties || []);
+      const subItems = type === 'concept' ? (resource.subclasses || []) : (resource.subproperties || []);
+      const superTitle = type === 'concept' ? 'Superclasses' : 'Superproperties';
+      const subTitle = type === 'concept' ? 'Subclasses' : 'Subproperties';
+      const linkPageUrl = type === 'concept' ? conceptPageUrl : propertyPageUrl;
+
+      const superFrag = superItems.length
+        ? renderList('link-list-item', superItems, (item) => ({
+            'link-href': linkPageUrl(item.uri),
+            'link-text': item.label || item.uri
+          }))
+        : null;
+      const subFrag = subItems.length
+        ? renderList('link-list-item', subItems, (item) => ({
+            'link-href': linkPageUrl(item.uri),
+            'link-text': item.label || item.uri
           }))
         : null;
 
+      let domainRangeFrag = null;
+      if (type === 'property' && (resource.domain || resource.range)) {
+        const rows = [];
+        if (resource.domain) {
+          rows.push({ term: 'Domain', uri: resource.domain, label: resource.domain_label || resource.domain });
+        }
+        if (resource.range) {
+          rows.push({ term: 'Range', uri: resource.range, label: resource.range_label || resource.range });
+        }
+        domainRangeFrag = renderList('domain-range-row', rows, (row) => ({
+          term: row.term,
+          'link-href': conceptPageUrl(row.uri),
+          'link-text': row.label || row.uri
+        }));
+      }
+
+      const catalogItems = type === 'concept' ? (resource.assigned_tables || []) : (resource.assigned_columns || []);
+      const catalogTitle = type === 'concept' ? 'Assigned tables' : 'Assigned columns';
+      const catalogFrag = catalogItems.length
+        ? renderList('link-list-item', catalogItems, (item) => {
+            const name = type === 'concept' ? item.table_name : item.column_name;
+            const catalogType = type === 'concept' ? 'table' : 'column';
+            return {
+              'link-href': `${urls.catalogBase}?type=${catalogType}&name=${encodeURIComponent(name || '')}`,
+              'link-text': name || item.table_uri || item.column_uri
+            };
+          })
+        : null;
+
       const resourceFrag = fillTemplate('resource-detail', {
-        title: `${typeLabel(resource.type)}: ${resource.label || resource.name || resource.uri}`,
-        'in-scheme': inScheme || null,
-        comment: resource.comment || 'No description.',
-        'properties-section': propsFrag ? html.keep() : null,
-        'properties-list': propsFrag ? html.fragment(propsFrag) : null
+        'type-badge': typeLabel(resource.type),
+        title: displayLabel,
+        'in-scheme': inScheme,
+        'labels-section': labelsFrag ? html.keep() : null,
+        'labels-list': labelsFrag ? html.fragment(labelsFrag) : null,
+        'comments-section': commentsFrag ? html.keep() : null,
+        'comments-list': commentsFrag ? html.fragment(commentsFrag) : null,
+        'alt-labels-section': altLabelsFrag ? html.keep() : null,
+        'alt-labels-list': altLabelsFrag ? html.fragment(altLabelsFrag) : null,
+        'super-section': superFrag ? html.keep() : null,
+        'super-title': superFrag ? superTitle : null,
+        'super-list': superFrag ? html.fragment(superFrag) : null,
+        'sub-section': subFrag ? html.keep() : null,
+        'sub-title': subFrag ? subTitle : null,
+        'sub-list': subFrag ? html.fragment(subFrag) : null,
+        'domain-range-section': domainRangeFrag ? html.keep() : null,
+        'domain-range-list': domainRangeFrag ? html.fragment(domainRangeFrag) : null,
+        'catalog-section': catalogFrag ? html.keep() : null,
+        'catalog-title': catalogFrag ? catalogTitle : null,
+        'catalog-list': catalogFrag ? html.fragment(catalogFrag) : null
       });
       detailPane.replaceChildren(resourceFrag);
     }
@@ -276,11 +394,13 @@
 
     (async function init() {
       await loadSchemes();
-      const initialUri = new URLSearchParams(location.search).get('uri');
+      const params = new URLSearchParams(location.search);
+      const initialUri = params.get('uri');
+      const pathKind = location.pathname.endsWith('/concept') ? 'concept' : (location.pathname.endsWith('/property') ? 'property' : null);
       if (initialUri) {
         const isScheme = schemes.some(s => s.uri === initialUri);
         if (isScheme) selectScheme(initialUri);
-        else selectResource(initialUri);
+        else selectResource(initialUri, pathKind ? (pathKind === 'property' ? 'rdf:Property' : 'rdfs:Class') : null);
       }
     })();
   })();

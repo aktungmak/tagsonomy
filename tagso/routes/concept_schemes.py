@@ -14,6 +14,13 @@ def concept_schemes_get():
     return render_template("concept_schemes.html")
 
 
+@concept_schemes_bp.get("/concept_schemes/concept")
+@concept_schemes_bp.get("/concept_schemes/property")
+def concept_schemes_resource_page():
+    """Page with kind in path for deep links (e.g. /concept_schemes/concept?uri=...)."""
+    return render_template("concept_schemes.html")
+
+
 @concept_schemes_bp.get("/concept_schemes/schemes")
 def concept_schemes_list():
     """JSON API: schemes only (for initial load)."""
@@ -29,19 +36,22 @@ def concept_schemes_members(params):
     return {"members": members}
 
 
-@concept_schemes_bp.get("/concept_schemes/resource")
+@concept_schemes_bp.get("/concept_schemes/resource/<kind>")
 @require_params("uri", source="args")
-def concept_schemes_resource(params):
-    """JSON for selected resource (concept or property) for detail pane."""
-    uri = params["uri"]
-    concept = gm.get_concept_detail(uri)
-    if concept:
-        related = gm.get_properties_for_concept(uri)
-        return {"resource": concept, "type": "concept", "related_properties": related}
+def concept_schemes_resource(params, kind):
+    """JSON for selected resource (concept or property) for detail pane. kind must be concept or property."""
+    if kind not in ("concept", "property"):
+        return {"error": "Invalid kind"}, 404
 
-    prop = gm.get_property_detail(uri)
-    if prop:
-        return {"resource": prop, "type": "property"}
+    uri = params["uri"]
+    if kind == "concept":
+        result = gm.get_concept_detail_full(uri)
+        if result:
+            return {"resource": result, "type": "concept"}
+    else:
+        result = gm.get_property_detail_full(uri)
+        if result:
+            return {"resource": result, "type": "property"}
 
     return {"error": "Resource not found"}, 404
 
