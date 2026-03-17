@@ -5,24 +5,29 @@
 {% block scripts %}
 <script src="https://d3js.org/d3.v7.min.js"></script>
 <style>
+    /* DuBois secondary palette for graph node types */
     :root {
-        --concept-color: #e63946;
-        --property-color: #457b9d;
-        --table-color: #2a9d8f;
-        --column-color: #e9c46a;
-        --link-color: #8d99ae;
-        --bg-dark: #1a1a2e;
-        --bg-gradient: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+        --concept-color: #E86247;
+        --property-color: #5B6BD6;
+        --table-color: #3BA39D;
+        --column-color: #D4A31A;
+        --link-color: #5F7281;
+        --graph-bg: #F6F7F9;
+        --graph-panel-bg: rgba(255, 255, 255, 0.95);
+        --graph-panel-border: #E8ECF0;
+        --graph-text: #11171C;
+        --graph-text-muted: #5F7281;
     }
 
     .graph-container {
         position: relative;
         width: 100%;
         height: 75vh;
-        background: var(--bg-gradient);
-        border-radius: 12px;
+        background: var(--graph-bg);
+        border-radius: 4px;
         overflow: hidden;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        box-shadow: 0px 2px 3px -1px rgba(0, 0, 0, 0.05), 0px 1px 0px 0px rgba(0, 0, 0, 0.02);
+        border: 1px solid var(--graph-panel-border);
     }
 
     .graph-container svg {
@@ -36,15 +41,16 @@
     }
 
     .node:hover {
-        filter: brightness(1.3) drop-shadow(0 0 8px currentColor);
+        filter: brightness(1.15) drop-shadow(0 0 6px currentColor);
     }
 
     .node-label {
-        font-family: 'JetBrains Mono', 'Fira Code', monospace;
+        font-family: "Helvetica Neue", ui-sans-serif, system-ui, sans-serif;
         font-size: 13px;
-        fill: #f1faee;
+        font-weight: 400;
+        fill: var(--graph-text);
         pointer-events: none;
-        text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+        text-shadow: 0 1px 2px rgba(255, 255, 255, 0.9);
     }
 
     .link {
@@ -60,19 +66,20 @@
         position: absolute;
         top: 16px;
         left: 16px;
-        background: rgba(26, 26, 46, 0.9);
-        border-radius: 8px;
+        background: var(--graph-panel-bg);
+        border-radius: 4px;
         padding: 16px;
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(255,255,255,0.1);
+        backdrop-filter: blur(8px);
+        border: 1px solid var(--graph-panel-border);
+        box-shadow: 0px 1px 0px 0px rgba(0, 0, 0, 0.05);
     }
 
     .legend h3 {
         margin: 0 0 12px 0;
-        font-size: 14px;
-        color: #f1faee;
+        font-size: 12px;
         font-weight: 600;
-        letter-spacing: 1px;
+        color: var(--graph-text-muted);
+        letter-spacing: 0.5px;
         text-transform: uppercase;
     }
 
@@ -82,7 +89,7 @@
         gap: 10px;
         margin: 8px 0;
         font-size: 13px;
-        color: #a8dadc;
+        color: var(--graph-text);
     }
 
     .legend-icon {
@@ -97,11 +104,12 @@
         position: absolute;
         top: 16px;
         right: 16px;
-        background: rgba(26, 26, 46, 0.9);
-        border-radius: 8px;
+        background: var(--graph-panel-bg);
+        border-radius: 4px;
         padding: 16px;
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(255,255,255,0.1);
+        backdrop-filter: blur(8px);
+        border: 1px solid var(--graph-panel-border);
+        box-shadow: 0px 1px 0px 0px rgba(0, 0, 0, 0.05);
         display: flex;
         flex-direction: column;
         gap: 12px;
@@ -111,9 +119,9 @@
     .controls h3 {
         margin: 0 0 4px 0;
         font-size: 12px;
-        color: #f1faee;
         font-weight: 600;
-        letter-spacing: 1px;
+        color: var(--graph-text-muted);
+        letter-spacing: 0.5px;
         text-transform: uppercase;
     }
 
@@ -123,20 +131,21 @@
     }
 
     .controls button {
-        background: rgba(69, 123, 157, 0.3);
-        border: 1px solid rgba(255,255,255,0.2);
-        color: #f1faee;
+        background: var(--graph-bg);
+        border: 1px solid var(--graph-panel-border);
+        color: var(--graph-text);
         padding: 8px 16px;
-        border-radius: 6px;
+        border-radius: 4px;
         cursor: pointer;
-        font-size: 12px;
+        font-size: 13px;
+        font-weight: 600;
         transition: all 0.2s;
         flex: 1;
     }
 
     .controls button:hover {
-        background: rgba(69, 123, 157, 0.6);
-        border-color: var(--property-color);
+        background: var(--graph-panel-border);
+        border-color: #BDCDD9;
     }
 
     .slider-group {
@@ -146,22 +155,22 @@
     }
 
     .slider-group label {
-        font-size: 11px;
-        color: #a8dadc;
+        font-size: 12px;
+        color: var(--graph-text-muted);
         display: flex;
         justify-content: space-between;
     }
 
     .slider-group label span {
-        color: #f1faee;
-        font-family: 'JetBrains Mono', monospace;
+        color: var(--graph-text);
+        font-family: "Helvetica Neue", ui-sans-serif, system-ui, monospace;
     }
 
     .slider-group input[type="range"] {
         width: 100%;
         height: 4px;
         border-radius: 2px;
-        background: rgba(255,255,255,0.1);
+        background: var(--graph-panel-border);
         appearance: none;
         cursor: pointer;
     }
@@ -171,29 +180,32 @@
         width: 14px;
         height: 14px;
         border-radius: 50%;
-        background: var(--property-color);
+        background: #2272B4;
         cursor: pointer;
-        border: 2px solid #f1faee;
+        border: 2px solid white;
+        box-shadow: 0px 1px 0px 0px rgba(0, 0, 0, 0.1);
     }
 
     .slider-group input[type="range"]::-moz-range-thumb {
         width: 14px;
         height: 14px;
         border-radius: 50%;
-        background: var(--property-color);
+        background: #2272B4;
         cursor: pointer;
-        border: 2px solid #f1faee;
+        border: 2px solid white;
+        box-shadow: 0px 1px 0px 0px rgba(0, 0, 0, 0.1);
     }
 
     .stats {
         position: absolute;
         bottom: 16px;
         left: 16px;
-        background: rgba(26, 26, 46, 0.9);
-        border-radius: 8px;
+        background: var(--graph-panel-bg);
+        border-radius: 4px;
         padding: 12px 16px;
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(255,255,255,0.1);
+        backdrop-filter: blur(8px);
+        border: 1px solid var(--graph-panel-border);
+        box-shadow: 0px 1px 0px 0px rgba(0, 0, 0, 0.05);
         display: flex;
         gap: 24px;
     }
@@ -203,17 +215,17 @@
     }
 
     .stat-value {
-        font-size: 24px;
-        font-weight: 700;
-        color: #f1faee;
-        font-family: 'JetBrains Mono', monospace;
+        font-size: 22px;
+        font-weight: 600;
+        font-family: "Helvetica Neue", ui-sans-serif, system-ui, sans-serif;
     }
 
     .stat-label {
         font-size: 11px;
-        color: #a8dadc;
+        font-weight: 600;
+        color: var(--graph-text-muted);
         text-transform: uppercase;
-        letter-spacing: 1px;
+        letter-spacing: 0.5px;
     }
 
     .empty-state {
@@ -222,14 +234,15 @@
         align-items: center;
         justify-content: center;
         height: 100%;
-        color: #a8dadc;
+        color: var(--graph-text-muted);
         text-align: center;
         padding: 40px;
     }
 
     .empty-state h2 {
-        color: #f1faee;
+        color: var(--graph-text);
         margin-bottom: 16px;
+        font-weight: 600;
     }
 
     .empty-state p {
@@ -246,19 +259,19 @@
     }
 
     .empty-state .links a {
-        background: rgba(69, 123, 157, 0.3);
+        background: #2272B4;
         padding: 10px 20px;
-        border-radius: 6px;
-        color: #a8dadc;
+        border-radius: 4px;
+        color: white;
         text-decoration: none;
+        font-weight: 600;
         transition: all 0.2s;
-        border: 1px solid transparent;
+        border: 1px solid #0E538B;
     }
 
     .empty-state .links a:hover {
-        background: rgba(69, 123, 157, 0.5);
-        border-color: var(--property-color);
-        color: #f1faee;
+        background: #0E538B;
+        border-color: #04355D;
     }
 
     .page-header {
@@ -266,33 +279,32 @@
     }
 
     .page-header h1 {
-        font-size: 2rem;
+        font-size: 22px;
+        font-weight: 600;
         margin-bottom: 8px;
-        background: linear-gradient(90deg, #f1faee, #a8dadc);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
+        color: var(--graph-text);
     }
 
     .page-header p {
-        color: #8d99ae;
-        font-size: 1rem;
+        color: var(--graph-text-muted);
+        font-size: 13px;
     }
 
     .tooltip {
         position: absolute;
-        background: rgba(26, 26, 46, 0.95);
-        border: 1px solid rgba(255,255,255,0.2);
-        border-radius: 6px;
+        background: var(--graph-text);
+        border: 1px solid var(--graph-panel-border);
+        border-radius: 4px;
         padding: 10px 14px;
         font-size: 12px;
-        color: #f1faee;
+        color: white;
         pointer-events: none;
         opacity: 0;
         transition: opacity 0.2s;
         z-index: 1000;
         max-width: 300px;
         word-wrap: break-word;
+        box-shadow: 0px 3px 6px 0px rgba(0, 0, 0, 0.15);
     }
 
     .tooltip.visible {
@@ -301,10 +313,11 @@
 
     .tooltip .type {
         font-size: 10px;
+        font-weight: 600;
         text-transform: uppercase;
-        letter-spacing: 1px;
+        letter-spacing: 0.5px;
         margin-bottom: 4px;
-        opacity: 0.7;
+        opacity: 0.8;
     }
 
     .tooltip .label {
@@ -319,25 +332,33 @@
         <h3>Node Types</h3>
         <div class="legend-item">
             <div class="legend-icon">
-                <svg width="16" height="16"><circle cx="8" cy="8" r="7" fill="var(--concept-color)"/></svg>
+                <svg width="16" height="16">
+                    <circle cx="8" cy="8" r="7" fill="var(--concept-color)" />
+                </svg>
             </div>
             <span>Concept</span>
         </div>
         <div class="legend-item">
             <div class="legend-icon">
-                <svg width="16" height="16"><rect x="2" y="2" width="12" height="12" rx="2" fill="var(--property-color)"/></svg>
+                <svg width="16" height="16">
+                    <rect x="2" y="2" width="12" height="12" rx="2" fill="var(--property-color)" />
+                </svg>
             </div>
             <span>Property</span>
         </div>
         <div class="legend-item">
             <div class="legend-icon">
-                <svg width="16" height="16"><polygon points="8,1 15,12 1,12" fill="var(--table-color)"/></svg>
+                <svg width="16" height="16">
+                    <polygon points="8,1 15,12 1,12" fill="var(--table-color)" />
+                </svg>
             </div>
             <span>Table</span>
         </div>
         <div class="legend-item">
             <div class="legend-icon">
-                <svg width="16" height="16"><polygon points="8,1 14,5 14,11 8,15 2,11 2,5" fill="var(--column-color)"/></svg>
+                <svg width="16" height="16">
+                    <polygon points="8,1 14,5 14,11 8,15 2,11 2,5" fill="var(--column-color)" />
+                </svg>
             </div>
             <span>Column</span>
         </div>
@@ -366,222 +387,238 @@
 
 <div class="tooltip" id="tooltip"></div>
 
+<template id="empty-state">
+  <div class="empty-state">
+    <h2>No metadata available</h2>
+    <p>Start by importing a taxonomy or adding concepts, tables, and properties to visualise your metadata.</p>
+    <div class="links">
+      <a href="/import_export">Import Taxonomy</a>
+      <a href="/concept_schemes">Concept Schemes</a>
+      <a href="/catalog">Catalog</a>
+      <a href="/assign">Semantic Assignment</a>
+    </div>
+  </div>
+</template>
+
+<template id="tooltip-content">
+  <div class="type" data-slot="type"></div>
+  <div class="label" data-slot="label"></div>
+</template>
+
+<script type="application/json" id="graph-urls">
+{
+  "conceptSchemeConceptPage": "{{ url_for('concept_schemes.concept_schemes_get') }}/concept",
+  "conceptSchemePropertyPage": "{{ url_for('concept_schemes.concept_schemes_get') }}/property",
+  "catalogBase": "{{ url_for('catalog.catalog_get') }}"
+}
+</script>
+
 <script>
-(function() {
-    const container = document.getElementById('graph');
-    const tooltip = document.getElementById('tooltip');
-    const width = container.clientWidth;
-    const height = container.clientHeight;
-    
-    let showLabels = true;
-    let currentZoom = d3.zoomIdentity;
+    (function () {
+        const urls = JSON.parse(document.getElementById('graph-urls').textContent);
+        const container = document.getElementById('graph');
+        const tooltip = document.getElementById('tooltip');
+        const width = container.clientWidth;
+        const height = container.clientHeight;
 
-    const colors = {
-        concept: '#e63946',
-        property: '#457b9d',
-        table: '#2a9d8f',
-        column: '#e9c46a'
-    };
+        let showLabels = true;
+        let currentZoom = d3.zoomIdentity;
 
-    const linkColors = {
-        'rdfs:subClassOf': '#ff6b6b',
-        'skos:broader': '#ff9f43',
-        'skos:narrower': '#54a0ff',
-        'domain': '#5f27cd',
-        'range': '#00d2d3',
-        'assignment': '#10ac84',
-        'propertyAssignment': '#ee5a24',
-        'hasColumn': '#74b9ff',
-        'default': '#8d99ae'
-    };
+        const colors = {
+            concept: '#E86247',
+            property: '#5B6BD6',
+            table: '#3BA39D',
+            column: '#D4A31A'
+        };
 
-    // Create SVG
-    const svg = d3.select('#graph')
-        .append('svg')
-        .attr('viewBox', [0, 0, width, height]);
+        const linkColors = {
+            'rdfs:subClassOf': '#E86247',
+            'skos:broader': '#BE501E',
+            'skos:narrower': '#2272B4',
+            'domain': '#5B6BD6',
+            'range': '#3BA39D',
+            'assignment': '#277C43',
+            'propertyAssignment': '#D4A31A',
+            'hasColumn': '#5F7281',
+            'default': '#5F7281'
+        };
 
-    // Add defs for gradients and markers
-    const defs = svg.append('defs');
+        // Create SVG
+        const svg = d3.select('#graph')
+            .append('svg')
+            .attr('viewBox', [0, 0, width, height]);
 
-    // Add glow filter
-    const filter = defs.append('filter')
-        .attr('id', 'glow');
-    filter.append('feGaussianBlur')
-        .attr('stdDeviation', '3')
-        .attr('result', 'coloredBlur');
-    const feMerge = filter.append('feMerge');
-    feMerge.append('feMergeNode').attr('in', 'coloredBlur');
-    feMerge.append('feMergeNode').attr('in', 'SourceGraphic');
+        // Add defs for gradients and markers
+        const defs = svg.append('defs');
 
-    // Container for zoomable content
-    const g = svg.append('g');
+        // Add glow filter
+        const filter = defs.append('filter')
+            .attr('id', 'glow');
+        filter.append('feGaussianBlur')
+            .attr('stdDeviation', '3')
+            .attr('result', 'coloredBlur');
+        const feMerge = filter.append('feMerge');
+        feMerge.append('feMergeNode').attr('in', 'coloredBlur');
+        feMerge.append('feMergeNode').attr('in', 'SourceGraphic');
 
-    // Zoom behavior
-    const zoom = d3.zoom()
-        .scaleExtent([0.1, 4])
-        .on('zoom', (event) => {
-            currentZoom = event.transform;
-            g.attr('transform', event.transform);
-        });
+        // Container for zoomable content
+        const g = svg.append('g');
 
-    svg.call(zoom);
-
-    // Load data and render
-    fetch('/visualisation')
-        .then(response => response.json())
-        .then(rawData => {
-            const data = transformData(rawData);
-            if (data.nodes.length === 0) {
-                showEmptyState();
-                return;
-            }
-            
-            updateStats(data);
-            renderGraph(data);
-        })
-        .catch(err => {
-            console.error('Error loading graph:', err);
-            showEmptyState();
-        });
-
-    function transformData(raw) {
-        const nodes = [];
-        const links = [];
-        const nodeIds = new Set();
-
-        // Helper to extract label from URI
-        const uriLabel = (uri) => uri.split('/').pop().split('#').pop();
-
-        // Add concepts
-        for (const c of raw.concepts) {
-            const uri = c.uri;
-            nodes.push({
-                id: uri,
-                label: c.label || uriLabel(uri),
-                type: 'concept',
-                url: `/concepts?concept_uri=${encodeURIComponent(uri)}`
+        // Zoom behavior
+        const zoom = d3.zoom()
+            .scaleExtent([0.1, 4])
+            .on('zoom', (event) => {
+                currentZoom = event.transform;
+                g.attr('transform', event.transform);
             });
-            nodeIds.add(uri);
-        }
 
-        // Add concept relationships
-        for (const [uri, rels] of Object.entries(raw.concept_relationships)) {
-            for (const rel of rels) {
-                if (rel.object && nodeIds.has(rel.object)) {
-                    links.push({
-                        source: uri,
-                        target: rel.object,
-                        type: rel.predicate_type || 'related'
-                    });
+        svg.call(zoom);
+
+        // Load data and render
+        fetch('/visualisation')
+            .then(response => response.json())
+            .then(rawData => {
+                const data = transformData(rawData);
+                if (data.nodes.length === 0) {
+                    showEmptyState();
+                    return;
                 }
-            }
-        }
 
-        // Add properties
-        for (const p of raw.properties) {
-            const uri = p.uri;
-            nodes.push({
-                id: uri,
-                label: p.name || uriLabel(uri),
-                type: 'property',
-                url: `/properties?property_uri=${encodeURIComponent(uri)}`
+                updateStats(data);
+                renderGraph(data);
+            })
+            .catch(err => {
+                console.error('Error loading graph:', err);
+                showEmptyState();
             });
-            nodeIds.add(uri);
 
-            if (p.domain && nodeIds.has(p.domain)) {
-                links.push({ source: uri, target: p.domain, type: 'domain' });
+        function transformData(raw) {
+            const nodes = [];
+            const links = [];
+            const nodeIds = new Set();
+
+            // Helper to extract label from URI
+            const uriLabel = (uri) => uri.split('/').pop().split('#').pop();
+
+            // Add concepts
+            for (const c of raw.concepts) {
+                const uri = c.uri;
+                nodes.push({
+                    id: uri,
+                    label: c.label || uriLabel(uri),
+                    type: 'concept',
+                    url: `${urls.conceptSchemeConceptPage}?uri=${encodeURIComponent(uri)}`
+                });
+                nodeIds.add(uri);
             }
-            if (p.range && nodeIds.has(p.range)) {
-                links.push({ source: uri, target: p.range, type: 'range' });
-            }
-        }
 
-        // Add tables
-        for (const t of raw.tables) {
-            const uri = t.uri;
-            nodes.push({
-                id: uri,
-                label: t.name || uriLabel(uri),
-                type: 'table',
-                url: `/tables?table_uri=${encodeURIComponent(uri)}`
-            });
-            nodeIds.add(uri);
-        }
-
-        // Add table-concept assignments
-        for (const a of raw.table_assignments) {
-            if (a.table_uri && a.concept_uri && nodeIds.has(a.table_uri) && nodeIds.has(a.concept_uri)) {
-                links.push({ source: a.table_uri, target: a.concept_uri, type: 'assignment' });
-            }
-        }
-
-        // Add columns and table-column relationships
-        for (const col of raw.columns) {
-            const uri = col.uri;
-            const colName = col.name || uriLabel(uri);
-            nodes.push({
-                id: uri,
-                label: colName,
-                type: 'column',
-                url: `/columns?column_uri=${encodeURIComponent(uri)}`
-            });
-            nodeIds.add(uri);
-
-            // Infer table-column relationship from naming convention
-            // Column names are like "catalog.schema.table.column", tables are "catalog.schema.table"
-            const colParts = colName.split('.');
-            if (colParts.length >= 4) {
-                const tableName = colParts.slice(0, 3).join('.');
-                // Find matching table by name
-                for (const t of raw.tables) {
-                    if (t.name === tableName && nodeIds.has(t.uri)) {
-                        links.push({ source: t.uri, target: uri, type: 'hasColumn' });
-                        break;
+            // Add concept relationships
+            for (const [uri, rels] of Object.entries(raw.concept_relationships)) {
+                for (const rel of rels) {
+                    if (rel.object && nodeIds.has(rel.object)) {
+                        links.push({
+                            source: uri,
+                            target: rel.object,
+                            type: rel.predicate_type || 'related'
+                        });
                     }
                 }
             }
-        }
 
-        // Add column-property assignments
-        for (const a of raw.column_assignments) {
-            if (a.column_uri && a.property_uri && nodeIds.has(a.column_uri) && nodeIds.has(a.property_uri)) {
-                links.push({ source: a.column_uri, target: a.property_uri, type: 'propertyAssignment' });
+            // Add properties
+            for (const p of raw.properties) {
+                const uri = p.uri;
+                nodes.push({
+                    id: uri,
+                    label: p.name || uriLabel(uri),
+                    type: 'property',
+                    url: `${urls.conceptSchemePropertyPage}?uri=${encodeURIComponent(uri)}`
+                });
+                nodeIds.add(uri);
+
+                if (p.domain && nodeIds.has(p.domain)) {
+                    links.push({ source: uri, target: p.domain, type: 'domain' });
+                }
+                if (p.range && nodeIds.has(p.range)) {
+                    links.push({ source: uri, target: p.range, type: 'range' });
+                }
             }
+
+            // Add tables
+            for (const t of raw.tables) {
+                const uri = t.uri;
+                nodes.push({
+                    id: uri,
+                    label: t.name || uriLabel(uri),
+                    type: 'table',
+                    url: t.name ? `${urls.catalogBase}?type=table&name=${encodeURIComponent(t.name)}` : urls.catalogBase
+                });
+                nodeIds.add(uri);
+            }
+
+            // Add table-concept assignments
+            for (const a of raw.table_assignments) {
+                if (a.table_uri && a.concept_uri && nodeIds.has(a.table_uri) && nodeIds.has(a.concept_uri)) {
+                    links.push({ source: a.table_uri, target: a.concept_uri, type: 'assignment' });
+                }
+            }
+
+            // Add columns and table-column relationships
+            for (const col of raw.columns) {
+                const uri = col.uri;
+                const colName = col.name || uriLabel(uri);
+                nodes.push({
+                    id: uri,
+                    label: colName,
+                    type: 'column',
+                    url: col.name ? `${urls.catalogBase}?type=column&name=${encodeURIComponent(col.name)}` : urls.catalogBase
+                });
+                nodeIds.add(uri);
+
+                // Infer table-column relationship from naming convention
+                // Column names are like "catalog.schema.table.column", tables are "catalog.schema.table"
+                const colParts = colName.split('.');
+                if (colParts.length >= 4) {
+                    const tableName = colParts.slice(0, 3).join('.');
+                    // Find matching table by name
+                    for (const t of raw.tables) {
+                        if (t.name === tableName && nodeIds.has(t.uri)) {
+                            links.push({ source: t.uri, target: uri, type: 'hasColumn' });
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // Add column-property assignments
+            for (const a of raw.column_assignments) {
+                if (a.column_uri && a.property_uri && nodeIds.has(a.column_uri) && nodeIds.has(a.property_uri)) {
+                    links.push({ source: a.column_uri, target: a.property_uri, type: 'propertyAssignment' });
+                }
+            }
+
+            return { nodes, links };
         }
 
-        return { nodes, links };
-    }
+        function showEmptyState() {
+            d3.select('#graph svg').remove();
+            d3.select('.legend').style('display', 'none');
+            d3.select('.controls').style('display', 'none');
+            d3.select('#stats').style('display', 'none');
 
-    function showEmptyState() {
-        d3.select('#graph svg').remove();
-        d3.select('.legend').style('display', 'none');
-        d3.select('.controls').style('display', 'none');
-        d3.select('#stats').style('display', 'none');
-        
-        const emptyDiv = document.createElement('div');
-        emptyDiv.className = 'empty-state';
-        emptyDiv.innerHTML = `
-            <h2>No metadata available</h2>
-            <p>Start by importing a taxonomy or adding concepts, tables, and properties to visualise your metadata.</p>
-            <div class="links">
-                <a href="/imports">Import Taxonomy</a>
-                <a href="/concepts">Add Concepts</a>
-                <a href="/tables">Add Tables</a>
-                <a href="/properties">Add Properties</a>
-            </div>
-        `;
-        container.appendChild(emptyDiv);
-    }
+            const frag = document.getElementById('empty-state').content.cloneNode(true);
+            container.appendChild(frag);
+        }
 
-    function updateStats(data) {
-        const stats = {
-            concepts: data.nodes.filter(n => n.type === 'concept').length,
-            properties: data.nodes.filter(n => n.type === 'property').length,
-            tables: data.nodes.filter(n => n.type === 'table').length,
-            columns: data.nodes.filter(n => n.type === 'column').length
-        };
+        function updateStats(data) {
+            const stats = {
+                concepts: data.nodes.filter(n => n.type === 'concept').length,
+                properties: data.nodes.filter(n => n.type === 'property').length,
+                tables: data.nodes.filter(n => n.type === 'table').length,
+                columns: data.nodes.filter(n => n.type === 'column').length
+            };
 
-        document.getElementById('stats').innerHTML = `
+            document.getElementById('stats').innerHTML = html`
             <div class="stat">
                 <div class="stat-value" style="color: ${colors.concept}">${stats.concepts}</div>
                 <div class="stat-label">Concepts</div>
@@ -599,194 +636,192 @@
                 <div class="stat-label">Columns</div>
             </div>
         `;
-    }
+        }
 
-    function renderGraph(data) {
-        // Get initial slider values
-        const gravitySlider = document.getElementById('gravitySlider');
-        const repulsionSlider = document.getElementById('repulsionSlider');
-        const linkDistSlider = document.getElementById('linkDistSlider');
+        function renderGraph(data) {
+            // Get initial slider values
+            const gravitySlider = document.getElementById('gravitySlider');
+            const repulsionSlider = document.getElementById('repulsionSlider');
+            const linkDistSlider = document.getElementById('linkDistSlider');
 
-        // Create simulation with initial values
-        const simulation = d3.forceSimulation(data.nodes)
-            .force('link', d3.forceLink(data.links).id(d => d.id).distance(+linkDistSlider.value))
-            .force('charge', d3.forceManyBody().strength(-repulsionSlider.value))
-            .force('x', d3.forceX(width / 2).strength(+gravitySlider.value))
-            .force('y', d3.forceY(height / 2).strength(+gravitySlider.value))
-            .force('collision', d3.forceCollide().radius(35));
+            // Create simulation with initial values
+            const simulation = d3.forceSimulation(data.nodes)
+                .force('link', d3.forceLink(data.links).id(d => d.id).distance(+linkDistSlider.value))
+                .force('charge', d3.forceManyBody().strength(-repulsionSlider.value))
+                .force('x', d3.forceX(width / 2).strength(+gravitySlider.value))
+                .force('y', d3.forceY(height / 2).strength(+gravitySlider.value))
+                .force('collision', d3.forceCollide().radius(35));
 
-        // Wire up sliders
-        gravitySlider.addEventListener('input', (e) => {
-            const val = +e.target.value;
-            document.getElementById('gravityValue').textContent = val.toFixed(2);
-            simulation.force('x').strength(val);
-            simulation.force('y').strength(val);
-            simulation.alpha(0.5).restart();
-        });
+            // Wire up sliders
+            gravitySlider.addEventListener('input', (e) => {
+                const val = +e.target.value;
+                document.getElementById('gravityValue').textContent = val.toFixed(2);
+                simulation.force('x').strength(val);
+                simulation.force('y').strength(val);
+                simulation.alpha(0.5).restart();
+            });
 
-        repulsionSlider.addEventListener('input', (e) => {
-            const val = +e.target.value;
-            document.getElementById('repulsionValue').textContent = val;
-            simulation.force('charge').strength(-val);
-            simulation.alpha(0.5).restart();
-        });
+            repulsionSlider.addEventListener('input', (e) => {
+                const val = +e.target.value;
+                document.getElementById('repulsionValue').textContent = val;
+                simulation.force('charge').strength(-val);
+                simulation.alpha(0.5).restart();
+            });
 
-        linkDistSlider.addEventListener('input', (e) => {
-            const val = +e.target.value;
-            document.getElementById('linkDistValue').textContent = val;
-            simulation.force('link').distance(val);
-            simulation.alpha(0.5).restart();
-        });
+            linkDistSlider.addEventListener('input', (e) => {
+                const val = +e.target.value;
+                document.getElementById('linkDistValue').textContent = val;
+                simulation.force('link').distance(val);
+                simulation.alpha(0.5).restart();
+            });
 
-        // Draw links
-        const link = g.append('g')
-            .attr('class', 'links')
-            .selectAll('line')
-            .data(data.links)
-            .join('line')
-            .attr('class', 'link')
-            .attr('stroke', d => linkColors[d.type] || linkColors.default)
-            .attr('stroke-width', 2)
-            .attr('stroke-dasharray', d => d.type.includes('ssignment') ? '5,5' : 'none');
+            // Draw links
+            const link = g.append('g')
+                .attr('class', 'links')
+                .selectAll('line')
+                .data(data.links)
+                .join('line')
+                .attr('class', 'link')
+                .attr('stroke', d => linkColors[d.type] || linkColors.default)
+                .attr('stroke-width', 2)
+                .attr('stroke-dasharray', d => d.type.includes('ssignment') ? '5,5' : 'none');
 
-        // Draw nodes
-        const node = g.append('g')
-            .attr('class', 'nodes')
-            .selectAll('g')
-            .data(data.nodes)
-            .join('g')
-            .attr('class', 'node')
-            .call(drag(simulation))
-            .on('click', (event, d) => {
-                window.location.href = d.url;
-            })
-            .on('mouseover', (event, d) => {
-                showTooltip(event, d);
-            })
-            .on('mouseout', hideTooltip);
+            // Draw nodes
+            const node = g.append('g')
+                .attr('class', 'nodes')
+                .selectAll('g')
+                .data(data.nodes)
+                .join('g')
+                .attr('class', 'node')
+                .call(drag(simulation))
+                .on('click', (event, d) => {
+                    window.location.href = d.url;
+                })
+                .on('mouseover', (event, d) => {
+                    showTooltip(event, d);
+                })
+                .on('mouseout', hideTooltip);
 
-        // Add shapes based on type
-        node.each(function(d) {
-            const el = d3.select(this);
-            const color = colors[d.type];
-            
-            if (d.type === 'concept') {
-                el.append('circle')
-                    .attr('r', 14)
-                    .attr('fill', color)
-                    .attr('stroke', '#fff')
-                    .attr('stroke-width', 2);
-            } else if (d.type === 'property') {
-                el.append('rect')
-                    .attr('x', -12)
-                    .attr('y', -12)
-                    .attr('width', 24)
-                    .attr('height', 24)
-                    .attr('rx', 4)
-                    .attr('fill', color)
-                    .attr('stroke', '#fff')
-                    .attr('stroke-width', 2);
-            } else if (d.type === 'table') {
-                el.append('polygon')
-                    .attr('points', '0,-14 14,10 -14,10')
-                    .attr('fill', color)
-                    .attr('stroke', '#fff')
-                    .attr('stroke-width', 2);
-            } else if (d.type === 'column') {
-                el.append('polygon')
-                    .attr('points', '0,-14 12,-7 12,7 0,14 -12,7 -12,-7')
-                    .attr('fill', color)
-                    .attr('stroke', '#fff')
-                    .attr('stroke-width', 2);
+            // Add shapes based on type
+            node.each(function (d) {
+                const el = d3.select(this);
+                const color = colors[d.type];
+
+                if (d.type === 'concept') {
+                    el.append('circle')
+                        .attr('r', 14)
+                        .attr('fill', color)
+                        .attr('stroke', '#fff')
+                        .attr('stroke-width', 2);
+                } else if (d.type === 'property') {
+                    el.append('rect')
+                        .attr('x', -12)
+                        .attr('y', -12)
+                        .attr('width', 24)
+                        .attr('height', 24)
+                        .attr('rx', 4)
+                        .attr('fill', color)
+                        .attr('stroke', '#fff')
+                        .attr('stroke-width', 2);
+                } else if (d.type === 'table') {
+                    el.append('polygon')
+                        .attr('points', '0,-14 14,10 -14,10')
+                        .attr('fill', color)
+                        .attr('stroke', '#fff')
+                        .attr('stroke-width', 2);
+                } else if (d.type === 'column') {
+                    el.append('polygon')
+                        .attr('points', '0,-14 12,-7 12,7 0,14 -12,7 -12,-7')
+                        .attr('fill', color)
+                        .attr('stroke', '#fff')
+                        .attr('stroke-width', 2);
+                }
+            });
+
+            // Add labels
+            const labels = g.append('g')
+                .attr('class', 'labels')
+                .selectAll('text')
+                .data(data.nodes)
+                .join('text')
+                .attr('class', 'node-label')
+                .attr('text-anchor', 'middle')
+                .attr('dy', 28)
+                .text(d => truncateLabel(d.label));
+
+            // Update positions on tick
+            simulation.on('tick', () => {
+                link
+                    .attr('x1', d => d.source.x)
+                    .attr('y1', d => d.source.y)
+                    .attr('x2', d => d.target.x)
+                    .attr('y2', d => d.target.y);
+
+                node.attr('transform', d => `translate(${d.x},${d.y})`);
+                labels.attr('x', d => d.x).attr('y', d => d.y);
+            });
+
+            // Store reference for toggle
+            window.labelsGroup = labels;
+        }
+
+        function truncateLabel(label) {
+            if (!label) return '';
+            // Get last part of URI or full label
+            const parts = label.split(/[/#]/);
+            const name = parts[parts.length - 1] || label;
+            return name.length > 20 ? name.substring(0, 18) + '…' : name;
+        }
+
+        function drag(simulation) {
+            function dragstarted(event) {
+                if (!event.active) simulation.alphaTarget(0.3).restart();
+                event.subject.fx = event.subject.x;
+                event.subject.fy = event.subject.y;
             }
-        });
 
-        // Add labels
-        const labels = g.append('g')
-            .attr('class', 'labels')
-            .selectAll('text')
-            .data(data.nodes)
-            .join('text')
-            .attr('class', 'node-label')
-            .attr('text-anchor', 'middle')
-            .attr('dy', 28)
-            .text(d => truncateLabel(d.label));
+            function dragged(event) {
+                event.subject.fx = event.x;
+                event.subject.fy = event.y;
+            }
 
-        // Update positions on tick
-        simulation.on('tick', () => {
-            link
-                .attr('x1', d => d.source.x)
-                .attr('y1', d => d.source.y)
-                .attr('x2', d => d.target.x)
-                .attr('y2', d => d.target.y);
+            function dragended(event) {
+                if (!event.active) simulation.alphaTarget(0);
+                event.subject.fx = null;
+                event.subject.fy = null;
+            }
 
-            node.attr('transform', d => `translate(${d.x},${d.y})`);
-            labels.attr('x', d => d.x).attr('y', d => d.y);
-        });
-
-        // Store reference for toggle
-        window.labelsGroup = labels;
-    }
-
-    function truncateLabel(label) {
-        if (!label) return '';
-        // Get last part of URI or full label
-        const parts = label.split(/[/#]/);
-        const name = parts[parts.length - 1] || label;
-        return name.length > 20 ? name.substring(0, 18) + '…' : name;
-    }
-
-    function drag(simulation) {
-        function dragstarted(event) {
-            if (!event.active) simulation.alphaTarget(0.3).restart();
-            event.subject.fx = event.subject.x;
-            event.subject.fy = event.subject.y;
+            return d3.drag()
+                .on('start', dragstarted)
+                .on('drag', dragged)
+                .on('end', dragended);
         }
 
-        function dragged(event) {
-            event.subject.fx = event.x;
-            event.subject.fy = event.y;
+        function showTooltip(event, d) {
+            const frag = fillTemplate('tooltip-content', { type: d.type, label: d.label });
+            tooltip.replaceChildren(frag);
+            tooltip.classList.add('visible');
+            tooltip.style.left = (event.pageX + 15) + 'px';
+            tooltip.style.top = (event.pageY - 10) + 'px';
         }
 
-        function dragended(event) {
-            if (!event.active) simulation.alphaTarget(0);
-            event.subject.fx = null;
-            event.subject.fy = null;
+        function hideTooltip() {
+            tooltip.classList.remove('visible');
         }
 
-        return d3.drag()
-            .on('start', dragstarted)
-            .on('drag', dragged)
-            .on('end', dragended);
-    }
+        // Global functions for buttons
+        window.resetZoom = function () {
+            svg.transition()
+                .duration(750)
+                .call(zoom.transform, d3.zoomIdentity);
+        };
 
-    function showTooltip(event, d) {
-        tooltip.innerHTML = `
-            <div class="type">${d.type}</div>
-            <div class="label">${d.label}</div>
-        `;
-        tooltip.classList.add('visible');
-        tooltip.style.left = (event.pageX + 15) + 'px';
-        tooltip.style.top = (event.pageY - 10) + 'px';
-    }
-
-    function hideTooltip() {
-        tooltip.classList.remove('visible');
-    }
-
-    // Global functions for buttons
-    window.resetZoom = function() {
-        svg.transition()
-            .duration(750)
-            .call(zoom.transform, d3.zoomIdentity);
-    };
-
-    window.toggleLabels = function() {
-        showLabels = !showLabels;
-        if (window.labelsGroup) {
-            window.labelsGroup.style('opacity', showLabels ? 1 : 0);
-        }
-    };
-})();
+        window.toggleLabels = function () {
+            showLabels = !showLabels;
+            if (window.labelsGroup) {
+                window.labelsGroup.style('opacity', showLabels ? 1 : 0);
+            }
+        };
+    })();
 </script>
 {% endblock %}

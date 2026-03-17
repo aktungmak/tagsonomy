@@ -1,48 +1,118 @@
 /**
  * Tagsonomy Common JavaScript
- * 
+ *
  * Uses data attributes for configuration, minimizing JavaScript and following DRY.
  * Convention: use snake_case for data attributes (e.g., data-subject_uri) to match Python API.
- * 
+ *
  * Data attributes:
- *   [data-filter-for="list_id"] - Search input that filters a list
- *   [data-delete]               - Delete button (reads data-url, data-uri, data-type, data-* for body)
- *   [data-uri-from="input_ids"] - URI input auto-generated from other inputs (comma-separated IDs)
- *   [data-user-ns]              - User namespace for URI generation
- *   [data-cascade]              - Cascade select (reads data-resets, data-enables)
- *   [data-add-alt-label="id"]   - Button to add alt label field to container
- *   [data-remove-field]         - Button to remove its parent .alt-label-field
+ *   [data-delete] - Delete button (reads data-url, data-uri, data-type, data-* for body)
+ *   [data-resize-sidebar] - Handle element for resizing adjacent aside (expects aside + handle + section layout)
  */
 
 (() => {
     'use strict';
 
     // =========================================================================
-    // List Filtering
+    // HTML Escaping and Tagged Template
     // =========================================================================
 
-    function initFiltering() {
-        document.querySelectorAll('[data-filter-for]').forEach(input => {
-            const listId = input.dataset.filterFor;
-            const list = document.getElementById(listId);
-            if (!list) return;
-
-            const filter = () => {
-                const query = input.value.toUpperCase();
-                Array.from(list.children).forEach(item => {
-                    const searchable = item.querySelector('[data-searchable]') 
-                        ? Array.from(item.querySelectorAll('[data-searchable]'))
-                        : Array.from(item.querySelectorAll('span'));
-                    const text = searchable.map(el => el.textContent).join(' ').toUpperCase();
-                    item.hidden = !text.includes(query);
-                });
-            };
-
-            input.addEventListener('input', filter);
-            // Apply initial filter if input has a value
-            if (input.value) filter();
-        });
+    function esc(s) {
+        if (s == null) return '';
+        return String(s)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
     }
+
+    /**
+     * Tagged template literal that auto-escapes interpolated values.
+     * Usage: html`<p>Error: ${data.error}</p>`
+     * For pre-escaped HTML (e.g. from nested html`...`), use html.raw(s).
+     */
+    function html(strings, ...values) {
+        return strings.reduce((acc, s, i) => {
+            const v = values[i];
+            if (v === undefined) return acc + s;
+            if (v && typeof v === 'object' && '__html' in v) return acc + s + v.__html;
+            return acc + s + esc(String(v));
+        }, '');
+    }
+    html.raw = (s) => ({ __html: String(s) });
+    html.keep = () => ({ __keep: true });
+    html.fragment = (frag) => ({ __fragment: frag });
+
+    /**
+     * Renders a list by cloning a template for each item and filling slots.
+     * items: array of data
+     * slotFn: (item) => slots object for fillTemplate
+     * Returns a DocumentFragment containing all rendered items.
+     */
+    function renderList(templateId, items, slotFn) {
+        const frag = document.createDocumentFragment();
+        const t = document.getElementById(templateId);
+        if (!t || t.tagName !== 'TEMPLATE') return frag;
+        for (const item of items) {
+            const itemFrag = fillTemplate(templateId, slotFn(item));
+            if (itemFrag) frag.appendChild(itemFrag);
+        }
+        return frag;
+    }
+
+    /**
+     * Clones a template and fills elements with [data-slot="key"].
+     * slots: { key: value } - value is set as textContent, or use html.raw(s) for innerHTML.
+     * Optional sections: use data-slot-optional="key" - if slots[key] is falsy, the element is removed.
+     * For attribute-only slots use data-slot-attr="attrName" (e.g. data-slot-attr="href").
+     */
+    function fillTemplate(templateId, slots) {
+        const t = document.getElementById(templateId);
+        if (!t || t.tagName !== 'TEMPLATE') return null;
+        const frag = t.content.cloneNode(true);
+        for (const [key, value] of Object.entries(slots)) {
+            const el = frag.querySelector(`[data-slot="${key}"], [data-slot-optional="${key}"]`);
+            if (!el) continue;
+            if (value == null || value === '') {
+                if (el.hasAttribute('data-slot-optional')) el.remove();
+                continue;
+            }
+            if (value && typeof value === 'object' && '__keep' in value) continue;
+            if (value && typeof value === 'object' && '__value' in value && '__label' in value) {
+                el.setAttribute('value', String(value.__value));
+                el.textContent = String(value.__label);
+                continue;
+            }
+            if (value && typeof value === 'object' && '__fragment' in value) {
+                el.appendChild(value.__fragment.cloneNode(true));
+                continue;
+            }
+            if (value && typeof value === 'object' && !('__html' in value) && !('__keep' in value)) {
+                for (const [k, v] of Object.entries(value)) {
+                    if (v != null && v !== '') el.setAttribute(k, String(v));
+                }
+                continue;
+            }
+            const attr = el.getAttribute('data-slot-attr');
+            if (attr) el.setAttribute(attr, String(value));
+            else if (value && typeof value === 'object' && '__html' in value) {
+                el.innerHTML = value.__html;
+            } else if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+                el.value = String(value);
+            } else {
+                el.textContent = String(value);
+            }
+        }
+        frag.querySelectorAll('[data-slot-optional]').forEach((el) => {
+            const key = el.getAttribute('data-slot-optional');
+            if (key in slots && (slots[key] == null || slots[key] === '')) el.remove();
+        });
+        return frag;
+    }
+
+    window.esc = esc;
+    window.html = html;
+    window.fillTemplate = fillTemplate;
+    window.renderList = renderList;
 
     // =========================================================================
     // Delete Operations
@@ -78,112 +148,28 @@
     }
 
     // =========================================================================
-    // URI Generation
+    // Resizable Sidebar
     // =========================================================================
 
-    function initUriGeneration() {
-        document.querySelectorAll('[data-uri-from]').forEach(uriInput => {
-            const sourceIds = uriInput.dataset.uriFrom.split(',').map(s => s.trim());
-            const nsElement = document.querySelector('[data-user-ns]');
-            const userNs = nsElement?.dataset.userNs || '';
-            const separator = uriInput.dataset.uriSeparator || '.';
+    function initResizableSidebar() {
+        document.querySelectorAll('[data-resize-sidebar]').forEach(handle => {
+            const sidebar = handle.previousElementSibling;
+            if (!sidebar || sidebar.tagName !== 'ASIDE') return;
 
-            const updateUri = () => {
-                const parts = sourceIds
-                    .map(id => document.getElementById(id)?.value)
-                    .filter(Boolean);
-                
-                if (parts.length === sourceIds.length && parts.every(Boolean)) {
-                    uriInput.value = userNs + encodeURIComponent(parts.join(separator));
-                }
-            };
-
-            sourceIds.forEach(id => {
-                const el = document.getElementById(id);
-                if (el) el.addEventListener('input', updateUri);
-            });
-        });
-    }
-
-    // =========================================================================
-    // Alternative Labels (Dynamic Fields)
-    // =========================================================================
-
-    function createAltLabelField() {
-        const div = document.createElement('div');
-        div.className = 'alt-label-field';
-        div.innerHTML = `
-            <input type="text" name="alt_labels" placeholder="Alternative label" required>
-            <button type="button" data-remove-field>Remove</button>
-        `;
-        return div;
-    }
-
-    function initAltLabels() {
-        // Add button handling
-        document.addEventListener('click', e => {
-            const addBtn = e.target.closest('[data-add-alt-label]');
-            if (addBtn) {
-                const containerId = addBtn.dataset.addAltLabel;
-                const container = document.getElementById(containerId);
-                if (container) container.appendChild(createAltLabelField());
-                return;
-            }
-
-            // Remove button handling
-            const removeBtn = e.target.closest('[data-remove-field]');
-            if (removeBtn) {
-                removeBtn.closest('.alt-label-field')?.remove();
-            }
-        });
-    }
-
-    // =========================================================================
-    // Cascade Selects (for Tables/Columns)
-    // =========================================================================
-
-    function initCascadeSelects() {
-        document.querySelectorAll('[data-cascade]').forEach(select => {
-            select.addEventListener('change', async () => {
-                const apiPath = select.dataset.cascade;
-                const resets = (select.dataset.resets || '').split(',').filter(Boolean);
-                const enables = select.dataset.enables;
-                const targetSelect = enables ? document.getElementById(enables) : null;
-
-                // Reset dependent selects
-                resets.forEach(id => {
-                    const el = document.getElementById(id);
-                    if (el) {
-                        el.innerHTML = `<option value="">Select ${id}...</option>`;
-                        el.disabled = true;
-                    }
-                });
-
-                // Update URI if applicable
-                document.querySelectorAll('[data-uri-from]').forEach(el => el.dispatchEvent(new Event('recalculate')));
-
-                if (!select.value || !targetSelect) return;
-
-                // Build API URL from path segments
-                const pathParts = apiPath.split('/').map(part => {
-                    if (part.startsWith(':')) {
-                        const id = part.slice(1);
-                        return document.getElementById(id)?.value || '';
-                    }
-                    return part;
-                });
-                const url = pathParts.join('/');
-
-                targetSelect.innerHTML = '<option value="">Loading...</option>';
-                
-                try {
-                    const items = await fetch(url).then(r => r.json());
-                    targetSelect.innerHTML = `<option value="">Select ${enables}...</option>` +
-                        items.map(item => `<option value="${item}">${item}</option>`).join('');
-                    targetSelect.disabled = false;
-                } catch {
-                    targetSelect.innerHTML = '<option value="">Error loading</option>';
-                }
+            handle.addEventListener('mousedown', (e) => {
+                const startX = e.clientX;
+                const startWidth = sidebar.getBoundingClientRect().width;
+                const onMove = (ev) => {
+                    const dx = ev.clientX - startX;
+                    sidebar.style.flexBasis = Math.min(480, Math.max(160, startWidth + dx)) + 'px';
+                };
+                const onUp = () => {
+                    document.removeEventListener('mousemove', onMove);
+                    document.removeEventListener('mouseup', onUp);
+                };
+                document.addEventListener('mousemove', onMove);
+                document.addEventListener('mouseup', onUp);
+                e.preventDefault();
             });
         });
     }
@@ -193,10 +179,7 @@
     // =========================================================================
 
     document.addEventListener('DOMContentLoaded', () => {
-        initFiltering();
         initDeleteButtons();
-        initUriGeneration();
-        initAltLabels();
-        initCascadeSelects();
+        initResizableSidebar();
     });
 })();

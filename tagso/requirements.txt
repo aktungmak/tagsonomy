@@ -5,3 +5,4 @@ flask
 gunicorn
 databricks-sdk
 setuptools
+pytest

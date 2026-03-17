@@ -14,7 +14,12 @@ def get_database_url():
     """Get database URL from environment, using Lakebase PG* variables.
     
     For Databricks Apps with Lakebase, standard PG* environment variables are injected.
+    For tests, set TEST_DATABASE_URL to bypass Lakebase (e.g. sqlite:///:memory:).
     """
+    test_url = os.environ.get("TEST_DATABASE_URL")
+    if test_url:
+        return test_url
+
     workspace_client = WorkspaceClient()
     pg_host = os.environ.get('PGHOST')
     pg_database = os.environ.get('PGDATABASE')
@@ -33,3 +38,8 @@ def get_database_url():
 def generate_uri_from_name(name: str) -> str:
     """Generate an IRI from a catalog object name."""
     return str(USER_NS[urllib.parse.quote(name)])
+
+
+def generate_scheme_uri(label: str) -> str:
+    """Generate an IRI for a concept scheme from its label."""
+    return str(USER_NS["scheme/" + urllib.parse.quote(label)])

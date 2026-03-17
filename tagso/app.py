@@ -6,10 +6,8 @@ from databricks.sdk import WorkspaceClient
 from config import get_database_url
 from graph_manager import GraphManager
 from routes import (
-    tables_bp,
-    columns_bp,
-    concepts_bp,
-    properties_bp,
+    catalog_bp,
+    concept_schemes_bp,
     assign_bp,
     import_export_bp,
     sync_bp,
@@ -17,20 +15,27 @@ from routes import (
 )
 
 
-def create_app():
-    """Application factory for creating the Flask app."""
+def create_app(config_overrides=None):
+    """Application factory for creating the Flask app.
+
+    Args:
+        config_overrides: Optional dict with database_url and/or workspace_client
+            for testing. When database_url is set, it overrides get_database_url().
+            When workspace_client is set, it is used instead of WorkspaceClient().
+    """
+    config_overrides = config_overrides or {}
     app = Flask(__name__)
     app.logger.setLevel(logging.INFO)
 
-    # Initialize shared resources
-    app.gm = GraphManager(get_database_url())
-    app.workspace_client = WorkspaceClient()
+    db_url = config_overrides.get("database_url") or get_database_url()
+    app.gm = GraphManager(db_url)
+    app.workspace_client = config_overrides.get(
+        "workspace_client", WorkspaceClient()
+    )
 
     # Register blueprints
-    app.register_blueprint(tables_bp)
-    app.register_blueprint(columns_bp)
-    app.register_blueprint(concepts_bp)
-    app.register_blueprint(properties_bp)
+    app.register_blueprint(catalog_bp)
+    app.register_blueprint(concept_schemes_bp)
     app.register_blueprint(assign_bp)
     app.register_blueprint(import_export_bp)
     app.register_blueprint(sync_bp)

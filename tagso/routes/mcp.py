@@ -18,7 +18,6 @@ def mcp_options():
 @mcp_bp.post("/mcp")
 def mcp_handler():
     data = request.get_json()
-    print(data)
     method = data.get("method")
     if method == "initialize":
         return initialize(data)

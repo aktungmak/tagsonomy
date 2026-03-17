@@ -1,14 +1,26 @@
+{% macro tree_sidebar(aria_label, section_content, tree_id, nav_aria_label) %}
+<aside aria-label="{{ aria_label }}">
+  <section>
+    {{ section_content | safe }}
+  </section>
+  <nav aria-label="{{ nav_aria_label }}">
+    <ul class="tree-root" id="{{ tree_id }}"></ul>
+  </nav>
+</aside>
+{% endmacro %}
+
 {% macro navbar() %}
-<nav>
-    <ul>
-        <li><a href="{{ url_for('index') }}">Home</a></li>
-        <li><a href="{{ url_for('tables.tables_get') }}">Tables</a></li>
-        <li><a href="{{ url_for('concepts.concepts_get') }}">Concepts</a></li>
-        <li><a href="{{ url_for('columns.columns_get') }}">Columns</a></li>
-        <li><a href="{{ url_for('properties.properties_get') }}">Properties</a></li>
-        <li><a href="{{ url_for('assign.assign_get') }}">Assign</a></li>
-        <li><a href="{{ url_for('sync.sync_get') }}">Sync</a></li>
-        <li><a href="{{ url_for('import_export.import_export_get') }}">Import/Export</a></li>
-    </ul>
+<nav aria-label="Main">
+    <a href="{{ url_for('index') }}" {% if request.endpoint=='index' %}aria-current="page" {% endif %}>Graph view</a>
+    <a href="{{ url_for('concept_schemes.concept_schemes_get') }}" {% if request.endpoint and
+        request.endpoint.startswith('concept_schemes') %}aria-current="page" {% endif %}>Concept Schemes</a>
+    <a href="{{ url_for('catalog.catalog_get') }}" {% if request.endpoint and request.endpoint.startswith('catalog')
+        %}aria-current="page" {% endif %}>Catalog</a>
+    <a href="{{ url_for('assign.assign_get') }}" {% if request.endpoint and request.endpoint.startswith('assign')
+        %}aria-current="page" {% endif %}>Semantic Assignment</a>
+    <a href="{{ url_for('import_export.import_export_get') }}" {% if request.endpoint and
+        request.endpoint.startswith('import_export') %}aria-current="page" {% endif %}>Upload/Download</a>
+    <a href="{{ url_for('sync.sync_get') }}" {% if request.endpoint and request.endpoint.startswith('sync')
+        %}aria-current="page" {% endif %}>Sync</a>
 </nav>
 {% endmacro %}

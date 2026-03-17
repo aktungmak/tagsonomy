@@ -1,6 +1,7 @@
 from flask import Blueprint, request, render_template, url_for, current_app
 from werkzeug.local import LocalProxy
-from werkzeug.utils import redirect
+
+from validation import require_params
 
 assign_bp = Blueprint('assign', __name__)
 
@@ -25,16 +26,14 @@ def assign_get():
 
 
 @assign_bp.post('/assign')
-def assign_post():
-    concept_uri = request.form.get('concept_uri')
-    table_uri = request.form.get('table_uri')
-    gm.insert_concept_assignment(table_uri, concept_uri)
-    return redirect(url_for('assign.assign_get'))
+@require_params('concept_uri', 'table_uri', source='json')
+def assign_post(params):
+    gm.insert_concept_assignment(params['table_uri'], params['concept_uri'])
+    return {"redirect": url_for("assign.assign_get")}, 201
 
 
 @assign_bp.post('/assign_column')
-def assign_column_post():
-    property_uri = request.form.get('property_uri')
-    column_uri = request.form.get('column_uri')
-    gm.insert_column_property_assignment(column_uri, property_uri)
-    return redirect(url_for('assign.assign_get'))
+@require_params('property_uri', 'column_uri', source='json')
+def assign_column_post(params):
+    gm.insert_column_property_assignment(params['column_uri'], params['property_uri'])
+    return {"redirect": url_for("assign.assign_get")}, 201

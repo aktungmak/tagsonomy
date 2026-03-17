@@ -18,7 +18,7 @@
 {% endif %}
 
 <form method="post" action="{{ url_for('sync.sync_post') }}">
-    <button type="submit" {% if not job_id %}disabled{% endif %}>
+    <button type="submit" class="primary" {% if not job_id %}disabled{% endif %}>
         Trigger Sync Job
     </button>
 </form>
