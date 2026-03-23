@@ -26,6 +26,21 @@ def _make_mock_workspace_client():
         (),
         {"list": lambda **kw: [], "get": lambda **kw: type("Mock", (), {"columns": []})()},
     )()
+    def _mock_function_info():
+        info = type("Mock", (), {})()
+        info.full_name = ""
+        info.comment = ""
+        info.input_params = type("Mock", (), {"parameters": []})()
+        info.return_params = None
+        info.full_data_type = ""
+        info.data_type = None
+        return info
+
+    mock.functions = type(
+        "Mock",
+        (),
+        {"list": lambda **kw: [], "get": lambda **kw: _mock_function_info()},
+    )()
     return mock
 
 

@@ -2,13 +2,15 @@ from flask import Blueprint, request, render_template, current_app, Response
 from werkzeug.local import LocalProxy
 from rdflib import Graph, SKOS, URIRef
 
+from config import UC
+
 import_export_bp = Blueprint("import_export", __name__)
 
 gm = LocalProxy(lambda: current_app.gm)
 
 
 def _get_orphans_in_graph(graph) -> list[str]:
-    """Return URIs of Classes, Concepts, Properties that lack skos:inScheme."""
+    """Return URIs of Classes, Concepts, Properties, and Actions that lack skos:inScheme."""
     r = graph.query(
         """
         SELECT DISTINCT ?uri
@@ -27,8 +29,14 @@ def _get_orphans_in_graph(graph) -> list[str]:
                 ?uri a rdf:Property .
                 FILTER NOT EXISTS { ?uri skos:inScheme ?s }
             }
+            UNION
+            {
+                ?uri a uc:Action .
+                FILTER NOT EXISTS { ?uri skos:inScheme ?s }
+            }
         }
-        """
+        """,
+        initNs={"uc": UC},
     )
     return [row.uri.toPython() for row in r.bindings if row.get("uri")]
 

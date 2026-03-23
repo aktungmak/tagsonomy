@@ -17,7 +17,9 @@
   "catalogAssignConcept": "{{ url_for('catalog.catalog_assign_concept') }}",
   "catalogUnassignConcept": "{{ url_for('catalog.catalog_unassign_concept') }}",
   "catalogAssignProperty": "{{ url_for('catalog.catalog_assign_property') }}",
-  "catalogUnassignProperty": "{{ url_for('catalog.catalog_unassign_property') }}"
+  "catalogUnassignProperty": "{{ url_for('catalog.catalog_unassign_property') }}",
+  "catalogAssignAction": "{{ url_for('catalog.catalog_assign_action') }}",
+  "catalogUnassignAction": "{{ url_for('catalog.catalog_unassign_action') }}"
 }
 </script>
 {{ macros.tree_sidebar("Unity Catalog", "<h3>Catalogs</h3>", "catalog_tree", "Catalog navigation") }}
@@ -26,7 +28,7 @@
 
 <section class="resource-detail" aria-label="Resource details">
   <article id="detail_pane">
-    <p id="detail_placeholder">Select a catalog, schema, table, or column.</p>
+    <p id="detail_placeholder">Select a catalog, schema, table, column or function.</p>
   </article>
 </section>
 
@@ -67,7 +69,9 @@
     <div data-slot-optional="register-prompt">
       <p><button type="button" id="register_btn">Register</button> to assign concepts.</p>
     </div>
-    <div data-slot-optional="add-form-section"><div data-slot="add-form-content"></div></div>
+    <div data-slot-optional="add-form-section">
+      <div data-slot="add-form-content"></div>
+    </div>
     <div data-slot-optional="deregister-section">
       <p><button type="button" id="deregister_btn">Deregister</button></p>
     </div>
@@ -109,6 +113,53 @@
   </form>
 </template>
 
+<template id="add-action-form">
+  <h4>Add action</h4>
+  <form id="add_action_form">
+    <select name="action_uri"></select>
+    <button type="submit">Add</button>
+  </form>
+</template>
+
+<template id="action-list-item">
+  <li>
+    <a data-slot="link-href" data-slot-attr="href"><span data-slot="link-text"></span></a>
+    <button type="button" class="unassign-btn" data-slot="btn-uri" data-slot-attr="data-action-uri">Remove</button>
+  </li>
+</template>
+
+<template id="function-detail">
+  <header>
+    <h2 data-slot="title"></h2>
+  </header>
+  <section aria-label="Metadata">
+    <h3>Parameters</h3>
+    <dl data-slot="input-params"></dl>
+    <h3>Return type</h3>
+    <p data-slot="output-type"></p>
+    <h3>Comment</h3>
+    <p data-slot="comment"></p>
+  </section>
+  <section aria-label="Assigned actions">
+    <h3>Assigned Actions</h3>
+    <div data-slot-optional="actions-section">
+      <ul id="assigned_actions" data-slot="actions-list"></ul>
+    </div>
+    <div data-slot-optional="no-actions">
+      <p>No actions assigned.</p>
+    </div>
+    <div data-slot-optional="register-prompt">
+      <p><button type="button" id="register_btn">Register</button> to assign actions.</p>
+    </div>
+    <div data-slot-optional="add-form-section">
+      <div data-slot="add-form-content"></div>
+    </div>
+    <div data-slot-optional="deregister-section">
+      <p><button type="button" id="deregister_btn">Deregister</button></p>
+    </div>
+  </section>
+</template>
+
 <template id="option">
   <option data-slot="option"></option>
 </template>
@@ -134,7 +185,9 @@
     <div data-slot-optional="register-prompt">
       <p><button type="button" id="register_btn">Register</button> to assign properties.</p>
     </div>
-    <div data-slot-optional="add-form-section"><div data-slot="add-form-content"></div></div>
+    <div data-slot-optional="add-form-section">
+      <div data-slot="add-form-content"></div>
+    </div>
     <div data-slot-optional="deregister-section">
       <p><button type="button" id="deregister_btn">Deregister</button></p>
     </div>
@@ -170,6 +223,16 @@
         addFormId: 'add_property_form',
         selectName: 'property_uri',
         deregisterConfirm: 'Deregister this column? This will remove it and all assignments from the database.'
+      },
+      function: {
+        endpoint: urls.catalogAssignAction,
+        unassignEndpoint: urls.catalogUnassignAction,
+        uriKey: 'function_uri',
+        assigneeKey: 'action_uri',
+        datasetKey: 'actionUri',
+        addFormId: 'add_action_form',
+        selectName: 'action_uri',
+        deregisterConfirm: 'Deregister this function? This will remove it and all assignments from the database.'
       }
     };
 
@@ -221,9 +284,15 @@
         const names = await r.json();
         items = names.map(name => ({ type: 'schema', name, fullName: `${path[0]}.${name}` }));
       } else if (type === 'schema') {
-        const r = await fetch(`${urls.catalogBase}/tables/${encodeURIComponent(path[0])}/${encodeURIComponent(path[1])}`);
-        const names = await r.json();
-        items = names.map(name => ({ type: 'table', name, fullName: `${path[0]}.${path[1]}.${name}` }));
+        const [tablesRes, functionsRes] = await Promise.all([
+          fetch(`${urls.catalogBase}/tables/${encodeURIComponent(path[0])}/${encodeURIComponent(path[1])}`),
+          fetch(`${urls.catalogBase}/functions/${encodeURIComponent(path[0])}/${encodeURIComponent(path[1])}`)
+        ]);
+        const tableNames = await tablesRes.json();
+        const functionNames = await functionsRes.json();
+        const tableItems = tableNames.map(name => ({ type: 'table', name, fullName: `${path[0]}.${path[1]}.${name}` }));
+        const functionItems = functionNames.map(name => ({ type: 'function', name, fullName: `${path[0]}.${path[1]}.${name}` }));
+        items = [...tableItems, ...functionItems];
       } else if (type === 'table') {
         const r = await fetch(`${urls.catalogBase}/columns/${encodeURIComponent(path[0])}/${encodeURIComponent(path[1])}/${encodeURIComponent(path[2])}`);
         const names = await r.json();
@@ -237,6 +306,7 @@
       if (type === 'catalog') return [name, item.name];
       if (type === 'schema') return path.concat([item.name]);
       if (type === 'table') return path.concat([item.name]);
+      if (type === 'function') return path.concat([item.name]);
       return path;
     }
 
@@ -254,7 +324,7 @@
         const name = parentCaret.dataset.name;
         return children.map((item, i) => {
           const itemId = subtreeId + '-' + i;
-          const isExpandable = item.type !== 'column';
+          const isExpandable = item.type !== 'column' && item.type !== 'function';
           const fullName = item.fullName || item.name;
           const itemPath = buildItemPath(path, type, name, item);
           const icon = item.type;
@@ -370,6 +440,53 @@
         });
         detailPane.replaceChildren(frag);
         attachAssignmentHandlers('column', name, data);
+        return;
+      }
+
+      if (type === 'function') {
+        const hasUri = !!data.uri;
+        const actions = data.assigned_actions || [];
+        const allActions = data.all_actions || [];
+        const assignedUris = new Set(actions.map(a => a.action_uri));
+        const availableActions = allActions.filter(a => !assignedUris.has(a.uri));
+
+        const actionsFrag = renderList('action-list-item', actions, (a) => ({
+          'link-href': `${urls.conceptSchemes}/action?uri=${encodeURIComponent(a.action_uri)}`,
+          'link-text': a.action_name || a.action_uri,
+          'btn-uri': a.action_uri
+        }));
+
+        let addFormContent = null;
+        if (hasUri && availableActions.length) {
+          const addFormFrag = fillTemplate('add-action-form', {});
+          addFormFrag.querySelector('select').appendChild(
+            renderList('option', availableActions, (a) => ({
+              option: { __value: a.uri, __label: a.label || a.uri }
+            }))
+          );
+          addFormContent = html.fragment(addFormFrag);
+        }
+
+        const inputParams = data.input_params || [];
+        const inputParamsFrag = renderList('column-row', inputParams, (p) => ({
+          name: p.name,
+          description: `${p.type_text}${p.comment ? ' – ' + p.comment : ''}`
+        }));
+        const frag = fillTemplate('function-detail', {
+          title: `Function: ${data.name}`,
+          'input-params': html.fragment(inputParamsFrag),
+          'output-type': data.output_type || '–',
+          comment: data.comment || 'No comment.',
+          'actions-section': actions.length ? html.keep() : null,
+          'actions-list': actions.length ? html.fragment(actionsFrag) : null,
+          'no-actions': !actions.length ? html.keep() : null,
+          'register-prompt': !hasUri ? html.keep() : null,
+          'add-form-section': addFormContent ? html.keep() : null,
+          'add-form-content': addFormContent,
+          'deregister-section': hasUri ? html.keep() : null
+        });
+        detailPane.replaceChildren(frag);
+        attachAssignmentHandlers('function', name, data);
         return;
       }
     }

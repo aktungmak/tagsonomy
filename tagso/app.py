@@ -12,6 +12,7 @@ from routes import (
     import_export_bp,
     sync_bp,
     mcp_bp,
+    actions_bp,
 )
 
 
@@ -40,6 +41,7 @@ def create_app(config_overrides=None):
     app.register_blueprint(import_export_bp)
     app.register_blueprint(sync_bp)
     app.register_blueprint(mcp_bp)
+    app.register_blueprint(actions_bp)
 
     # Index route
     @app.route("/")
@@ -58,12 +60,15 @@ def create_app(config_overrides=None):
         properties = gm.get_properties()
         tables = gm.get_tables()
         columns = gm.get_columns()
+        functions = gm.get_functions()
+        actions = gm.get_actions()
         table_assignments = gm.concept_table_assignments()
         column_assignments = [
             a
             for col in columns
             for a in gm.column_property_assignments(column_uri=col["uri"])
         ]
+        function_assignments = gm.function_action_assignments()
 
         return {
             "concepts": concepts,
@@ -71,8 +76,11 @@ def create_app(config_overrides=None):
             "properties": properties,
             "tables": tables,
             "columns": columns,
+            "functions": functions,
+            "actions": actions,
             "table_assignments": table_assignments,
             "column_assignments": column_assignments,
+            "function_assignments": function_assignments,
         }
 
     return app

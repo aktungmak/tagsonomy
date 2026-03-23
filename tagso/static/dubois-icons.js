@@ -40,6 +40,19 @@ const DuboisIcons = (function () {
     base +
     '<path fill="currentColor" d="M4 4h3v1.5H4a2.5 2.5 0 0 0 0 5h3V12H4a4 4 0 0 1 0-8M12 10.5H9V12h3a4 4 0 0 0 0-8H9v1.5h3a2.5 2.5 0 0 1 0 5"/><path fill="currentColor" d="M4 8.75h8v-1.5H4z"/></svg>';
 
+  /* Curly braces icon (Lucide) – distinct from tree caret, associated with functions/code */
+  const function_ =
+    '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="tree-icon-svg" aria-hidden="true">' +
+    '<path d="M8 3H7a2 2 0 0 0-2 2v5a2 2 0 0 1-2 2 2 2 0 0 1 2 2v5c0 1.1.9 2 2 2h1"/>' +
+    '<path d="M16 21h1a2 2 0 0 0 2-2v-5c0-1.1.9-2 2-2a2 2 0 0 1-2-2V5a2 2 0 0 0-2-2h-1"/>' +
+    '</svg>';
+
+  /* Lightning icon (Lucide Zap, DuBois LightningIcon equivalent) – for actions */
+  const action =
+    '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="tree-icon-svg" aria-hidden="true">' +
+    '<path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/>' +
+    '</svg>';
+
   const icons = {
     catalog,
     schema,
@@ -48,12 +61,10 @@ const DuboisIcons = (function () {
     book,
     group,
     lightbulb,
-    link
+    link,
+    function: function_,
+    action
   };
 
-  function get(name) {
-    return icons[name] || '';
-  }
-
-  return { get, catalog, schema, table, column, book, group, lightbulb, link };
+  return icons;
 })();

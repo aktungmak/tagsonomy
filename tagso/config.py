@@ -43,3 +43,8 @@ def generate_uri_from_name(name: str) -> str:
 def generate_scheme_uri(label: str) -> str:
     """Generate an IRI for a concept scheme from its label."""
     return str(USER_NS["scheme/" + urllib.parse.quote(label)])
+
+
+def generate_action_uri(label: str) -> str:
+    """Generate an IRI for an Action from its label."""
+    return str(USER_NS["action/" + urllib.parse.quote(label)])

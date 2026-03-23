@@ -16,6 +16,7 @@ def concept_schemes_get():
 
 @concept_schemes_bp.get("/concept_schemes/concept")
 @concept_schemes_bp.get("/concept_schemes/property")
+@concept_schemes_bp.get("/concept_schemes/action")
 def concept_schemes_resource_page():
     """Page with kind in path for deep links (e.g. /concept_schemes/concept?uri=...)."""
     return render_template("concept_schemes.html")
@@ -39,8 +40,8 @@ def concept_schemes_members(params):
 @concept_schemes_bp.get("/concept_schemes/resource/<kind>")
 @require_params("uri", source="args")
 def concept_schemes_resource(params, kind):
-    """JSON for selected resource (concept or property) for detail pane. kind must be concept or property."""
-    if kind not in ("concept", "property"):
+    """JSON for selected resource (concept, property, or action) for detail pane."""
+    if kind not in ("concept", "property", "action"):
         return {"error": "Invalid kind"}, 404
 
     uri = params["uri"]
@@ -48,10 +49,14 @@ def concept_schemes_resource(params, kind):
         result = gm.get_concept_detail_full(uri)
         if result:
             return {"resource": result, "type": "concept"}
-    else:
+    elif kind == "property":
         result = gm.get_property_detail_full(uri)
         if result:
             return {"resource": result, "type": "property"}
+    elif kind == "action":
+        result = gm.get_action_detail_full(uri)
+        if result:
+            return {"resource": result, "type": "action"}
 
     return {"error": "Resource not found"}, 404
 
@@ -68,6 +73,7 @@ def concept_schemes_scheme_detail(params):
     members = gm.get_members_in_scheme(uri)
     all_concepts = gm.get_concepts()
     all_properties = gm.get_properties_with_alt_labels()
+    all_actions = gm.get_actions()
     member_uris = {m["uri"] for m in members}
 
     return {
@@ -75,6 +81,7 @@ def concept_schemes_scheme_detail(params):
         "members": members,
         "all_concepts": all_concepts,
         "all_properties": all_properties,
+        "all_actions": all_actions,
         "member_uris": list(member_uris),
     }
 
