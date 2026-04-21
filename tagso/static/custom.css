@@ -78,8 +78,8 @@ strong {
   outline-offset: 2px;
 }
 
-/* ─── Header ────────────────────────────────────────────────────────────────── */
-header {
+/* ─── App header ────────────────────────────────────────────────────────────── */
+body>header {
   padding: var(--dubois-space-sm) var(--dubois-space-md);
   background: var(--dubois-bg-secondary);
   border-bottom: 1px solid var(--dubois-border);
@@ -88,7 +88,7 @@ header {
   align-items: center;
 }
 
-header h1 {
+body>header h1 {
   margin: 0;
   font-size: 1.05rem;
   font-weight: 600;
@@ -151,6 +151,17 @@ section[aria-label="Resource details"],
   flex: 1 1 auto;
   overflow: auto;
   padding: var(--dubois-space-md);
+}
+
+/* Detail pane headers are content headers, not app navigation headers. */
+#detail_pane>header {
+  padding: var(--dubois-space-sm) var(--dubois-space-md);
+  background: var(--dubois-bg-secondary);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: flex-start;
+  text-align: left;
 }
 
 /* ─── Tree view -------------------------------------------------─────────────── */
@@ -218,13 +229,13 @@ ul.nested.active {
   display: block;
 }
 
-ul.nested > li {
+ul.nested>li {
   font-size: 12px;
   color: var(--dubois-text-primary);
   cursor: pointer;
 }
 
-ul.nested > li.tree-leaf {
+ul.nested>li.tree-leaf {
   display: flex;
   align-items: center;
 }

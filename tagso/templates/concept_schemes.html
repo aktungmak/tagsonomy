@@ -175,7 +175,7 @@
       },
       renderChildren: (members) =>
         members.map((m) =>
-          TreeView.renderLeaf(`${m.type || 'Resource'}: ${m.label || m.uri}`, { uri: m.uri, type: 'resource', resource_type: m.type }, TYPE_ICONS[m.type] || '')
+          TreeView.renderLeaf(`${m.label || m.uri}`, { uri: m.uri, type: 'resource', resource_type: m.type }, TYPE_ICONS[m.type] || '')
         ).join(''),
       afterExpand: (caret) => selectScheme(caret.dataset.schemeUri),
       onLeafSelect: (li) => selectResource(li.dataset.uri, li.dataset.resourceType)
@@ -183,7 +183,7 @@
 
     function renderSchemeTree() {
       schemeTree.innerHTML = schemes.map((s, i) =>
-        TreeView.renderExpandable(`scheme-subtree-${i}`, `skos:ConceptScheme: ${s.label || s.uri}`, { scheme_uri: s.uri }, 'book')
+        TreeView.renderExpandable(`scheme-subtree-${i}`, `${s.label || s.uri}`, { scheme_uri: s.uri }, 'book')
       ).join('');
       schemeTree.querySelectorAll('.caret').forEach((c) => TreeView.setupCaret(c, schemeTreeConfig));
     }
