@@ -4,6 +4,7 @@ from routes.assign import assign_bp
 from routes.import_export import import_export_bp
 from routes.sync import sync_bp
 from routes.mcp import mcp_bp
+from routes.actions import actions_bp
 
 __all__ = [
     "catalog_bp",
@@ -12,4 +13,5 @@ __all__ = [
     "import_export_bp",
     "sync_bp",
     "mcp_bp",
+    "actions_bp",
 ]

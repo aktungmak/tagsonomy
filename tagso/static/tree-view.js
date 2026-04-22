@@ -20,11 +20,11 @@ const TreeView = (function () {
 
   /**
    * Renders icon markup if DuboisIcons is available and icon name is given.
-   * @param {string} [iconName] - Name from DuboisIcons (catalog, schema, table, column, book, group, lightbulb, link)
+   * @param {string} [iconName] - Name from DuboisIcons (catalog, schema, table, column, book, group, lightbulb, link, function_, action)
    */
   function renderIcon(iconName) {
     if (!iconName || typeof DuboisIcons === 'undefined') return '';
-    const svg = DuboisIcons.get(iconName);
+    const svg = DuboisIcons[iconName];
     return svg ? `<span class="tree-icon">${svg}</span>` : '';
   }
 

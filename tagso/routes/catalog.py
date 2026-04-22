@@ -36,6 +36,17 @@ def catalog_tables(catalog, schema):
     ]
 
 
+@catalog_bp.get("/catalog/functions/<catalog>/<schema>")
+def catalog_functions(catalog, schema):
+    """JSON list of function names for a schema (includes UDFs and stored procedures)."""
+    return [
+        f.name
+        for f in workspace_client.functions.list(
+            catalog_name=catalog, schema_name=schema
+        )
+    ]
+
+
 @catalog_bp.get("/catalog/columns/<catalog>/<schema>/<table>")
 def catalog_columns(catalog, schema, table):
     """JSON list of column names for a table."""
@@ -56,6 +67,12 @@ def catalog_registered_columns():
     return {"columns": gm.get_columns()}
 
 
+@catalog_bp.get("/catalog/registered_functions")
+def catalog_registered_functions():
+    """JSON API: functions registered in the graph (for verification, tests)."""
+    return {"functions": gm.get_functions()}
+
+
 @catalog_bp.get("/catalog/concept_assignments")
 def catalog_concept_assignments():
     """JSON API: table-to-concept assignments (for verification, tests)."""
@@ -73,16 +90,24 @@ def catalog_property_assignments():
     return {"assignments": assignments}
 
 
+@catalog_bp.get("/catalog/action_assignments")
+def catalog_action_assignments():
+    """JSON API: function-to-action assignments (for verification, tests)."""
+    return {"assignments": gm.function_action_assignments()}
+
+
 @catalog_bp.get("/catalog/resource")
 @require_params("type", "name", source="args")
 def catalog_resource(params):
     """JSON detail for selected catalog object (catalog, schema, table, or column)."""
     obj_type = params["type"]
     name = params["name"]
-    if obj_type not in ("catalog", "schema", "table", "column"):
+    if obj_type not in ("catalog", "schema", "table", "column", "function"):
         return {"error": "Invalid type"}, 400
     if obj_type == "column" and len(name.split(".")) < 4:
         return {"error": "Column name must be catalog.schema.table.column"}, 400
+    if obj_type == "function" and len(name.split(".")) < 3:
+        return {"error": "Function name must be catalog.schema.function"}, 400
 
     try:
         if obj_type == "catalog":
@@ -125,6 +150,46 @@ def catalog_resource(params):
             else:
                 result["assigned_concepts"] = []
             result["all_concepts"] = gm.get_concepts()
+            return result
+
+        if obj_type == "function":
+            function_info = workspace_client.functions.get(name=name)
+            input_params = []
+            ip = getattr(function_info, "input_params", None)
+            params_list = getattr(ip, "parameters", None) if ip else None
+            if params_list:
+                for p in params_list:
+                    input_params.append({
+                        "name": getattr(p, "name", ""),
+                        "type_text": getattr(p, "type_text", ""),
+                        "comment": getattr(p, "comment", None) or "",
+                    })
+            return_params = getattr(function_info, "return_params", None)
+            rp_list = getattr(return_params, "parameters", None) if return_params else None
+            if rp_list:
+                output_type = "TABLE(" + ", ".join(
+                    f"{getattr(p, 'name', '')} {getattr(p, 'type_text', '')}"
+                    for p in rp_list
+                ) + ")"
+            else:
+                output_type = getattr(function_info, "full_data_type", None) or getattr(function_info, "data_type", None)
+                output_type = str(output_type) if output_type is not None else ""
+            result = {
+                "type": "function",
+                "name": function_info.full_name or name,
+                "comment": getattr(function_info, "comment", None) or "",
+                "input_params": input_params,
+                "output_type": output_type or "",
+            }
+            function_in_graph = gm.get_function_by_name(name)
+            if function_in_graph:
+                result["uri"] = function_in_graph["uri"]
+                result["assigned_actions"] = gm.function_action_assignments(
+                    function_uri=function_in_graph["uri"]
+                )
+            else:
+                result["assigned_actions"] = []
+            result["all_actions"] = gm.get_actions()
             return result
 
         # obj_type == "column"
@@ -170,14 +235,18 @@ def catalog_register(params):
     """Register a table or column in the graph."""
     obj_type = params["type"]
     name = params["name"]
-    if obj_type not in ("table", "column"):
-        return {"error": "type must be table or column"}, 400
+    if obj_type not in ("table", "column", "function"):
+        return {"error": "type must be table, column, or function"}, 400
 
     uri = generate_uri_from_name(name)
     if obj_type == "table":
         if len(name.split(".")) < 3:
             return {"error": "Table name must be catalog.schema.table"}, 400
         gm.insert_table(uri, name)
+    elif obj_type == "function":
+        if len(name.split(".")) < 3:
+            return {"error": "Function name must be catalog.schema.function"}, 400
+        gm.insert_function(uri, name)
     else:
         if len(name.split(".")) < 4:
             return {"error": "Column name must be catalog.schema.table.column"}, 400
@@ -189,8 +258,24 @@ def catalog_register(params):
 @catalog_bp.delete("/catalog/resource")
 @require_params("uri", source="json")
 def catalog_deregister(params):
-    """Deregister a table or column from the graph (removes object and assignments)."""
+    """Deregister a table, column, or function from the graph (removes object and assignments)."""
     gm.delete_object(params["uri"])
+    return {"success": True}, 200
+
+
+@catalog_bp.post("/catalog/assign_action")
+@require_params("function_uri", "action_uri", source="json")
+def catalog_assign_action(params):
+    """Add an action assignment to a function."""
+    gm.insert_action_assignment(params["function_uri"], params["action_uri"])
+    return {"success": True}, 201
+
+
+@catalog_bp.delete("/catalog/assign_action")
+@require_params("function_uri", "action_uri", source="json")
+def catalog_unassign_action(params):
+    """Remove an action assignment from a function."""
+    gm.delete_action_assignment(params["function_uri"], params["action_uri"])
     return {"success": True}, 200
 
 

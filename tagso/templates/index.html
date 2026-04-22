@@ -370,8 +370,8 @@
             <input type="range" id="gravitySlider" min="0.01" max="0.2" step="0.01" value="0.01">
         </div>
         <div class="slider-group">
-            <label>Node Repulsion <span id="repulsionValue">100</span></label>
-            <input type="range" id="repulsionSlider" min="50" max="500" step="10" value="100">
+            <label>Node Repulsion <span id="repulsionValue">500</span></label>
+            <input type="range" id="repulsionSlider" min="100" max="1000" step="10" value="500">
         </div>
         <div class="slider-group">
             <label>Link Distance <span id="linkDistValue">130</span></label>
@@ -388,21 +388,21 @@
 <div class="tooltip" id="tooltip"></div>
 
 <template id="empty-state">
-  <div class="empty-state">
-    <h2>No metadata available</h2>
-    <p>Start by importing a taxonomy or adding concepts, tables, and properties to visualise your metadata.</p>
-    <div class="links">
-      <a href="/import_export">Import Taxonomy</a>
-      <a href="/concept_schemes">Concept Schemes</a>
-      <a href="/catalog">Catalog</a>
-      <a href="/assign">Semantic Assignment</a>
+    <div class="empty-state">
+        <h2>No metadata available</h2>
+        <p>Start by importing a taxonomy or adding concepts, tables, and properties to visualise your metadata.</p>
+        <div class="links">
+            <a href="/import_export">Import Taxonomy</a>
+            <a href="/concept_schemes">Concept Schemes</a>
+            <a href="/catalog">Catalog</a>
+            <a href="/assign">Semantic Assignment</a>
+        </div>
     </div>
-  </div>
 </template>
 
 <template id="tooltip-content">
-  <div class="type" data-slot="type"></div>
-  <div class="label" data-slot="label"></div>
+    <div class="type" data-slot="type"></div>
+    <div class="label" data-slot="label"></div>
 </template>
 
 <script type="application/json" id="graph-urls">

@@ -77,8 +77,8 @@ class GraphManager:
         return self._to_dicts(r.bindings)
 
     def get_members_in_scheme(self, scheme_uri: str) -> list[dict]:
-        """Return Classes, Concepts, and Properties where ?resource skos:inScheme ?scheme.
-        Each item has uri, label, and type (rdfs:Class, skos:Concept, or rdf:Property).
+        """Return Classes, Concepts, Properties, and Actions where ?resource skos:inScheme ?scheme.
+        Each item has uri, label, and type (rdfs:Class, skos:Concept, rdf:Property, or uc:Action).
         """
         r = self._graph.query(
             """
@@ -86,14 +86,21 @@ class GraphManager:
             WHERE {
                 ?uri skos:inScheme ?scheme .
                 ?uri rdf:type ?type .
-                FILTER(?type IN (rdfs:Class, skos:Concept, rdf:Property))
+                FILTER(?type IN (rdfs:Class, skos:Concept, rdf:Property, uc:Action))
                 OPTIONAL { ?uri rdfs:label ?label }
             }
             ORDER BY ?label
             """,
             initBindings={"scheme": URIRef(scheme_uri)},
         )
-        return self._to_dicts(r.bindings)
+        rows = self._to_dicts(r.bindings)
+        for row in rows:
+            if row.get("type") is not None:
+                try:
+                    row["type"] = self._graph.namespace_manager.qname(URIRef(row["type"]))
+                except Exception:
+                    pass
+        return rows
 
     def insert_concept_scheme(self, uri: str, label: str, comment: Optional[str] = None):
         """Add a skos:ConceptScheme with label and optional comment."""
@@ -379,10 +386,14 @@ class GraphManager:
                     BIND("type" AS ?row_kind) .
                     ?uri a rdf:Property .
                     OPTIONAL { ?uri skos:inScheme ?in_scheme }
-                    OPTIONAL { ?uri rdfs:domain ?domain }
-                    OPTIONAL { ?domain rdfs:label ?domain_label }
-                    OPTIONAL { ?uri rdfs:range ?range }
-                    OPTIONAL { ?range rdfs:label ?range_label }
+                    OPTIONAL {
+                        ?uri rdfs:domain ?domain .
+                        OPTIONAL { ?domain rdfs:label ?domain_label }
+                    }
+                    OPTIONAL {
+                        ?uri rdfs:range ?range .
+                        OPTIONAL { ?range rdfs:label ?range_label }
+                    }
                 }
                 UNION
                 {
@@ -500,6 +511,125 @@ class GraphManager:
                     })
 
         return result
+
+    def update_property(
+        self,
+        uri: str,
+        label: str,
+        comments: Optional[list[str]] = None,
+        alt_labels: Optional[list[str]] = None,
+        domain: Optional[str] = None,
+        range_uri: Optional[str] = None,
+    ) -> bool:
+        """Replace rdfs:label, rdfs:comment, skos:altLabel, rdfs:domain, and rdfs:range for an rdf:Property.
+
+        Each predicate is fully replaced: multiple rdfs:label values become a single label;
+        comments and alt labels use the provided lists (empty lists clear them).
+        Empty or whitespace-only domain/range clears those triples.
+
+        Returns:
+            True if the URI exists and is typed rdf:Property; False otherwise.
+        """
+        uri_ref = URIRef(uri)
+        if RDF.Property not in set(self._graph.objects(uri_ref, RDF.type)):
+            return False
+
+        label_clean = label.strip()
+        if not label_clean:
+            return False
+
+        def _normalize_str_list(values: Optional[list[str]]) -> list[str]:
+            if not values:
+                return []
+            out: list[str] = []
+            for item in values:
+                if item is None:
+                    continue
+                s = str(item).strip()
+                if s:
+                    out.append(s)
+            return out
+
+        for old in self._graph.objects(uri_ref, RDFS.label):
+            self._graph.remove((uri_ref, RDFS.label, old))
+        self._graph.add((uri_ref, RDFS.label, Literal(label_clean)))
+
+        for old in self._graph.objects(uri_ref, RDFS.comment):
+            self._graph.remove((uri_ref, RDFS.comment, old))
+        for text in _normalize_str_list(comments):
+            self._graph.add((uri_ref, RDFS.comment, Literal(text)))
+
+        for old in self._graph.objects(uri_ref, SKOS.altLabel):
+            self._graph.remove((uri_ref, SKOS.altLabel, old))
+        for alt in _normalize_str_list(alt_labels):
+            self._graph.add((uri_ref, SKOS.altLabel, Literal(alt)))
+
+        for old in self._graph.objects(uri_ref, RDFS.domain):
+            self._graph.remove((uri_ref, RDFS.domain, old))
+        domain_clean = (domain or "").strip()
+        if domain_clean:
+            self._graph.add((uri_ref, RDFS.domain, URIRef(domain_clean)))
+
+        for old in self._graph.objects(uri_ref, RDFS.range):
+            self._graph.remove((uri_ref, RDFS.range, old))
+        range_clean = (range_uri or "").strip()
+        if range_clean:
+            self._graph.add((uri_ref, RDFS.range, URIRef(range_clean)))
+
+        logger.info(f"Updated property {uri}")
+        return True
+
+    def update_concept(
+        self,
+        uri: str,
+        label: str,
+        comments: Optional[list[str]] = None,
+        alt_labels: Optional[list[str]] = None,
+    ) -> bool:
+        """Replace rdfs:label, rdfs:comment, and skos:altLabel for an rdfs:Class or skos:Concept.
+
+        Comments and alt labels use the provided lists (empty lists clear them).
+
+        Returns:
+            True if the URI exists and is typed rdfs:Class or skos:Concept; False otherwise.
+        """
+        uri_ref = URIRef(uri)
+        types = set(self._graph.objects(uri_ref, RDF.type))
+        if RDFS.Class not in types and SKOS.Concept not in types:
+            return False
+
+        label_clean = label.strip()
+        if not label_clean:
+            return False
+
+        def _normalize_str_list(values: Optional[list[str]]) -> list[str]:
+            if not values:
+                return []
+            out: list[str] = []
+            for item in values:
+                if item is None:
+                    continue
+                s = str(item).strip()
+                if s:
+                    out.append(s)
+            return out
+
+        for old in self._graph.objects(uri_ref, RDFS.label):
+            self._graph.remove((uri_ref, RDFS.label, old))
+        self._graph.add((uri_ref, RDFS.label, Literal(label_clean)))
+
+        for old in self._graph.objects(uri_ref, RDFS.comment):
+            self._graph.remove((uri_ref, RDFS.comment, old))
+        for text in _normalize_str_list(comments):
+            self._graph.add((uri_ref, RDFS.comment, Literal(text)))
+
+        for old in self._graph.objects(uri_ref, SKOS.altLabel):
+            self._graph.remove((uri_ref, SKOS.altLabel, old))
+        for alt in _normalize_str_list(alt_labels):
+            self._graph.add((uri_ref, SKOS.altLabel, Literal(alt)))
+
+        logger.info(f"Updated concept {uri}")
+        return True
 
     def insert_concept_assignment(self, table_uri: str, concept_uri: str):
         """Insert a concept assignment from a table to a concept."""
@@ -638,6 +768,296 @@ class GraphManager:
             self._graph.add((uri, UC.name, Literal(name)))
         logger.info(f"Inserting column {name} iri: {uri}")
 
+    def insert_function(self, uri: str, name: str):
+        uri_ref = URIRef(uri)
+        if uri_ref not in self._graph.subjects(RDF.type, UC.Function):
+            self._graph.add((uri_ref, RDF.type, UC.Function))
+            self._graph.add((uri_ref, UC.name, Literal(name)))
+        logger.info(f"Inserting function {name} iri: {uri_ref}")
+
+    def get_functions(self) -> list[dict]:
+        r = self._graph.query(
+            """
+            SELECT ?uri ?name
+            WHERE {
+                ?uri rdf:type uc:Function .
+                OPTIONAL { ?uri uc:name ?name }
+            }
+            """
+        )
+        return self._to_dicts(r.bindings)
+
+    def get_function_by_name(self, name: str) -> Optional[dict]:
+        """Look up a function by its uc:name (fully qualified catalog.schema.function)."""
+        r = self._graph.query(
+            """
+            SELECT ?uri ?name
+            WHERE {
+                ?uri rdf:type uc:Function .
+                ?uri uc:name ?name .
+            }
+            """,
+            initBindings={"name": Literal(name)},
+        )
+        rows = self._to_dicts(r.bindings)
+        return rows[0] if rows else None
+
+    def insert_action_assignment(self, function_uri: str, action_uri: str):
+        """Insert an action assignment from a function to an action."""
+        function_uri = URIRef(function_uri)
+        action_uri = URIRef(action_uri)
+        self._graph.add((function_uri, UC.actionAssignment, action_uri))
+        logger.info(f"Assigned function {function_uri} to action {action_uri}")
+
+    def delete_action_assignment(self, function_uri: str, action_uri: str):
+        """Remove an action assignment from a function."""
+        function_uri = URIRef(function_uri)
+        action_uri = URIRef(action_uri)
+        self._graph.remove((function_uri, UC.actionAssignment, action_uri))
+        logger.info(f"Removed action assignment: {function_uri} -> {action_uri}")
+
+    def function_action_assignments(
+        self,
+        function_uri: Optional[str] = None,
+        action_uri: Optional[str] = None,
+    ) -> list[dict]:
+        """Get function/action assignments.
+
+        Args:
+            function_uri: If provided, returns all actions assigned to this function
+            action_uri: If provided, returns all functions assigned to this action
+        """
+        bindings = {}
+        if function_uri:
+            bindings["function_uri"] = URIRef(function_uri)
+        if action_uri:
+            bindings["action_uri"] = URIRef(action_uri)
+
+        r = self._graph.query(
+            """
+            SELECT ?function_uri ?function_name ?action_uri ?action_name
+            WHERE {
+                ?function_uri uc:actionAssignment ?action_uri .
+                OPTIONAL { ?function_uri uc:name ?function_name }
+                OPTIONAL { ?action_uri rdfs:label ?action_name }
+            }
+            """,
+            initBindings=bindings if bindings else None,
+        )
+        return self._to_dicts(r.bindings)
+
+    def get_actions(self) -> list[dict]:
+        r = self._graph.query(
+            """
+            SELECT DISTINCT ?uri ?label
+            WHERE {
+                ?uri a uc:Action .
+                OPTIONAL { ?uri rdfs:label ?label }
+            }
+            ORDER BY ?label
+            """
+        )
+        return self._to_dicts(r.bindings)
+
+    def insert_action(
+        self,
+        uri: str,
+        label: str,
+        comment: Optional[str] = None,
+        alt_labels: Optional[list[str]] = None,
+        notes: Optional[list[str]] = None,
+        action_inputs: Optional[list[str]] = None,
+        action_outputs: Optional[list[str]] = None,
+        target_concepts: Optional[list[str]] = None,
+        scheme_uri: Optional[str] = None,
+    ):
+        """Create uc:Action with all properties."""
+        uri_ref = URIRef(uri)
+        self._graph.add((uri_ref, RDF.type, UC.Action))
+        self._graph.add((uri_ref, RDFS.label, Literal(label)))
+        if comment:
+            self._graph.add((uri_ref, RDFS.comment, Literal(comment)))
+        for alt in alt_labels or []:
+            self._graph.add((uri_ref, SKOS.altLabel, Literal(alt)))
+        for note in notes or []:
+            self._graph.add((uri_ref, SKOS.note, Literal(note)))
+        for prop_uri in action_inputs or []:
+            self._graph.add((uri_ref, UC.actionInput, URIRef(prop_uri)))
+        for prop_uri in action_outputs or []:
+            self._graph.add((uri_ref, UC.actionOutput, URIRef(prop_uri)))
+        for concept_uri in target_concepts or []:
+            self._graph.add((uri_ref, UC.targetConcept, URIRef(concept_uri)))
+        if scheme_uri:
+            self._graph.add((uri_ref, SKOS.inScheme, URIRef(scheme_uri)))
+        logger.info(f"Inserted action {label} iri: {uri_ref}")
+
+    def get_action_detail_full(self, uri: str) -> Optional[dict]:
+        """Get all action detail data: labels, comments, altLabels, notes,
+        inputs, outputs, targetConcept, assigned functions.
+        """
+        uri_ref = URIRef(uri)
+        r = self._graph.query(
+            """
+            SELECT ?row_kind ?label_val ?prop_uri ?prop_label ?concept_uri ?concept_label
+                   ?function_uri ?function_name
+            WHERE {
+                {
+                    BIND("label" AS ?row_kind) .
+                    ?uri rdfs:label ?label_val .
+                }
+                UNION
+                {
+                    BIND("comment" AS ?row_kind) .
+                    ?uri rdfs:comment ?label_val .
+                }
+                UNION
+                {
+                    BIND("altLabel" AS ?row_kind) .
+                    ?uri skos:altLabel ?label_val .
+                }
+                UNION
+                {
+                    BIND("note" AS ?row_kind) .
+                    ?uri skos:note ?label_val .
+                }
+                UNION
+                {
+                    BIND("input" AS ?row_kind) .
+                    ?uri uc:actionInput ?prop_uri .
+                    OPTIONAL { ?prop_uri rdfs:label ?prop_label }
+                }
+                UNION
+                {
+                    BIND("output" AS ?row_kind) .
+                    ?uri uc:actionOutput ?prop_uri .
+                    OPTIONAL { ?prop_uri rdfs:label ?prop_label }
+                }
+                UNION
+                {
+                    BIND("target" AS ?row_kind) .
+                    ?uri uc:targetConcept ?concept_uri .
+                    OPTIONAL { ?concept_uri rdfs:label ?concept_label }
+                }
+                UNION
+                {
+                    BIND("function" AS ?row_kind) .
+                    ?function_uri uc:actionAssignment ?uri .
+                    OPTIONAL { ?function_uri uc:name ?function_name }
+                }
+            }
+            """,
+            initBindings={"uri": uri_ref},
+        )
+        rows = self._to_dicts(r.bindings)
+        if not rows:
+            return None
+
+        def to_py(obj):
+            return obj.toPython() if obj is not None and hasattr(obj, "toPython") else (str(obj) if obj is not None else None)
+
+        result = {
+            "uri": uri,
+            "labels": [],
+            "comments": [],
+            "alt_labels": [],
+            "notes": [],
+            "action_inputs": [],
+            "action_outputs": [],
+            "target_concepts": [],
+            "assigned_functions": [],
+        }
+        seen_inputs = set()
+        seen_outputs = set()
+        seen_targets = set()
+        seen_functions = set()
+
+        for row in rows:
+            kind = row.get("row_kind")
+            if kind == "label" and row.get("label_val"):
+                result["labels"].append(to_py(row["label_val"]))
+            elif kind == "comment" and row.get("label_val"):
+                result["comments"].append(to_py(row["label_val"]))
+            elif kind == "altLabel" and row.get("label_val"):
+                result["alt_labels"].append(to_py(row["label_val"]))
+            elif kind == "note" and row.get("label_val"):
+                result["notes"].append(to_py(row["label_val"]))
+            elif kind == "input" and row.get("prop_uri"):
+                p_uri = to_py(row["prop_uri"])
+                if p_uri not in seen_inputs:
+                    seen_inputs.add(p_uri)
+                    result["action_inputs"].append({
+                        "uri": p_uri,
+                        "label": to_py(row.get("prop_label")),
+                    })
+            elif kind == "output" and row.get("prop_uri"):
+                p_uri = to_py(row["prop_uri"])
+                if p_uri not in seen_outputs:
+                    seen_outputs.add(p_uri)
+                    result["action_outputs"].append({
+                        "uri": p_uri,
+                        "label": to_py(row.get("prop_label")),
+                    })
+            elif kind == "target" and row.get("concept_uri"):
+                c_uri = to_py(row["concept_uri"])
+                if c_uri not in seen_targets:
+                    seen_targets.add(c_uri)
+                    result["target_concepts"].append({
+                        "uri": c_uri,
+                        "label": to_py(row.get("concept_label")),
+                    })
+            elif kind == "function" and row.get("function_uri"):
+                f_uri = to_py(row["function_uri"])
+                if f_uri not in seen_functions:
+                    seen_functions.add(f_uri)
+                    result["assigned_functions"].append({
+                        "function_uri": f_uri,
+                        "function_name": to_py(row.get("function_name")),
+                    })
+
+        return result
+
+    def update_action(
+        self,
+        uri: str,
+        label: str,
+        comment: Optional[str] = None,
+        alt_labels: Optional[list[str]] = None,
+        notes: Optional[list[str]] = None,
+        action_inputs: Optional[list[str]] = None,
+        action_outputs: Optional[list[str]] = None,
+        target_concepts: Optional[list[str]] = None,
+    ):
+        """Update an existing action's metadata."""
+        uri_ref = URIRef(uri)
+        for old in self._graph.objects(uri_ref, RDFS.label):
+            self._graph.remove((uri_ref, RDFS.label, old))
+        self._graph.add((uri_ref, RDFS.label, Literal(label)))
+        for old in self._graph.objects(uri_ref, RDFS.comment):
+            self._graph.remove((uri_ref, RDFS.comment, old))
+        if comment:
+            self._graph.add((uri_ref, RDFS.comment, Literal(comment)))
+        for old in self._graph.objects(uri_ref, SKOS.altLabel):
+            self._graph.remove((uri_ref, SKOS.altLabel, old))
+        for alt in alt_labels or []:
+            self._graph.add((uri_ref, SKOS.altLabel, Literal(alt)))
+        for old in self._graph.objects(uri_ref, SKOS.note):
+            self._graph.remove((uri_ref, SKOS.note, old))
+        for note in notes or []:
+            self._graph.add((uri_ref, SKOS.note, Literal(note)))
+        for old in self._graph.objects(uri_ref, UC.actionInput):
+            self._graph.remove((uri_ref, UC.actionInput, old))
+        for prop_uri in action_inputs or []:
+            self._graph.add((uri_ref, UC.actionInput, URIRef(prop_uri)))
+        for old in self._graph.objects(uri_ref, UC.actionOutput):
+            self._graph.remove((uri_ref, UC.actionOutput, old))
+        for prop_uri in action_outputs or []:
+            self._graph.add((uri_ref, UC.actionOutput, URIRef(prop_uri)))
+        for old in self._graph.objects(uri_ref, UC.targetConcept):
+            self._graph.remove((uri_ref, UC.targetConcept, old))
+        for concept_uri in target_concepts or []:
+            self._graph.add((uri_ref, UC.targetConcept, URIRef(concept_uri)))
+        logger.info(f"Updated action {uri}")
+
     def get_properties(self) -> list[dict]:
         """Get all RDF properties with their domain and range."""
         r = self._graph.query(
@@ -646,13 +1066,13 @@ class GraphManager:
             WHERE {
                 ?uri a rdf:Property .
                 OPTIONAL { ?uri rdfs:label ?name }
-                OPTIONAL { 
+                OPTIONAL {
                     ?uri rdfs:domain ?domain .
-                    ?domain rdfs:label ?domain_label
+                    OPTIONAL { ?domain rdfs:label ?domain_label }
                 }
-                OPTIONAL { 
+                OPTIONAL {
                     ?uri rdfs:range ?range .
-                    ?range rdfs:label ?range_label
+                    OPTIONAL { ?range rdfs:label ?range_label }
                 }
             }
         """
@@ -757,9 +1177,11 @@ class GraphManager:
         return result
 
     def delete_object(self, uri: str):
-        uri = URIRef(uri)
-        for pred, obj in self._graph.predicate_objects(subject=uri):
-            self._graph.remove((uri, pred, obj))
+        uri_ref = URIRef(uri)
+        for pred, obj in list(self._graph.predicate_objects(subject=uri_ref)):
+            self._graph.remove((uri_ref, pred, obj))
+        for subj, pred in list(self._graph.subject_predicates(object=uri_ref)):
+            self._graph.remove((subj, pred, uri_ref))
         logger.info(f"Deleted object {uri}")
 
     def search(self, query: str, kind: Optional[str] = None) -> list[dict]:

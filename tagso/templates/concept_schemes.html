@@ -13,12 +13,17 @@
   "scheme": "{{ url_for('concept_schemes.concept_schemes_scheme_detail') }}",
   "resourceConcept": "{{ url_for('concept_schemes.concept_schemes_resource', kind='concept') }}",
   "resourceProperty": "{{ url_for('concept_schemes.concept_schemes_resource', kind='property') }}",
+  "resourceAction": "{{ url_for('concept_schemes.concept_schemes_resource', kind='action') }}",
+  "actionsCreate": "{{ url_for('actions.actions_post') }}",
   "catalogBase": "{{ url_for('catalog.catalog_get') }}",
   "members": "{{ url_for('concept_schemes.concept_schemes_members') }}",
   "update": "{{ url_for('concept_schemes.concept_schemes_update') }}",
   "addMembers": "{{ url_for('concept_schemes.concept_schemes_add_members') }}",
   "create": "{{ url_for('concept_schemes.concept_schemes_post') }}",
-  "delete": "{{ url_for('concept_schemes.concept_schemes_delete') }}"
+  "delete": "{{ url_for('concept_schemes.concept_schemes_delete') }}",
+  "propertyUpdate": "{{ url_for('concept_schemes.concept_schemes_property_update') }}",
+  "conceptUpdate": "{{ url_for('concept_schemes.concept_schemes_concept_update') }}",
+  "concepts": "{{ url_for('concept_schemes.concept_schemes_concepts') }}"
 }
 </script>
 {{ macros.tree_sidebar(
@@ -71,11 +76,31 @@
       <select name="resource_uris" multiple size="8" data-slot="member-options"></select>
       <button type="submit">Add to scheme</button>
     </form>
+    <h4>Create Action</h4>
+    <form id="create_action_form">
+      <input type="hidden" name="scheme_uri" data-slot="create-action-scheme-uri">
+      <label for="action_label">Label</label>
+      <input type="text" id="action_label" name="label" required placeholder="e.g. Calculate Premium">
+      <label for="action_comment">Description</label>
+      <textarea id="action_comment" name="comment" rows="2" placeholder="Optional"></textarea>
+      <label for="action_inputs">Input properties</label>
+      <select id="action_inputs" name="action_inputs" multiple size="3" data-slot="action-input-options"></select>
+      <label for="action_outputs">Output properties</label>
+      <select id="action_outputs" name="action_outputs" multiple size="3" data-slot="action-output-options"></select>
+      <label for="action_targets">Target concept(s)</label>
+      <select id="action_targets" name="target_concepts" multiple size="3" data-slot="action-target-options"></select>
+      <label><input type="checkbox" name="add_to_scheme" checked> Add to this scheme</label>
+      <button type="submit" class="primary">Create Action</button>
+    </form>
   </section>
 </template>
 
 <template id="member-list-item">
   <li data-slot="label"></li>
+</template>
+
+<template id="option">
+  <option data-slot="option"></option>
 </template>
 
 <template id="property-row">
@@ -143,26 +168,7 @@
     let schemes = [];
     const membersCache = {};
 
-    function typeLabel(type) {
-      if (!type) return 'Resource';
-      if (type.includes('Class')) return 'rdfs:Class';
-      if (type.includes('Concept')) return 'skos:Concept';
-      if (type.includes('Property')) return 'rdfs:Property';
-      return type;
-    }
-
-    function typeIcon(type) {
-      if (!type) return '';
-      if (type.includes('Class')) return 'group';
-      if (type.includes('Concept')) return 'lightbulb';
-      if (type.includes('Property')) return 'link';
-      return '';
-    }
-
-    function resourceKind(type) {
-      if (!type) return 'concept';
-      return type.includes('Property') ? 'property' : 'concept';
-    }
+    const TYPE_ICONS = { 'rdfs:Class': 'group', 'skos:Concept': 'lightbulb', 'rdf:Property': 'link', 'uc:Action': 'action' };
 
     const schemeTreeConfig = {
       loadChildren: async (caret) => {
@@ -176,7 +182,7 @@
       },
       renderChildren: (members) =>
         members.map((m) =>
-          TreeView.renderLeaf(`${typeLabel(m.type)}: ${m.label || m.uri}`, { uri: m.uri, type: 'resource', resource_type: m.type }, typeIcon(m.type))
+          TreeView.renderLeaf(`${m.label || m.uri}`, { uri: m.uri, type: 'resource', resource_type: m.type }, TYPE_ICONS[m.type] || '')
         ).join(''),
       afterExpand: (caret) => selectScheme(caret.dataset.schemeUri),
       onLeafSelect: (li) => selectResource(li.dataset.uri, li.dataset.resourceType)
@@ -184,7 +190,7 @@
 
     function renderSchemeTree() {
       schemeTree.innerHTML = schemes.map((s, i) =>
-        TreeView.renderExpandable(`scheme-subtree-${i}`, `skos:ConceptScheme: ${s.label || s.uri}`, { scheme_uri: s.uri }, 'book')
+        TreeView.renderExpandable(`scheme-subtree-${i}`, `${s.label || s.uri}`, { scheme_uri: s.uri }, 'book')
       ).join('');
       schemeTree.querySelectorAll('.caret').forEach((c) => TreeView.setupCaret(c, schemeTreeConfig));
     }
@@ -199,13 +205,23 @@
         return;
       }
 
-      const { scheme, members, all_concepts, all_properties, member_uris } = data;
-      const memberOptions = [...all_concepts, ...all_properties].filter(c => !member_uris.includes(c.uri));
+      const { scheme, members, all_concepts, all_properties, all_actions = [], member_uris } = data;
+      const memberOptions = [...all_concepts, ...all_properties, ...all_actions].filter(c => !member_uris.includes(c.uri));
       const membersFrag = renderList('member-list-item', members, (m) => ({
-        label: `${typeLabel(m.type)}: ${m.label || m.uri}`
+        label: `${m.type || 'Resource'}: ${m.label || m.uri}`
       }));
       const optionsFrag = renderList('option', memberOptions, (c) => ({
         option: { __value: c.uri, __label: c.label || c.name || c.uri }
+      }));
+
+      const actionInputOptions = renderList('option', all_properties, (p) => ({
+        option: { __value: p.uri, __label: p.name || p.uri }
+      }));
+      const actionOutputOptions = renderList('option', all_properties, (p) => ({
+        option: { __value: p.uri, __label: p.name || p.uri }
+      }));
+      const actionTargetOptions = renderList('option', all_concepts, (c) => ({
+        option: { __value: c.uri, __label: c.label || c.uri }
       }));
 
       const schemeFrag = fillTemplate('scheme-detail', {
@@ -216,7 +232,11 @@
         'delete-attrs': { 'data-uri': scheme.uri, 'data-url': urls.delete },
         'members-list': html.fragment(membersFrag),
         'add-uri': scheme.uri,
-        'member-options': html.fragment(optionsFrag)
+        'member-options': html.fragment(optionsFrag),
+        'create-action-scheme-uri': scheme.uri,
+        'action-input-options': html.fragment(actionInputOptions),
+        'action-output-options': html.fragment(actionOutputOptions),
+        'action-target-options': html.fragment(actionTargetOptions)
       });
       detailPane.replaceChildren(schemeFrag);
 
@@ -255,6 +275,33 @@
           selectScheme(scheme.uri);
         }
       });
+
+      detailPane.querySelector('#create_action_form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const form = e.target;
+        const body = {
+          label: form.label.value.trim(),
+          comment: form.comment?.value.trim() || undefined,
+          action_inputs: Array.from(form.action_inputs.selectedOptions).map(o => o.value),
+          action_outputs: Array.from(form.action_outputs.selectedOptions).map(o => o.value),
+          target_concepts: Array.from(form.target_concepts.selectedOptions).map(o => o.value),
+          scheme_uri: form.add_to_scheme.checked ? scheme.uri : undefined
+        };
+        const r = await fetch(urls.actionsCreate, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        if (r.ok) {
+          const data = await r.json();
+          delete membersCache[scheme.uri];
+          selectScheme(scheme.uri);
+          if (data.uri) selectResource(data.uri, 'uc:Action');
+        } else {
+          const err = await r.json();
+          alert(err.error || 'Failed to create action');
+        }
+      });
     }
 
     function conceptPageUrl(uri) {
@@ -265,10 +312,164 @@
       return `${urls.conceptSchemes}/property?uri=${encodeURIComponent(uri)}`;
     }
 
+    function actionPageUrl(uri) {
+      return `${urls.conceptSchemes}/action?uri=${encodeURIComponent(uri)}`;
+    }
+
+    function linesFromTextarea(el) {
+      return el.value.split('\n').map((s) => s.trim()).filter(Boolean);
+    }
+
+    function fillConceptSelect(selectEl, concepts, datatypes, currentUri) {
+      selectEl.innerHTML = '';
+      const none = document.createElement('option');
+      none.value = '';
+      none.textContent = '— None —';
+      selectEl.appendChild(none);
+      const uris = new Set();
+
+      const ogConcepts = document.createElement('optgroup');
+      ogConcepts.label = 'Classes and concepts';
+      for (const c of concepts) {
+        if (!c.uri) continue;
+        const opt = document.createElement('option');
+        opt.value = c.uri;
+        opt.textContent = c.label || c.uri;
+        ogConcepts.appendChild(opt);
+        uris.add(String(c.uri));
+      }
+      selectEl.appendChild(ogConcepts);
+
+      const ogDt = document.createElement('optgroup');
+      ogDt.label = 'XML Schema datatypes';
+      for (const d of datatypes) {
+        if (!d.uri) continue;
+        const opt = document.createElement('option');
+        opt.value = d.uri;
+        opt.textContent = d.label || d.uri;
+        ogDt.appendChild(opt);
+        uris.add(String(d.uri));
+      }
+      selectEl.appendChild(ogDt);
+
+      const cur = currentUri != null && currentUri !== '' ? String(currentUri) : '';
+      if (cur && !uris.has(cur)) {
+        const opt = document.createElement('option');
+        opt.value = cur;
+        opt.textContent = `${cur} (current, not in list)`;
+        selectEl.appendChild(opt);
+      }
+      selectEl.value = cur;
+    }
+
+    async function buildPropertyMetadataForm(resource) {
+      const conceptsRes = await fetch(urls.concepts);
+      const conceptsData = await conceptsRes.json().catch(() => ({}));
+      const concepts = conceptsData.concepts || [];
+      const datatypes = conceptsData.datatypes || [];
+
+      const section = document.createElement('section');
+      section.className = 'property-metadata-edit';
+      section.setAttribute('aria-label', 'Edit property metadata');
+      section.innerHTML = `
+        <h3>Edit property</h3>
+        <form id="property_metadata_form">
+          <label for="property_edit_label">Label (rdfs:label)</label>
+          <input type="text" id="property_edit_label" name="label" required autocomplete="off">
+          <label for="property_edit_comments">Comments (rdfs:comment, one per line)</label>
+          <textarea id="property_edit_comments" rows="3" placeholder="Optional"></textarea>
+          <label for="property_edit_alt_labels">Alternative labels (skos:altLabel, one per line)</label>
+          <textarea id="property_edit_alt_labels" rows="3" placeholder="Optional"></textarea>
+          <label for="property_edit_domain">Domain (rdfs:domain)</label>
+          <select id="property_edit_domain" name="domain"></select>
+          <label for="property_edit_range">Range (rdfs:range)</label>
+          <select id="property_edit_range" name="range"></select>
+          <button type="submit" class="primary">Save</button>
+        </form>
+      `;
+      const labelInput = section.querySelector('#property_edit_label');
+      const commentsTa = section.querySelector('#property_edit_comments');
+      const altTa = section.querySelector('#property_edit_alt_labels');
+      const domainSelect = section.querySelector('#property_edit_domain');
+      const rangeSelect = section.querySelector('#property_edit_range');
+      labelInput.value = (resource.labels && resource.labels[0]) || '';
+      commentsTa.value = (resource.comments || []).join('\n');
+      altTa.value = (resource.alt_labels || []).join('\n');
+      fillConceptSelect(domainSelect, concepts, datatypes, resource.domain);
+      fillConceptSelect(rangeSelect, concepts, datatypes, resource.range);
+      section.querySelector('#property_metadata_form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const body = {
+          uri: resource.uri,
+          label: labelInput.value.trim(),
+          comments: linesFromTextarea(commentsTa),
+          alt_labels: linesFromTextarea(altTa),
+          domain: domainSelect.value.trim(),
+          range: rangeSelect.value.trim()
+        };
+        const resp = await fetch(urls.propertyUpdate, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        if (resp.ok) {
+          await selectResource(resource.uri, 'rdf:Property');
+        } else {
+          const err = await resp.json().catch(() => ({}));
+          alert(err.error || 'Failed to save property');
+        }
+      });
+      return section;
+    }
+
+    async function buildConceptMetadataForm(resource) {
+      const section = document.createElement('section');
+      section.className = 'concept-metadata-edit';
+      section.setAttribute('aria-label', 'Edit concept metadata');
+      section.innerHTML = `
+        <h3>Edit concept</h3>
+        <form id="concept_metadata_form">
+          <label for="concept_edit_label">Label (rdfs:label)</label>
+          <input type="text" id="concept_edit_label" name="label" required autocomplete="off">
+          <label for="concept_edit_comments">Comments (rdfs:comment, one per line)</label>
+          <textarea id="concept_edit_comments" rows="3" placeholder="Optional"></textarea>
+          <label for="concept_edit_alt_labels">Alternative labels (skos:altLabel, one per line)</label>
+          <textarea id="concept_edit_alt_labels" rows="3" placeholder="Optional"></textarea>
+          <button type="submit" class="primary">Save</button>
+        </form>
+      `;
+      const labelInput = section.querySelector('#concept_edit_label');
+      const commentsTa = section.querySelector('#concept_edit_comments');
+      const altTa = section.querySelector('#concept_edit_alt_labels');
+      labelInput.value = (resource.labels && resource.labels[0]) || '';
+      commentsTa.value = (resource.comments || []).join('\n');
+      altTa.value = (resource.alt_labels || []).join('\n');
+      section.querySelector('#concept_metadata_form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const body = {
+          uri: resource.uri,
+          label: labelInput.value.trim(),
+          comments: linesFromTextarea(commentsTa),
+          alt_labels: linesFromTextarea(altTa)
+        };
+        const resp = await fetch(urls.conceptUpdate, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        if (resp.ok) {
+          await selectResource(resource.uri, resource.type || 'rdfs:Class');
+        } else {
+          const err = await resp.json().catch(() => ({}));
+          alert(err.error || 'Failed to save concept');
+        }
+      });
+      return section;
+    }
+
     async function selectResource(uri, resourceType) {
       detailPlaceholder.hidden = true;
-      const kind = resourceKind(resourceType);
-      const resourceUrl = kind === 'property' ? urls.resourceProperty : urls.resourceConcept;
+      const resourceUrl = resourceType === 'rdf:Property' ? urls.resourceProperty : (resourceType === 'uc:Action' ? urls.resourceAction : urls.resourceConcept);
       const r = await fetch(`${resourceUrl}?uri=${encodeURIComponent(uri)}`);
       const data = await r.json();
       if (!r.ok) {
@@ -280,6 +481,81 @@
       const { resource, type } = data;
       const displayLabel = (resource.labels && resource.labels[0]) || resource.label || resource.name || resource.uri;
       const inScheme = resource.in_scheme ? `From skos:ConceptScheme: ${resource.in_scheme}` : null;
+
+      if (type === 'action') {
+        const labelsFrag = (resource.labels && resource.labels.length)
+          ? renderList('simple-list-item', resource.labels, (t) => ({ text: t }))
+          : null;
+        const commentsFrag = (resource.comments && resource.comments.length)
+          ? renderList('simple-list-item', resource.comments, (t) => ({ text: t }))
+          : null;
+        const altLabelsFrag = (resource.alt_labels && resource.alt_labels.length)
+          ? renderList('simple-list-item', resource.alt_labels, (t) => ({ text: t }))
+          : null;
+        const notesFrag = (resource.notes && resource.notes.length)
+          ? renderList('simple-list-item', resource.notes, (t) => ({ text: t }))
+          : null;
+        const inputsFrag = (resource.action_inputs && resource.action_inputs.length)
+          ? renderList('link-list-item', resource.action_inputs, (item) => ({
+              'link-href': propertyPageUrl(item.uri),
+              'link-text': item.label || item.uri
+            }))
+          : null;
+        const outputsFrag = (resource.action_outputs && resource.action_outputs.length)
+          ? renderList('link-list-item', resource.action_outputs, (item) => ({
+              'link-href': propertyPageUrl(item.uri),
+              'link-text': item.label || item.uri
+            }))
+          : null;
+        const targetsFrag = (resource.target_concepts && resource.target_concepts.length)
+          ? renderList('link-list-item', resource.target_concepts, (item) => ({
+              'link-href': conceptPageUrl(item.uri),
+              'link-text': item.label || item.uri
+            }))
+          : null;
+        const catalogFrag = (resource.assigned_functions && resource.assigned_functions.length)
+          ? renderList('link-list-item', resource.assigned_functions, (item) => ({
+              'link-href': `${urls.catalogBase}?type=function&name=${encodeURIComponent(item.function_name || '')}`,
+              'link-text': item.function_name || item.function_uri
+            }))
+          : null;
+
+        const actionDetailFrag = fillTemplate('resource-detail', {
+          'type-badge': 'uc:Action',
+          title: displayLabel,
+          'in-scheme': inScheme,
+          'labels-section': labelsFrag ? html.keep() : null,
+          'labels-list': labelsFrag ? html.fragment(labelsFrag) : null,
+          'comments-section': commentsFrag ? html.keep() : null,
+          'comments-list': commentsFrag ? html.fragment(commentsFrag) : null,
+          'alt-labels-section': altLabelsFrag ? html.keep() : null,
+          'alt-labels-list': altLabelsFrag ? html.fragment(altLabelsFrag) : null,
+          'super-section': notesFrag ? html.keep() : null,
+          'super-title': notesFrag ? 'Notes (skos:note)' : null,
+          'super-list': notesFrag ? html.fragment(notesFrag) : null,
+          'sub-section': inputsFrag ? html.keep() : null,
+          'sub-title': inputsFrag ? 'Inputs (uc:actionInput)' : null,
+          'sub-list': inputsFrag ? html.fragment(inputsFrag) : null,
+          'domain-range-section': outputsFrag ? html.keep() : null,
+          'domain-range-list': outputsFrag ? renderList('domain-range-row', resource.action_outputs, (row) => ({
+            term: row.label || 'Output',
+            'link-href': propertyPageUrl(row.uri),
+            'link-text': row.label || row.uri
+          })) : null,
+          'catalog-section': catalogFrag ? html.keep() : null,
+          'catalog-title': catalogFrag ? 'Assigned functions' : null,
+          'catalog-list': catalogFrag ? html.fragment(catalogFrag) : null
+        });
+        detailPane.replaceChildren(actionDetailFrag);
+        if (targetsFrag) {
+          const targetsSection = document.createElement('section');
+          targetsSection.setAttribute('aria-label', 'Target concepts');
+          targetsSection.innerHTML = '<h3>Target concepts (uc:targetConcept)</h3><ul></ul>';
+          targetsSection.querySelector('ul').append(...targetsFrag.childNodes);
+          detailPane.appendChild(targetsSection);
+        }
+        return;
+      }
 
       const labelsFrag = (resource.labels && resource.labels.length)
         ? renderList('simple-list-item', resource.labels, (t) => ({ text: t }))
@@ -340,7 +616,7 @@
         : null;
 
       const resourceFrag = fillTemplate('resource-detail', {
-        'type-badge': typeLabel(resource.type),
+        'type-badge': resource.type || 'Resource',
         title: displayLabel,
         'in-scheme': inScheme,
         'labels-section': labelsFrag ? html.keep() : null,
@@ -362,6 +638,11 @@
         'catalog-list': catalogFrag ? html.fragment(catalogFrag) : null
       });
       detailPane.replaceChildren(resourceFrag);
+      if (type === 'property') {
+        detailPane.appendChild(await buildPropertyMetadataForm(resource));
+      } else if (type === 'concept') {
+        detailPane.appendChild(await buildConceptMetadataForm(resource));
+      }
     }
 
     async function loadSchemes() {
@@ -396,11 +677,14 @@
       await loadSchemes();
       const params = new URLSearchParams(location.search);
       const initialUri = params.get('uri');
-      const pathKind = location.pathname.endsWith('/concept') ? 'concept' : (location.pathname.endsWith('/property') ? 'property' : null);
+      const pathKind = location.pathname.endsWith('/concept') ? 'concept' : (location.pathname.endsWith('/property') ? 'property' : (location.pathname.endsWith('/action') ? 'action' : null));
       if (initialUri) {
         const isScheme = schemes.some(s => s.uri === initialUri);
         if (isScheme) selectScheme(initialUri);
-        else selectResource(initialUri, pathKind ? (pathKind === 'property' ? 'rdf:Property' : 'rdfs:Class') : null);
+        else {
+          const resourceType = pathKind === 'action' ? 'uc:Action' : (pathKind === 'property' ? 'rdf:Property' : 'rdfs:Class');
+          selectResource(initialUri, resourceType);
+        }
       }
     })();
   })();
