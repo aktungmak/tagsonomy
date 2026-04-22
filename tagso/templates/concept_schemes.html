@@ -20,7 +20,10 @@
   "update": "{{ url_for('concept_schemes.concept_schemes_update') }}",
   "addMembers": "{{ url_for('concept_schemes.concept_schemes_add_members') }}",
   "create": "{{ url_for('concept_schemes.concept_schemes_post') }}",
-  "delete": "{{ url_for('concept_schemes.concept_schemes_delete') }}"
+  "delete": "{{ url_for('concept_schemes.concept_schemes_delete') }}",
+  "propertyUpdate": "{{ url_for('concept_schemes.concept_schemes_property_update') }}",
+  "conceptUpdate": "{{ url_for('concept_schemes.concept_schemes_concept_update') }}",
+  "concepts": "{{ url_for('concept_schemes.concept_schemes_concepts') }}"
 }
 </script>
 {{ macros.tree_sidebar(
@@ -313,6 +316,157 @@
       return `${urls.conceptSchemes}/action?uri=${encodeURIComponent(uri)}`;
     }
 
+    function linesFromTextarea(el) {
+      return el.value.split('\n').map((s) => s.trim()).filter(Boolean);
+    }
+
+    function fillConceptSelect(selectEl, concepts, datatypes, currentUri) {
+      selectEl.innerHTML = '';
+      const none = document.createElement('option');
+      none.value = '';
+      none.textContent = '— None —';
+      selectEl.appendChild(none);
+      const uris = new Set();
+
+      const ogConcepts = document.createElement('optgroup');
+      ogConcepts.label = 'Classes and concepts';
+      for (const c of concepts) {
+        if (!c.uri) continue;
+        const opt = document.createElement('option');
+        opt.value = c.uri;
+        opt.textContent = c.label || c.uri;
+        ogConcepts.appendChild(opt);
+        uris.add(String(c.uri));
+      }
+      selectEl.appendChild(ogConcepts);
+
+      const ogDt = document.createElement('optgroup');
+      ogDt.label = 'XML Schema datatypes';
+      for (const d of datatypes) {
+        if (!d.uri) continue;
+        const opt = document.createElement('option');
+        opt.value = d.uri;
+        opt.textContent = d.label || d.uri;
+        ogDt.appendChild(opt);
+        uris.add(String(d.uri));
+      }
+      selectEl.appendChild(ogDt);
+
+      const cur = currentUri != null && currentUri !== '' ? String(currentUri) : '';
+      if (cur && !uris.has(cur)) {
+        const opt = document.createElement('option');
+        opt.value = cur;
+        opt.textContent = `${cur} (current, not in list)`;
+        selectEl.appendChild(opt);
+      }
+      selectEl.value = cur;
+    }
+
+    async function buildPropertyMetadataForm(resource) {
+      const conceptsRes = await fetch(urls.concepts);
+      const conceptsData = await conceptsRes.json().catch(() => ({}));
+      const concepts = conceptsData.concepts || [];
+      const datatypes = conceptsData.datatypes || [];
+
+      const section = document.createElement('section');
+      section.className = 'property-metadata-edit';
+      section.setAttribute('aria-label', 'Edit property metadata');
+      section.innerHTML = `
+        <h3>Edit property</h3>
+        <form id="property_metadata_form">
+          <label for="property_edit_label">Label (rdfs:label)</label>
+          <input type="text" id="property_edit_label" name="label" required autocomplete="off">
+          <label for="property_edit_comments">Comments (rdfs:comment, one per line)</label>
+          <textarea id="property_edit_comments" rows="3" placeholder="Optional"></textarea>
+          <label for="property_edit_alt_labels">Alternative labels (skos:altLabel, one per line)</label>
+          <textarea id="property_edit_alt_labels" rows="3" placeholder="Optional"></textarea>
+          <label for="property_edit_domain">Domain (rdfs:domain)</label>
+          <select id="property_edit_domain" name="domain"></select>
+          <label for="property_edit_range">Range (rdfs:range)</label>
+          <select id="property_edit_range" name="range"></select>
+          <button type="submit" class="primary">Save</button>
+        </form>
+      `;
+      const labelInput = section.querySelector('#property_edit_label');
+      const commentsTa = section.querySelector('#property_edit_comments');
+      const altTa = section.querySelector('#property_edit_alt_labels');
+      const domainSelect = section.querySelector('#property_edit_domain');
+      const rangeSelect = section.querySelector('#property_edit_range');
+      labelInput.value = (resource.labels && resource.labels[0]) || '';
+      commentsTa.value = (resource.comments || []).join('\n');
+      altTa.value = (resource.alt_labels || []).join('\n');
+      fillConceptSelect(domainSelect, concepts, datatypes, resource.domain);
+      fillConceptSelect(rangeSelect, concepts, datatypes, resource.range);
+      section.querySelector('#property_metadata_form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const body = {
+          uri: resource.uri,
+          label: labelInput.value.trim(),
+          comments: linesFromTextarea(commentsTa),
+          alt_labels: linesFromTextarea(altTa),
+          domain: domainSelect.value.trim(),
+          range: rangeSelect.value.trim()
+        };
+        const resp = await fetch(urls.propertyUpdate, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        if (resp.ok) {
+          await selectResource(resource.uri, 'rdf:Property');
+        } else {
+          const err = await resp.json().catch(() => ({}));
+          alert(err.error || 'Failed to save property');
+        }
+      });
+      return section;
+    }
+
+    async function buildConceptMetadataForm(resource) {
+      const section = document.createElement('section');
+      section.className = 'concept-metadata-edit';
+      section.setAttribute('aria-label', 'Edit concept metadata');
+      section.innerHTML = `
+        <h3>Edit concept</h3>
+        <form id="concept_metadata_form">
+          <label for="concept_edit_label">Label (rdfs:label)</label>
+          <input type="text" id="concept_edit_label" name="label" required autocomplete="off">
+          <label for="concept_edit_comments">Comments (rdfs:comment, one per line)</label>
+          <textarea id="concept_edit_comments" rows="3" placeholder="Optional"></textarea>
+          <label for="concept_edit_alt_labels">Alternative labels (skos:altLabel, one per line)</label>
+          <textarea id="concept_edit_alt_labels" rows="3" placeholder="Optional"></textarea>
+          <button type="submit" class="primary">Save</button>
+        </form>
+      `;
+      const labelInput = section.querySelector('#concept_edit_label');
+      const commentsTa = section.querySelector('#concept_edit_comments');
+      const altTa = section.querySelector('#concept_edit_alt_labels');
+      labelInput.value = (resource.labels && resource.labels[0]) || '';
+      commentsTa.value = (resource.comments || []).join('\n');
+      altTa.value = (resource.alt_labels || []).join('\n');
+      section.querySelector('#concept_metadata_form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const body = {
+          uri: resource.uri,
+          label: labelInput.value.trim(),
+          comments: linesFromTextarea(commentsTa),
+          alt_labels: linesFromTextarea(altTa)
+        };
+        const resp = await fetch(urls.conceptUpdate, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        if (resp.ok) {
+          await selectResource(resource.uri, resource.type || 'rdfs:Class');
+        } else {
+          const err = await resp.json().catch(() => ({}));
+          alert(err.error || 'Failed to save concept');
+        }
+      });
+      return section;
+    }
+
     async function selectResource(uri, resourceType) {
       detailPlaceholder.hidden = true;
       const resourceUrl = resourceType === 'rdf:Property' ? urls.resourceProperty : (resourceType === 'uc:Action' ? urls.resourceAction : urls.resourceConcept);
@@ -484,6 +638,11 @@
         'catalog-list': catalogFrag ? html.fragment(catalogFrag) : null
       });
       detailPane.replaceChildren(resourceFrag);
+      if (type === 'property') {
+        detailPane.appendChild(await buildPropertyMetadataForm(resource));
+      } else if (type === 'concept') {
+        detailPane.appendChild(await buildConceptMetadataForm(resource));
+      }
     }
 
     async function loadSchemes() {

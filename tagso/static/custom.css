@@ -153,6 +153,33 @@ section[aria-label="Resource details"],
   padding: var(--dubois-space-md);
 }
 
+.property-metadata-edit,
+.concept-metadata-edit {
+  margin-top: var(--dubois-space-lg);
+  padding-top: var(--dubois-space-md);
+  border-top: 1px solid var(--dubois-border);
+}
+
+.property-metadata-edit h3,
+.concept-metadata-edit h3 {
+  margin-top: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.property-metadata-edit form,
+.concept-metadata-edit form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dubois-space-sm);
+  max-width: 40rem;
+}
+
+.property-metadata-edit select {
+  width: 100%;
+  max-width: 40rem;
+}
+
 /* Detail pane headers are content headers, not app navigation headers. */
 #detail_pane>header {
   padding: var(--dubois-space-sm) var(--dubois-space-md);

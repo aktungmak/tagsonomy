@@ -386,10 +386,14 @@ class GraphManager:
                     BIND("type" AS ?row_kind) .
                     ?uri a rdf:Property .
                     OPTIONAL { ?uri skos:inScheme ?in_scheme }
-                    OPTIONAL { ?uri rdfs:domain ?domain }
-                    OPTIONAL { ?domain rdfs:label ?domain_label }
-                    OPTIONAL { ?uri rdfs:range ?range }
-                    OPTIONAL { ?range rdfs:label ?range_label }
+                    OPTIONAL {
+                        ?uri rdfs:domain ?domain .
+                        OPTIONAL { ?domain rdfs:label ?domain_label }
+                    }
+                    OPTIONAL {
+                        ?uri rdfs:range ?range .
+                        OPTIONAL { ?range rdfs:label ?range_label }
+                    }
                 }
                 UNION
                 {
@@ -507,6 +511,125 @@ class GraphManager:
                     })
 
         return result
+
+    def update_property(
+        self,
+        uri: str,
+        label: str,
+        comments: Optional[list[str]] = None,
+        alt_labels: Optional[list[str]] = None,
+        domain: Optional[str] = None,
+        range_uri: Optional[str] = None,
+    ) -> bool:
+        """Replace rdfs:label, rdfs:comment, skos:altLabel, rdfs:domain, and rdfs:range for an rdf:Property.
+
+        Each predicate is fully replaced: multiple rdfs:label values become a single label;
+        comments and alt labels use the provided lists (empty lists clear them).
+        Empty or whitespace-only domain/range clears those triples.
+
+        Returns:
+            True if the URI exists and is typed rdf:Property; False otherwise.
+        """
+        uri_ref = URIRef(uri)
+        if RDF.Property not in set(self._graph.objects(uri_ref, RDF.type)):
+            return False
+
+        label_clean = label.strip()
+        if not label_clean:
+            return False
+
+        def _normalize_str_list(values: Optional[list[str]]) -> list[str]:
+            if not values:
+                return []
+            out: list[str] = []
+            for item in values:
+                if item is None:
+                    continue
+                s = str(item).strip()
+                if s:
+                    out.append(s)
+            return out
+
+        for old in self._graph.objects(uri_ref, RDFS.label):
+            self._graph.remove((uri_ref, RDFS.label, old))
+        self._graph.add((uri_ref, RDFS.label, Literal(label_clean)))
+
+        for old in self._graph.objects(uri_ref, RDFS.comment):
+            self._graph.remove((uri_ref, RDFS.comment, old))
+        for text in _normalize_str_list(comments):
+            self._graph.add((uri_ref, RDFS.comment, Literal(text)))
+
+        for old in self._graph.objects(uri_ref, SKOS.altLabel):
+            self._graph.remove((uri_ref, SKOS.altLabel, old))
+        for alt in _normalize_str_list(alt_labels):
+            self._graph.add((uri_ref, SKOS.altLabel, Literal(alt)))
+
+        for old in self._graph.objects(uri_ref, RDFS.domain):
+            self._graph.remove((uri_ref, RDFS.domain, old))
+        domain_clean = (domain or "").strip()
+        if domain_clean:
+            self._graph.add((uri_ref, RDFS.domain, URIRef(domain_clean)))
+
+        for old in self._graph.objects(uri_ref, RDFS.range):
+            self._graph.remove((uri_ref, RDFS.range, old))
+        range_clean = (range_uri or "").strip()
+        if range_clean:
+            self._graph.add((uri_ref, RDFS.range, URIRef(range_clean)))
+
+        logger.info(f"Updated property {uri}")
+        return True
+
+    def update_concept(
+        self,
+        uri: str,
+        label: str,
+        comments: Optional[list[str]] = None,
+        alt_labels: Optional[list[str]] = None,
+    ) -> bool:
+        """Replace rdfs:label, rdfs:comment, and skos:altLabel for an rdfs:Class or skos:Concept.
+
+        Comments and alt labels use the provided lists (empty lists clear them).
+
+        Returns:
+            True if the URI exists and is typed rdfs:Class or skos:Concept; False otherwise.
+        """
+        uri_ref = URIRef(uri)
+        types = set(self._graph.objects(uri_ref, RDF.type))
+        if RDFS.Class not in types and SKOS.Concept not in types:
+            return False
+
+        label_clean = label.strip()
+        if not label_clean:
+            return False
+
+        def _normalize_str_list(values: Optional[list[str]]) -> list[str]:
+            if not values:
+                return []
+            out: list[str] = []
+            for item in values:
+                if item is None:
+                    continue
+                s = str(item).strip()
+                if s:
+                    out.append(s)
+            return out
+
+        for old in self._graph.objects(uri_ref, RDFS.label):
+            self._graph.remove((uri_ref, RDFS.label, old))
+        self._graph.add((uri_ref, RDFS.label, Literal(label_clean)))
+
+        for old in self._graph.objects(uri_ref, RDFS.comment):
+            self._graph.remove((uri_ref, RDFS.comment, old))
+        for text in _normalize_str_list(comments):
+            self._graph.add((uri_ref, RDFS.comment, Literal(text)))
+
+        for old in self._graph.objects(uri_ref, SKOS.altLabel):
+            self._graph.remove((uri_ref, SKOS.altLabel, old))
+        for alt in _normalize_str_list(alt_labels):
+            self._graph.add((uri_ref, SKOS.altLabel, Literal(alt)))
+
+        logger.info(f"Updated concept {uri}")
+        return True
 
     def insert_concept_assignment(self, table_uri: str, concept_uri: str):
         """Insert a concept assignment from a table to a concept."""
@@ -943,13 +1066,13 @@ class GraphManager:
             WHERE {
                 ?uri a rdf:Property .
                 OPTIONAL { ?uri rdfs:label ?name }
-                OPTIONAL { 
+                OPTIONAL {
                     ?uri rdfs:domain ?domain .
-                    ?domain rdfs:label ?domain_label
+                    OPTIONAL { ?domain rdfs:label ?domain_label }
                 }
-                OPTIONAL { 
+                OPTIONAL {
                     ?uri rdfs:range ?range .
-                    ?range rdfs:label ?range_label
+                    OPTIONAL { ?range rdfs:label ?range_label }
                 }
             }
         """

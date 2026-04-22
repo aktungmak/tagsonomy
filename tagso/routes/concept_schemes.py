@@ -1,4 +1,5 @@
 from flask import Blueprint, render_template, current_app
+from rdflib.namespace import XSD
 from werkzeug.local import LocalProxy
 
 from config import generate_scheme_uri
@@ -7,6 +8,11 @@ from validation import require_params
 concept_schemes_bp = Blueprint("concept_schemes", __name__)
 
 gm = LocalProxy(lambda: current_app.gm)
+
+XSD_DATATYPE_OPTIONS = [
+    {"uri": str(t), "label": f"xsd:{t.rsplit('#', 1)[-1]}"}
+    for t in (XSD.string, XSD.integer, XSD.float, XSD.dateTime, XSD.boolean)
+]
 
 
 @concept_schemes_bp.get("/concept_schemes")
@@ -27,6 +33,20 @@ def concept_schemes_list():
     """JSON API: schemes only (for initial load)."""
     schemes = gm.get_concept_schemes()
     return {"schemes": schemes}
+
+
+@concept_schemes_bp.get("/concept_schemes/concepts")
+def concept_schemes_concepts():
+    """JSON API: all class/concept URIs for domain and range dropdowns."""
+    concepts = gm.get_concepts()
+    concepts_sorted = sorted(
+        concepts,
+        key=lambda c: (
+            (c.get("label") or c.get("uri") or "").lower(),
+            c.get("uri") or "",
+        ),
+    )
+    return {"concepts": concepts_sorted, "datatypes": XSD_DATATYPE_OPTIONS}
 
 
 @concept_schemes_bp.get("/concept_schemes/members")
@@ -115,6 +135,59 @@ def concept_schemes_update(params):
 def concept_schemes_add_members(params):
     """Add selected Concepts/Properties to the scheme."""
     gm.add_members_to_scheme(params["uri"], params["resource_uris"])
+    return {"success": True}, 200
+
+
+@concept_schemes_bp.post("/concept_schemes/property/update")
+@require_params("uri", "label", source="json")
+def concept_schemes_property_update(params):
+    """Update property metadata: label, comments, alt labels, domain, and range."""
+    comments = params.get("comments")
+    alt_labels = params.get("alt_labels")
+    if comments is not None and not isinstance(comments, list):
+        return {"error": "comments must be a JSON array of strings"}, 400
+    if alt_labels is not None and not isinstance(alt_labels, list):
+        return {"error": "alt_labels must be a JSON array of strings"}, 400
+
+    domain = params.get("domain")
+    range_val = params.get("range")
+    if domain is not None and not isinstance(domain, str):
+        return {"error": "domain must be a string"}, 400
+    if range_val is not None and not isinstance(range_val, str):
+        return {"error": "range must be a string"}, 400
+
+    ok = gm.update_property(
+        uri=params["uri"],
+        label=params["label"],
+        comments=comments if comments is not None else [],
+        alt_labels=alt_labels if alt_labels is not None else [],
+        domain=domain,
+        range_uri=range_val,
+    )
+    if not ok:
+        return {"error": "Property not found"}, 404
+    return {"success": True}, 200
+
+
+@concept_schemes_bp.post("/concept_schemes/concept/update")
+@require_params("uri", "label", source="json")
+def concept_schemes_concept_update(params):
+    """Update concept/class metadata: label, comments, and alternative labels."""
+    comments = params.get("comments")
+    alt_labels = params.get("alt_labels")
+    if comments is not None and not isinstance(comments, list):
+        return {"error": "comments must be a JSON array of strings"}, 400
+    if alt_labels is not None and not isinstance(alt_labels, list):
+        return {"error": "alt_labels must be a JSON array of strings"}, 400
+
+    ok = gm.update_concept(
+        uri=params["uri"],
+        label=params["label"],
+        comments=comments if comments is not None else [],
+        alt_labels=alt_labels if alt_labels is not None else [],
+    )
+    if not ok:
+        return {"error": "Concept not found"}, 404
     return {"success": True}, 200
 
 
